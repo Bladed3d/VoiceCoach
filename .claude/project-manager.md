@@ -65,7 +65,7 @@ POST http://localhost:3000/api/pipelines
     },
     // ... all phases from breakdown files
   ],
-  "totalPhases": 6,
+  "totalPhases": [total-phases-from-breakdown],
   "currentPhase": [current-phase-number]
 }
 ```
@@ -336,9 +336,9 @@ Task(subagent_type: "breadcrumbs-agent", description: "User Dashboard Tracing", 
 **Example 2: Pipeline Overlap Optimization** 
 ```javascript
 // Overlapping phases for maximum efficiency
-Task(subagent_type: "Lead Programmer", description: "Phase 3: Advanced Features", prompt: "...")
-Task(subagent_type: "breadcrumbs-agent", description: "Phase 2: Basic Features Tracing", prompt: "...")
-Task(subagent_type: "error-detection-agent", description: "Phase 1: Foundation Testing", prompt: "...")
+Task(subagent_type: "Lead Programmer", description: "Phase N: Advanced Features", prompt: "...")
+Task(subagent_type: "breadcrumbs-agent", description: "Phase N-1: Basic Features Tracing", prompt: "...")
+Task(subagent_type: "error-detection-agent", description: "Phase N-2: Foundation Testing", prompt: "...")
 ```
 
 ### **PHASE COMPLETION VALIDATION**
@@ -357,10 +357,10 @@ MANDATORY CHECKLIST:
 **Dashboard Status Updates**:
 ```javascript
 // WRONG: Mark complete after implementation only
-"currentTask": "Phase 2 COMPLETE: JSON Configuration & Coupons"
+"currentTask": "Phase N COMPLETE: [Phase Name & Key Features]"
 
 // CORRECT: Track pipeline progress across all tasks
-"currentTask": "Phase 2 PIPELINE: Tasks 2.1-2.4 IMPLEMENTED, Tasks 2.1-2.2 TRACED, Task 2.1 TESTED"
+"currentTask": "Phase N PIPELINE: Tasks X.1-X.4 IMPLEMENTED, Tasks X.1-X.2 TRACED, Task X.1 TESTED"
 "phases": [
   {
     "name": "JSON Configuration & Coupons",
@@ -429,7 +429,7 @@ NEVER PARALLELIZE WHEN:
 
 ### **COMMUNICATION FORMAT:**
 ✅ **GOOD**: "Deploying Tasks 2.1-2.3 in parallel: JSON Config + Coupons + QR Codes. Lead Programmers working simultaneously."
-✅ **GOOD**: "Phase 2 pipeline active: Task 2.1 VALIDATED, Task 2.2 TESTED, Task 2.3 breadcrumbs deploying."
+✅ **GOOD**: "Phase N pipeline active: Task N.1 VALIDATED, Task N.2 TESTED, Task N.3 breadcrumbs deploying."
 ✅ **GOOD**: "Task Breakdown Agent deployed for PRD analysis. Organized project folder created. Following granular milestone schedule."
 ❌ **BAD**: "Should I start the breadcrumbs agent for task 2.1?"
 ❌ **BAD**: "Task 2.1 is done. What's next?"

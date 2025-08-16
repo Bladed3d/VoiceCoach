@@ -1,0 +1,30 @@
+[package]
+name = "voicecoach"
+version = "0.1.0"
+description = "AI-powered real-time sales coaching desktop application"
+authors = ["VoiceCoach Team"]
+license = "MIT"
+repository = ""
+default-run = "voicecoach"
+edition = "2021"
+rust-version = "1.60"
+
+[build-dependencies]
+tauri-build = { version = "1.5", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+tauri = { version = "1.6", features = [ "fs-write-file", "fs-remove-dir", "fs-read-file", "fs-exists", "dialog-confirm", "fs-read-dir", "fs-create-dir", "fs-rename-file", "shell-open", "fs-copy-file", "fs-remove-file", "dialog-save", "dialog-ask", "system-tray", "notification-all", "dialog-open", "dialog-message", "window-close", "window-hide", "window-show", "window-maximize", "window-minimize", "window-unmaximize", "window-unminimize", "window-start-dragging"] }
+tokio = { version = "1.0", features = ["full"] }
+anyhow = "1.0"
+log = "0.4"
+env_logger = "0.11"
+chrono = { version = "0.4", features = ["serde"] }
+cpal = "0.15"
+crossbeam-channel = "0.5"
+parking_lot = "0.12"
+
+[features]
+# This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]
