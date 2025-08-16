@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Play, Square, MessageSquare, Brain, Target, TrendingUp, BarChart3 } from "lucide-react";
+import { Play, Square, MessageSquare, Brain, Target, TrendingUp, BarChart3, Layout } from "lucide-react";
 import TranscriptionPanel from "./TranscriptionPanel";
 import CoachingPrompts from "./CoachingPrompts";
 import CoachingDashboard from "./CoachingDashboard";
@@ -38,7 +38,7 @@ function CoachingInterface({ appState, onStartRecording, onStopRecording }: Coac
     }
   });
   
-  const [activeTab, setActiveTab] = useState<'transcription' | 'prompts' | 'dashboard' | 'insights'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'transcription' | 'prompts' | 'dashboard' | 'insights' | 'split-view'>('dashboard');
   
   // Real-time coaching orchestration engine
   const {
@@ -250,6 +250,31 @@ function CoachingInterface({ appState, onStartRecording, onStopRecording }: Coac
           <TrendingUp className="w-4 h-4" />
           <span>Call Insights</span>
         </button>
+        
+        <button
+          onClick={() => {
+            // LED 110: User interaction - Split View tab clicked
+            trail.light(110, { 
+              user_action: 'tab_change',
+              previousTab: activeTab,
+              newTab: 'split-view'
+            });
+            setActiveTab('split-view');
+            // LED 321: State update - Active tab changed
+            trail.light(321, { 
+              state_update: 'active_tab_changed',
+              activeTab: 'split-view'
+            });
+          }}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-all duration-200 ${
+            activeTab === 'split-view' 
+              ? 'bg-primary-600 text-white shadow-lg' 
+              : 'text-slate-400 hover:text-white hover:bg-slate-700'
+          }`}
+        >
+          <Layout className="w-4 h-4" />
+          <span>Split View</span>
+        </button>
       </div>
 
       {/* Main Content Area */}
@@ -384,6 +409,41 @@ function CoachingInterface({ appState, onStartRecording, onStopRecording }: Coac
               </div>
             )}
           </div>
+        )}
+        
+        {activeTab === 'split-view' && (
+          <>
+            {/* LED 407: UI operation - Split View render */}
+            {(() => {
+              trail.light(407, { 
+                ui_operation: 'split_view_render',
+                isRecording: appState.isRecording,
+                transcriptionsCount: transcriptions.length,
+                promptsCount: coachingPrompts.length
+              });
+              return null;
+            })()}
+            <div className="h-full flex gap-4" style={{ maxHeight: '600px', height: '600px' }}>
+              {/* AI Coaching - Left 2/3 */}
+              <div className="flex-[2] min-h-0" style={{ maxHeight: '600px' }}>
+                <CoachingPrompts 
+                  isRecording={appState.isRecording}
+                  prompts={coachingPrompts}
+                  conversationContext={conversationContext}
+                  onPromptUsed={markPromptAsUsed}
+                  onPromptDismissed={dismissPrompt}
+                />
+              </div>
+              
+              {/* Live Transcription - Right 1/3 */}
+              <div className="flex-1 min-h-0" style={{ maxHeight: '600px' }}>
+                <TranscriptionPanel 
+                  isRecording={appState.isRecording} 
+                  transcriptions={transcriptions}
+                />
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>

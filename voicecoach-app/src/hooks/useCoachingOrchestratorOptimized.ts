@@ -134,7 +134,7 @@ export const useCoachingOrchestratorOptimized = (isRecording: boolean) => {
     operation: 'production_coaching_orchestrator_init', 
     isRecording,
     timestamp: performance.now(),
-    memory_start: performance.memory?.usedJSHeapSize || 0
+    memory_start: (performance as any).memory?.usedJSHeapSize || 0
   });
 
   // Core state with production optimization
@@ -478,7 +478,9 @@ export const useCoachingOrchestratorOptimized = (isRecording: boolean) => {
       // Clean cache periodically
       if (cacheRef.current.size > optimizationConfigRef.current.cacheSize) {
         const oldestKey = cacheRef.current.keys().next().value;
-        cacheRef.current.delete(oldestKey);
+        if (oldestKey !== undefined) {
+          cacheRef.current.delete(oldestKey);
+        }
       }
 
       // LED 631: Production context analysis complete
@@ -869,7 +871,7 @@ export const useCoachingOrchestratorOptimized = (isRecording: boolean) => {
         pipelineLatencyP99: p99,
         errorRate,
         cacheHitRate,
-        memoryUsageMB: performance.memory?.usedJSHeapSize / 1024 / 1024 || 0,
+        memoryUsageMB: (performance as any).memory?.usedJSHeapSize / 1024 / 1024 || 0,
         performanceGrade: calculatePerformanceGrade(p95, errorRate)
       };
 

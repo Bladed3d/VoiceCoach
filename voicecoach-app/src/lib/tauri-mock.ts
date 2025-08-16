@@ -379,8 +379,9 @@ const saveKnowledgeBase = () => {
 
 // Listen for document uploads
 if (typeof window !== 'undefined') {
-  window.addEventListener('documentUploaded', (event: CustomEvent) => {
-    const { filename, content, chunks } = event.detail;
+  window.addEventListener('documentUploaded', (event: Event) => {
+    const customEvent = event as CustomEvent;
+    const { filename, content, chunks } = customEvent.detail;
     
     // Check if document already exists (avoid duplicates)
     const existingIndex = uploadedKnowledge.findIndex(doc => doc.filename === filename);
@@ -429,9 +430,9 @@ BLOCK: end the call, hang up, wrap up, say goodbye, conclude, finish the call, c
 };
 
 // Filter coaching suggestions against core principles
-const filterCoachingSuggestion = (suggestion: string, principles: string): { allowed: boolean; replacement?: string } => {
+const filterCoachingSuggestion = (suggestion: string, _principles: string): { allowed: boolean; replacement?: string } => {
   const suggestionLower = suggestion.toLowerCase();
-  const principlesLower = principles.toLowerCase();
+  // const principlesLower = principles.toLowerCase(); // Not used in this implementation
   
   // Check for prohibited phrases
   const blockedPhrases = [
@@ -469,36 +470,222 @@ const getConversationContext = () => {
   return conversationHistory.join(' ... ');
 };
 
+// Intelligent prompt compression to prevent Ollama truncation
+interface PromptData {
+  corePrinciples: string;
+  relevantKnowledge: string;
+  contextualExamples: string;
+  conversationContextForPrompt: string;
+  transcriptionText: string;
+  detectedStage: string;
+}
+
+const buildOptimizedPrompt = (data: PromptData): string => {
+  const OLLAMA_MAX_CHARS = 3800; // Leave buffer for 4096 token limit
+  
+  // Compress core principles to essential points only
+  const compressedPrinciples = `NEVER suggest: ending calls, hanging up, wrapping up, giving up on objections.
+ALWAYS: keep conversations going, handle objections constructively, advance the sale.`;
+
+  // Stage-specific knowledge filtering for proactive coaching
+  const stageGuidance = getStageSpecificGuidance(data.detectedStage, data.relevantKnowledge);
+  
+  // Smart knowledge compression - prioritize most relevant chunks
+  const compressedKnowledge = compressKnowledgeBase(data.relevantKnowledge, 800);
+  
+  // Prioritize recent conversation context (last 2 messages instead of 5)
+  const recentContext = getRecentContext(data.conversationContextForPrompt, 2);
+  
+  // Build stage-aware contextual examples
+  const relevantExamples = getStageExamples(data.detectedStage, data.contextualExamples);
+  
+  const basePrompt = `Expert sales coach providing proactive guidance for ${data.detectedStage || 'ongoing'} stage conversation.
+
+PRINCIPLES: ${compressedPrinciples}
+
+STAGE GUIDANCE: ${stageGuidance}
+
+KNOWLEDGE: ${compressedKnowledge || 'Use Chris Voss negotiation techniques'}
+
+EXAMPLES: ${relevantExamples}
+
+CONTEXT: ${recentContext}
+
+LATEST: "${data.transcriptionText}"
+
+Provide PROACTIVE next-step coaching (not reactive commentary). Focus on where to guide the conversation next.
+
+JSON format:
+{
+  "urgency": "high|medium|low",
+  "suggestion": "Proactive next step guidance (max 25 words)",
+  "reasoning": "Why this advances the conversation (max 20 words)",
+  "next_action": "Specific question or statement to say next (max 25 words)"
+}`;
+
+  // Ensure prompt fits within limit
+  if (basePrompt.length > OLLAMA_MAX_CHARS) {
+    return buildMinimalPrompt(data);
+  }
+  
+  return basePrompt;
+};
+
+// Stage-specific guidance for proactive coaching
+const getStageSpecificGuidance = (stage: string, _knowledge: string): string => {
+  const stageGuides = {
+    discovery: "Ask deeper questions to uncover needs, pain points, and decision criteria.",
+    presentation: "Position solutions to specific needs mentioned. Build value and urgency.",
+    objection: "Explore concerns deeper. Use 'That's exactly why...' technique.",
+    closing: "Guide toward commitment. Ask for next steps or decision timeline.",
+    unknown: "Identify current conversation stage through strategic questions."
+  };
+  
+  return stageGuides[stage as keyof typeof stageGuides] || stageGuides.unknown;
+};
+
+// Compress knowledge base while preserving key techniques
+const compressKnowledgeBase = (knowledge: string, maxChars: number): string => {
+  if (!knowledge || knowledge.length <= maxChars) return knowledge;
+  
+  // Prioritize Chris Voss techniques and specific examples
+  const keyPhrases = [
+    "That's exactly why",
+    "How am I supposed to",
+    "What would need to happen",
+    "calibrated question",
+    "tactical empathy",
+    "mirroring",
+    "labeling"
+  ];
+  
+  const sentences = knowledge.split('. ');
+  const prioritized = sentences.filter(sentence => 
+    keyPhrases.some(phrase => sentence.toLowerCase().includes(phrase.toLowerCase()))
+  );
+  
+  const compressed = prioritized.slice(0, 3).join('. ');
+  return compressed.length > maxChars ? compressed.substring(0, maxChars) + '...' : compressed;
+};
+
+// Get recent context (last N messages)
+const getRecentContext = (fullContext: string, messageCount: number): string => {
+  const messages = fullContext.split(' ... ');
+  const recent = messages.slice(-messageCount);
+  return recent.join(' ... ');
+};
+
+// Get stage-appropriate examples
+const getStageExamples = (stage: string, examples: string): string => {
+  if (!examples) return "";
+  
+  const stageKeywords = {
+    discovery: ['understand', 'explore', 'tell me'],
+    presentation: ['solution', 'recommend', 'offer'],
+    objection: ['concern', 'but', 'however'],
+    closing: ['ready', 'next steps', 'move forward']
+  };
+  
+  const keywords = stageKeywords[stage as keyof typeof stageKeywords] || [];
+  if (keywords.length === 0) return examples.substring(0, 200);
+  
+  // Find examples relevant to current stage
+  const relevant = examples.split('\n').filter(line => 
+    keywords.some(keyword => line.toLowerCase().includes(keyword))
+  );
+  
+  return relevant.slice(0, 2).join('\n') || examples.substring(0, 200);
+};
+
+// Minimal prompt if compression fails
+const buildMinimalPrompt = (data: PromptData): string => {
+  return `Sales coach for ${data.detectedStage || 'conversation'}.
+
+RULES: Never suggest ending calls. Always advance the sale.
+
+LATEST: "${data.transcriptionText}"
+
+Provide proactive next step:
+{
+  "urgency": "high|medium|low",
+  "suggestion": "Next step guidance (max 20 words)",
+  "reasoning": "Why this helps (max 15 words)",
+  "next_action": "What to say next (max 20 words)"
+}`;
+};
+
 // Ollama local AI integration for real-time coaching
 export const generateOllamaCoaching = async (transcriptionText: string): Promise<any> => {
+  // Start LED 100: Audio Input Processing
+  const startTime = Date.now();
+  trail.light(100, { 
+    audio_input: 'transcription_received',
+    text_length: transcriptionText.length,
+    timestamp: new Date().toISOString(),
+    is_empty: transcriptionText.trim().length === 0
+  });
+
   // Add current message to context
   addToConversationContext(transcriptionText);
-  trail.light(970, { 
-    ollama_request: 'coaching_prompt_generation',
-    text_length: transcriptionText.length,
+  
+  // LED 200: Context Building Start
+  const contextStart = Date.now();
+  const conversationContext = getConversationContext();
+  trail.light(200, { 
+    context_building: 'conversation_history_assembly',
+    context_length: conversationContext.length,
     model: 'qwen2.5:14b-instruct-q4_k_m',
-    knowledge_docs: uploadedKnowledge.length
+    knowledge_docs_available: uploadedKnowledge.length
   });
 
   try {
-    // Load core principles for filtering
+    // LED 201: Core Principles Loading
     const corePrinciples = await loadCorePrinciples();
+    trail.light(201, {
+      core_principles: 'loaded',
+      principles_length: corePrinciples.length
+    });
+
+    // LED 300: Knowledge Retrieval Start
+    trail.light(300, {
+      knowledge_retrieval: 'starting',
+      total_docs: uploadedKnowledge.length,
+      search_terms: transcriptionText.toLowerCase().split(' ').length
+    });
+
     // Find relevant knowledge from uploaded documents with enhanced contextual matching
     let relevantKnowledge = '';
     let contextualExamples = '';
+    let relevantChunksCount = 0;
+    let enabledDocsCount = 0;
+    let totalRelevanceScore = 0;
     
     if (uploadedKnowledge.length > 0) {
       const searchWords = transcriptionText.toLowerCase().split(' ');
-      const conversationContext = getConversationContext().toLowerCase();
+      const conversationContextLower = conversationContext.toLowerCase();
       
-      // Filter to only use documents that are checked for live coaching
-      const enabledDocs = uploadedKnowledge.filter((doc, index) => {
+      // LED 301: Document Filtering
+      const enabledDocs = uploadedKnowledge.filter((_doc, index) => {
         const checkbox = document.querySelector(`#use-file-${index}`) as HTMLInputElement;
         return checkbox ? checkbox.checked : true; // Default to enabled if checkbox not found
       });
+      enabledDocsCount = enabledDocs.length;
       
-      console.log(`📚 Using ${enabledDocs.length} of ${uploadedKnowledge.length} documents for coaching`);
+      trail.light(301, {
+        document_filtering: 'complete',
+        enabled_docs: enabledDocsCount,
+        total_docs: uploadedKnowledge.length,
+        filter_ratio: enabledDocsCount / uploadedKnowledge.length
+      });
       
+      console.log(`📚 Using ${enabledDocsCount} of ${uploadedKnowledge.length} documents for coaching`);
+      
+      // LED 302: Knowledge Processing Start
+      trail.light(302, {
+        knowledge_processing: 'chunk_analysis_start',
+        enabled_docs: enabledDocsCount
+      });
+
       for (const doc of enabledDocs) {
         // Look for contextual examples in the document
         if (doc.content.includes('contextual_examples')) {
@@ -507,7 +694,7 @@ export const generateOllamaCoaching = async (transcriptionText: string): Promise
             if (docContent.contextual_examples) {
               // Find matching contextual examples based on conversation keywords
               for (const [topic, example] of Object.entries(docContent.contextual_examples)) {
-                if (conversationContext.includes(topic.replace('_', ' ')) || 
+                if (conversationContextLower.includes(topic.replace('_', ' ')) || 
                     transcriptionText.toLowerCase().includes(topic.replace('_', ' '))) {
                   contextualExamples += `\nCONTEXTUAL SUGGESTION for "${topic}": ${example}\n`;
                 }
@@ -515,6 +702,11 @@ export const generateOllamaCoaching = async (transcriptionText: string): Promise
             }
           } catch (e) {
             // Not JSON, continue with regular processing
+            trail.light(303, {
+              contextual_parsing: 'json_parse_failed',
+              document: doc.filename,
+              error: e instanceof Error ? e.message : 'Unknown error'
+            });
           }
         }
         
@@ -527,48 +719,102 @@ export const generateOllamaCoaching = async (transcriptionText: string): Promise
           
           if (relevanceScore > 0) {
             relevantKnowledge += `\n[From ${doc.filename}]: ${chunk}\n`;
+            relevantChunksCount++;
+            totalRelevanceScore += relevanceScore;
           }
         }
       }
+
+      // LED 304: Knowledge Processing Complete
+      trail.light(304, {
+        knowledge_processing: 'complete',
+        relevant_chunks: relevantChunksCount,
+        contextual_examples: contextualExamples.length,
+        total_relevance_score: totalRelevanceScore,
+        avg_relevance: relevantChunksCount > 0 ? totalRelevanceScore / relevantChunksCount : 0
+      });
+    } else {
+      // LED 305: No Knowledge Base Available
+      trail.light(305, {
+        knowledge_processing: 'no_knowledge_base',
+        fallback_mode: 'general_best_practices'
+      });
     }
 
-    const prompt = `You are an expert sales coach providing real-time guidance based on the user's specific methodology and documents.
+    // LED 402: Conversation Stage Detection (moved before prompt construction)
+    const conversationContextForPrompt = getConversationContext();
+    const stageKeywords = {
+      discovery: ['tell me', 'explain', 'understand', 'how does', 'what is', 'help me understand'],
+      presentation: ['solution', 'proposal', 'recommend', 'suggest', 'here\'s how', 'what we offer'],
+      objection: ['but', 'however', 'concern', 'worried', 'not sure', 'problem with'],
+      closing: ['ready', 'move forward', 'next steps', 'start', 'begin', 'sign up']
+    };
+    
+    const detectedStage = Object.entries(stageKeywords).find(([_stage, keywords]) => 
+      keywords.some(keyword => transcriptionText.toLowerCase().includes(keyword) || 
+                             conversationContextForPrompt.toLowerCase().includes(keyword))
+    )?.[0] || 'unknown';
+    
+    trail.light(402, {
+      conversation_stage: 'detected',
+      stage: detectedStage,
+      context_analysis: 'complete',
+      proactive_opportunity: detectedStage !== 'unknown' ? `stage_${detectedStage}_detected` : 'stage_unclear'
+    });
 
-CORE PRINCIPLES (MUST FOLLOW):
-${corePrinciples}
+    // LED 400: Prompt Construction Start
+    const promptStart = Date.now();
+    
+    // Smart prompt compression to prevent Ollama truncation
+    const compressedPrompt = buildOptimizedPrompt({
+      corePrinciples,
+      relevantKnowledge,
+      contextualExamples,
+      conversationContextForPrompt,
+      transcriptionText,
+      detectedStage
+    });
+    
+    const prompt = compressedPrompt;
 
-UPLOADED KNOWLEDGE BASE:
-${relevantKnowledge || 'No specific knowledge loaded - use general best practices'}
+    // LED 401: Prompt Size Analysis (CRITICAL for truncation detection)
+    const promptSizeBytes = new TextEncoder().encode(prompt).length;
+    const promptSizeChars = prompt.length;
+    const ollamaMaxTokens = 4096; // Typical Ollama context limit
+    const estimatedTokens = Math.ceil(promptSizeChars / 4); // Rough token estimation
+    
+    // Calculate compression effectiveness
+    const originalEstimate = Math.ceil((corePrinciples.length + relevantKnowledge.length + contextualExamples.length + conversationContextForPrompt.length + transcriptionText.length + 2000) / 4);
+    const compressionRatio = originalEstimate > 0 ? (estimatedTokens / originalEstimate) : 1;
+    const compressionEffective = estimatedTokens <= ollamaMaxTokens;
+    
+    trail.light(401, {
+      prompt_construction: 'complete',
+      prompt_size_chars: promptSizeChars,
+      prompt_size_bytes: promptSizeBytes,
+      estimated_tokens: estimatedTokens,
+      original_estimated_tokens: originalEstimate,
+      compression_ratio: compressionRatio,
+      compression_effective: compressionEffective,
+      ollama_max_tokens: ollamaMaxTokens,
+      size_warning: estimatedTokens > ollamaMaxTokens ? 'PROMPT_TOO_LARGE' : 'COMPRESSION_SUCCESS',
+      truncation_risk: estimatedTokens > ollamaMaxTokens,
+      proactive_coaching_enabled: detectedStage !== 'unknown',
+      stage_detected: detectedStage,
+      construction_time_ms: Date.now() - promptStart
+    });
 
-CONTEXTUAL EXAMPLES FROM KNOWLEDGE BASE:
-${contextualExamples || 'No contextual examples found - create contextually appropriate suggestions'}
 
-CONVERSATION CONTEXT (Last 5 messages):
-"${getConversationContext()}"
-
-LATEST MESSAGE:
-"${transcriptionText}"
-
-Based on the uploaded documents and this conversation snippet, provide immediate coaching advice that follows the user's specific methodology and NEVER violates the core principles above.
-
-NEVER suggest ending calls, hanging up, or concluding conversations. Always focus on keeping the conversation going and advancing the sale.
-
-IMPORTANT: Create CONTEXTUALLY RELEVANT suggestions with SPECIFIC EXAMPLES based on the conversation content. Instead of generic advice like "ask calibrated questions", provide the actual calibrated question to ask based on what was just discussed.
-
-Examples:
-- If they mentioned "website design", suggest: "Ask: 'What do you hope your visitors will take away from visiting your site?'"
-- If they mentioned "budget concerns", suggest: "Ask: 'Help me understand what you've budgeted for solving this problem?'"
-- If they mentioned "timeline", suggest: "Ask: 'What needs to happen for you to move forward by [specific date mentioned]?'"
-
-Respond with JSON in this exact format:
-{
-  "urgency": "high|medium|low",
-  "suggestion": "Contextual, ready-to-use coaching suggestion with specific examples based on conversation (max 25 words)",
-  "reasoning": "Why this matters according to conversation context and your documents (max 25 words)",
-  "next_action": "Specific words to say or question to ask related to current topic (max 30 words)"
-}
-
-Focus on making suggestions immediately actionable and contextually relevant to what was just discussed.`;
+    // LED 500: Ollama Request Start
+    const requestStart = Date.now();
+    trail.light(500, {
+      ollama_request: 'starting',
+      endpoint: 'http://localhost:11434/api/generate',
+      model: 'qwen2.5:14b-instruct-q4_k_m',
+      stream_mode: false,
+      temperature: 0.3,
+      max_tokens: 300
+    });
 
     const response = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
@@ -585,35 +831,92 @@ Focus on making suggestions immediately actionable and contextually relevant to 
       })
     });
 
+    // LED 501: Ollama Response Timing
+    const requestEndTime = Date.now();
+    const requestDuration = requestEndTime - requestStart;
+    
+    if (!response.ok) {
+      trail.fail(500, new Error(`Ollama request failed: ${response.status} ${response.statusText}`));
+      throw new Error(`Ollama request failed: ${response.status} ${response.statusText}`);
+    }
+
     const data = await response.json();
     const aiResponse = data.response;
     
+    trail.light(501, {
+      ollama_response: 'received',
+      request_duration_ms: requestDuration,
+      response_length: aiResponse?.length || 0,
+      total_duration_ns: data.total_duration,
+      load_duration_ns: data.load_duration,
+      prompt_eval_count: data.prompt_eval_count,
+      prompt_eval_duration_ns: data.prompt_eval_duration,
+      eval_count: data.eval_count,
+      eval_duration_ns: data.eval_duration,
+      performance_warning: requestDuration > 5000 ? 'SLOW_RESPONSE' : 'normal_speed'
+    });
+    
+    // LED 502: Response Processing Start
+    // const processingStart = Date.now(); // Not used in current implementation
+    trail.light(502, {
+      response_processing: 'starting',
+      raw_response_length: aiResponse?.length || 0,
+      response_preview: aiResponse?.substring(0, 100) || 'empty_response'
+    });
+
     // Parse JSON response from AI
     try {
+      // LED 503: JSON Parsing
       const coaching = JSON.parse(aiResponse);
-      
-      // Filter suggestion against core principles
-      const filterResult = filterCoachingSuggestion(coaching.suggestion, corePrinciples);
-      
-      if (!filterResult.allowed) {
-        // Replace with safe alternative
-        coaching.suggestion = filterResult.replacement || 'Ask discovery questions to understand their needs better';
-        coaching.reasoning = 'Filtered inappropriate suggestion - keeping conversation focused on sales objectives';
-        trail.light(972, { 
-          ollama_filtered: 'inappropriate_suggestion_blocked',
-          original_suggestion: coaching.suggestion,
-          replacement: filterResult.replacement
-        });
-      }
-      
-      trail.light(971, { 
-        ollama_success: 'coaching_generated',
+      trail.light(503, {
+        json_parsing: 'success',
+        coaching_fields: Object.keys(coaching),
         urgency: coaching.urgency,
-        suggestion_length: coaching.suggestion?.length || 0,
-        filtered: !filterResult.allowed
+        suggestion_preview: coaching.suggestion?.substring(0, 50) || 'no_suggestion'
       });
       
-      return {
+      // LED 504: Suggestion Quality Analysis
+      const suggestionQuality = {
+        has_specific_action: coaching.next_action?.length > 10,
+        has_context: coaching.suggestion?.includes(transcriptionText.split(' ')[0]) || false,
+        is_proactive: !coaching.suggestion?.toLowerCase().includes('continue') && 
+                     !coaching.suggestion?.toLowerCase().includes('listen'),
+        word_count: coaching.suggestion?.split(' ').length || 0
+      };
+      
+      trail.light(504, {
+        suggestion_quality: 'analyzed',
+        quality_metrics: suggestionQuality,
+        is_proactive: suggestionQuality.is_proactive,
+        quality_score: Object.values(suggestionQuality).filter(Boolean).length / 4
+      });
+
+      // LED 505: Core Principles Filtering
+      const filterStart = Date.now();
+      const filterResult = filterCoachingSuggestion(coaching.suggestion, corePrinciples);
+      
+      trail.light(505, {
+        core_principles_filter: 'complete',
+        filter_allowed: filterResult.allowed,
+        filter_duration_ms: Date.now() - filterStart,
+        original_suggestion_length: coaching.suggestion?.length || 0
+      });
+      
+      if (!filterResult.allowed) {
+        // LED 506: Suggestion Replacement
+        coaching.suggestion = filterResult.replacement || 'Ask discovery questions to understand their needs better';
+        coaching.reasoning = 'Filtered inappropriate suggestion - keeping conversation focused on sales objectives';
+        trail.light(506, { 
+          suggestion_replacement: 'applied',
+          original_suggestion: coaching.suggestion,
+          replacement: filterResult.replacement,
+          reason: 'core_principles_violation'
+        });
+      }
+
+      // LED 600: Final Coaching Output
+      const totalDuration = Date.now() - startTime;
+      const finalCoaching = {
         type: 'ollama_coaching',
         urgency: coaching.urgency,
         suggestion: coaching.suggestion,
@@ -622,22 +925,61 @@ Focus on making suggestions immediately actionable and contextually relevant to 
         model: 'qwen2.5:14b',
         latency_ms: data.total_duration ? Math.round(data.total_duration / 1000000) : 0
       };
+      
+      trail.light(600, { 
+        coaching_generation: 'complete',
+        urgency: coaching.urgency,
+        suggestion_length: coaching.suggestion?.length || 0,
+        filtered: !filterResult.allowed,
+        total_pipeline_duration_ms: totalDuration,
+        context_building_time: contextStart ? Date.now() - contextStart : 0,
+        knowledge_chunks_used: relevantChunksCount,
+        suggestion_type: suggestionQuality.is_proactive ? 'proactive' : 'reactive',
+        stage_detected: detectedStage,
+        final_output: 'ready_for_ui'
+      });
+      
+      return finalCoaching;
+      
     } catch (parseError) {
-      trail.light(972, { ollama_parse_error: aiResponse });
-      // Fallback if JSON parsing fails
+      // LED 507: JSON Parse Failure
+      trail.light(507, { 
+        json_parse_error: 'failed',
+        raw_response: aiResponse?.substring(0, 200) || 'no_response',
+        error_message: parseError instanceof Error ? parseError.message : 'unknown_parse_error',
+        fallback_mode: 'plain_text_processing'
+      });
+      
+      // LED 508: Fallback Processing
+      const fallbackSuggestion = aiResponse?.split('\n')[0] || 'Continue the conversation';
+      trail.light(508, {
+        fallback_processing: 'complete',
+        fallback_suggestion: fallbackSuggestion.substring(0, 50),
+        total_duration_ms: Date.now() - startTime
+      });
+      
       return {
         type: 'ollama_coaching',
         urgency: 'medium',
-        suggestion: aiResponse.split('\n')[0] || 'Continue the conversation',
-        reasoning: 'AI coaching analysis',
+        suggestion: fallbackSuggestion,
+        reasoning: 'AI coaching analysis (fallback mode)',
         next_action: 'Listen actively and respond',
         model: 'qwen2.5:14b',
         latency_ms: data.total_duration ? Math.round(data.total_duration / 1000000) : 0
       };
     }
   } catch (error) {
-    trail.fail(970, error as Error);
-    console.error('Ollama coaching failed:', error);
+    // LED 100 failure: Complete Pipeline Failure
+    const errorDetails = {
+      error_type: error instanceof Error ? error.constructor.name : 'unknown',
+      error_message: error instanceof Error ? error.message : 'unknown_error',
+      error_stack: error instanceof Error ? error.stack?.substring(0, 200) : 'no_stack',
+      pipeline_stage: 'unknown',
+      total_duration_ms: Date.now() - startTime
+    };
+    
+    trail.fail(100, error as Error);
+    console.error('Ollama coaching pipeline failed:', errorDetails);
     return null;
   }
 };

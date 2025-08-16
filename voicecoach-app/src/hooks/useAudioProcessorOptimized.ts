@@ -362,7 +362,7 @@ export const useAudioProcessorOptimized = () => {
         const productionMetrics: ProductionPerformanceMetrics = {
           ...metrics,
           cpu_usage_percent: metrics.cpu_usage_percent || 5, // Estimated
-          memory_usage_mb: performance.memory?.usedJSHeapSize / 1024 / 1024 || 100,
+          memory_usage_mb: (performance as any).memory?.usedJSHeapSize / 1024 / 1024 || 100,
           buffer_underruns: metrics.buffer_underruns || 0,
           error_rate_percent: errorRate,
           signal_to_noise_ratio: metrics.signal_to_noise_ratio || 45,

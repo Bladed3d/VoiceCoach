@@ -293,7 +293,19 @@ export class BreadcrumbTrail {
         550: 'PERFORMANCE_MEASUREMENT_START',
         551: 'PERFORMANCE_MEASUREMENT_COMPLETE',
         560: 'HEALTH_CHECK_START',
-        561: 'HEALTH_CHECK_COMPLETE'
+        561: 'HEALTH_CHECK_COMPLETE',
+        
+        // VoiceCoach Coaching Pipeline (580-599)
+        580: 'COACHING_PIPELINE_START',
+        581: 'AUDIO_TRANSCRIPTION_RECEIVED',
+        582: 'CONVERSATION_CONTEXT_BUILDING',
+        583: 'KNOWLEDGE_BASE_SEARCH',
+        584: 'PROMPT_CONSTRUCTION',
+        585: 'OLLAMA_REQUEST_START',
+        586: 'OLLAMA_RESPONSE_RECEIVED',
+        587: 'RESPONSE_PARSING',
+        588: 'SUGGESTION_FILTERING',
+        589: 'COACHING_OUTPUT_COMPLETE'
       };
       return ledMap[ledId] || `VALIDATION_PROCESSING_${ledId}`;
     }
@@ -310,7 +322,7 @@ export class BreadcrumbTrail {
   private _registerDebugCommands(): void {
     if (typeof window !== 'undefined') {
       if (!window.debug) {
-        window.debug = {
+        (window as any).debug = {
           breadcrumbs: {
             getAllTrails: () => Array.from(window.breadcrumbs?.entries() || []),
             getGlobalTrail: () => window.globalBreadcrumbTrail || [],
@@ -323,12 +335,16 @@ export class BreadcrumbTrail {
             },
             getDocumentProcessingStats: () => ({}),
             getTauriOperationStats: () => ({}),
-            getKnowledgeSearchStats: () => ({})
+            getKnowledgeSearchStats: () => ({}),
+            getCoachingPipelineStats: () => ({}),
+            getPromptTruncationAnalysis: () => ({}),
+            getCoachingQualityMetrics: () => ({})
           }
         };
       }
       
-      window.debug.breadcrumbs = {
+      if ((window as any).debug) {
+        (window as any).debug.breadcrumbs = {
         getAllTrails: () => Array.from(window.breadcrumbs?.entries() || []),
         getGlobalTrail: () => window.globalBreadcrumbTrail || [],
         getFailures: () => window.breadcrumbFailures || [],
@@ -403,8 +419,92 @@ export class BreadcrumbTrail {
               success: bc.success
             }))
           };
+        },
+
+        // VoiceCoach Coaching Pipeline Analytics
+        getCoachingPipelineStats: () => {
+          const trail = window.globalBreadcrumbTrail || [];
+          const coachingOps = trail.filter(bc => 
+            bc.component === 'TauriMock' && 
+            (bc.id >= 100 && bc.id <= 600)
+          );
+          
+          const pipelinesBySession = new Map();
+          coachingOps.forEach(bc => {
+            const sessionId = Math.floor(bc.timestamp / 60000); // Group by minute
+            if (!pipelinesBySession.has(sessionId)) {
+              pipelinesBySession.set(sessionId, []);
+            }
+            pipelinesBySession.get(sessionId).push(bc);
+          });
+          
+          return {
+            total_coaching_requests: pipelinesBySession.size,
+            average_pipeline_duration: coachingOps.length > 0 
+              ? coachingOps.reduce((sum, bc) => sum + (bc.data?.total_pipeline_duration_ms || 0), 0) / coachingOps.length 
+              : 0,
+            prompt_truncation_incidents: coachingOps.filter(bc => bc.data?.truncation_risk).length,
+            slow_responses: coachingOps.filter(bc => bc.data?.performance_warning === 'SLOW_RESPONSE').length,
+            proactive_vs_reactive: {
+              proactive: coachingOps.filter(bc => bc.data?.suggestion_type === 'proactive').length,
+              reactive: coachingOps.filter(bc => bc.data?.suggestion_type === 'reactive').length
+            },
+            recent_sessions: Array.from(pipelinesBySession.entries()).slice(-5).map(([sessionId, ops]: [any, any]) => ({
+              session_id: sessionId,
+              operations: ops.length,
+              duration: Math.max(...ops.map((op: any) => op.duration)),
+              stage_detected: ops.find((op: any) => op.data?.stage)?.data?.stage || 'unknown'
+            }))
+          };
+        },
+
+        getPromptTruncationAnalysis: () => {
+          const trail = window.globalBreadcrumbTrail || [];
+          const promptOps = trail.filter(bc => 
+            bc.id === 401 && bc.data?.prompt_size_chars
+          );
+          
+          return {
+            total_prompts: promptOps.length,
+            truncation_incidents: promptOps.filter(bc => bc.data?.truncation_risk).length,
+            average_prompt_size: promptOps.length > 0 
+              ? promptOps.reduce((sum, bc) => sum + bc.data.prompt_size_chars, 0) / promptOps.length 
+              : 0,
+            largest_prompt: Math.max(...promptOps.map(bc => bc.data.prompt_size_chars), 0),
+            size_distribution: {
+              small: promptOps.filter(bc => bc.data.prompt_size_chars < 2000).length,
+              medium: promptOps.filter(bc => bc.data.prompt_size_chars >= 2000 && bc.data.prompt_size_chars < 8000).length,
+              large: promptOps.filter(bc => bc.data.prompt_size_chars >= 8000 && bc.data.prompt_size_chars < 16000).length,
+              very_large: promptOps.filter(bc => bc.data.prompt_size_chars >= 16000).length
+            }
+          };
+        },
+
+        getCoachingQualityMetrics: () => {
+          const trail = window.globalBreadcrumbTrail || [];
+          const qualityOps = trail.filter(bc => 
+            bc.id === 504 && bc.data?.quality_metrics
+          );
+          
+          if (qualityOps.length === 0) return { message: 'No quality data available' };
+          
+          const totalQuality = qualityOps.reduce((sum, bc) => sum + (bc.data.quality_score || 0), 0);
+          const avgQuality = totalQuality / qualityOps.length;
+          
+          return {
+            total_suggestions: qualityOps.length,
+            average_quality_score: avgQuality,
+            quality_distribution: {
+              high: qualityOps.filter(bc => bc.data.quality_score >= 0.75).length,
+              medium: qualityOps.filter(bc => bc.data.quality_score >= 0.5 && bc.data.quality_score < 0.75).length,
+              low: qualityOps.filter(bc => bc.data.quality_score < 0.5).length
+            },
+            proactive_suggestions: qualityOps.filter(bc => bc.data.is_proactive).length,
+            contextual_suggestions: qualityOps.filter(bc => bc.data.quality_metrics?.has_context).length
+          };
         }
-      };
+        };
+      }
     }
   }
   

@@ -1,0 +1,407 @@
+# Enhanced Audio 2-Way Processing - Product Requirements Document (PRD)
+
+**Project Code**: EA2W-001  
+**Version**: 1.0  
+**Date**: August 16, 2025  
+**Status**: Planning Phase  
+
+---
+
+## Executive Summary
+
+### Vision Statement
+Transform VoiceCoach from single-user microphone coaching to comprehensive two-way video conference coaching, enabling MLM sales professionals to receive real-time AI guidance during live prospect conversations.
+
+### Market Opportunity
+**Primary Target**: Utah MLM market with 200,000+ home-based sellers conducting video calls with family/friends for product sales. Current pain point: handling objections from people who know them personally.
+
+**Business Impact**: 
+- Expand addressable market from individual practice to live sales conversations
+- Enable coaching during actual revenue-generating activities
+- Provide competitive advantage in relationship-based selling environments
+
+---
+
+## Product Overview
+
+### Current State
+- VoiceCoach captures microphone input only
+- AI coaching based on user speech patterns
+- Practice-mode focused, not live conversation ready
+- Limited to solo preparation sessions
+
+### Target State  
+- System audio capture including video conference calls
+- Two-way conversation analysis and contextual coaching
+- Real-time suggestions based on prospect responses
+- Universal video platform compatibility (Zoom, Teams, Meet, Facebook Messenger)
+- Seamless integration with existing VoiceCoach functionality
+
+### Core Value Proposition
+**"Get AI coaching during your actual sales calls, not just practice sessions"**
+
+---
+
+## Technical Requirements
+
+### Audio Processing Architecture
+
+#### Phase 1: Enhanced System Audio Capture
+```rust
+// Modify existing Tauri audio capture system
+#[tauri::command]
+async fn start_enhanced_recording() -> Result<String, String> {
+    // CHANGE: From microphone capture to system audio capture
+    // RESULT: Captures ALL computer audio including video calls
+    // BENEFIT: Universal video platform compatibility
+}
+```
+
+#### Audio Stream Processing
+- **Input**: System audio stream (mixed user + prospect voices)
+- **Processing**: Real-time transcription via existing Whisper integration  
+- **Output**: Contextual AI coaching suggestions based on conversation flow
+- **Latency Target**: <2 seconds from speech to coaching suggestion
+
+#### Integration Points
+- **Existing**: Tauri Rust backend audio capture system
+- **Existing**: React frontend coaching interface
+- **Existing**: Ollama AI coaching engine with knowledge base
+- **New**: System audio routing and processing
+- **New**: Two-way conversation context management
+
+### Frontend Enhancements
+
+#### Coaching Interface Updates
+```typescript
+// Enhanced coaching display for two-way conversations
+interface EnhancedCoachingProps {
+  conversationType: 'solo_practice' | 'live_conversation';
+  audioSource: 'microphone' | 'system_audio';
+  lastSpeaker: 'user' | 'prospect' | 'unknown';
+  conversationContext: string[];
+}
+```
+
+#### User Experience Flow
+1. **Pre-Call Setup**: Start VoiceCoach before video call
+2. **Audio Mode Selection**: Toggle "Live Conversation Mode" 
+3. **Call Integration**: Join video call (any platform)
+4. **Real-Time Coaching**: Receive suggestions based on prospect responses
+5. **Post-Call Analysis**: Review conversation insights and improvement areas
+
+---
+
+## Multi-Agent Development Strategy
+
+### Phase 1: Direct Implementation (Days 1-3)
+**Simple Enhancement Approach - Build on Working System**:
+
+#### Lead Programmer Agent
+**Task**: Enhance existing Tauri audio architecture for system audio capture
+**Approach**: Modify proven working code, don't replace it
+**Core Change**: Convert microphone capture to system audio capture in existing audio processing pipeline
+**Deliverables**:
+- Modify existing `start_recording()` Tauri command for system audio input
+- Enhance audio capture to include all system audio (video calls + user voice)
+- Maintain all existing transcription and AI processing functionality
+- Test system audio capture across Windows/Mac platforms
+- Preserve current Web Speech API integration as fallback option
+- Document changes to existing audio architecture
+
+**Success Criteria**: System audio capture works with existing VoiceCoach functionality intact
+
+### Phase 2: Quality Assurance & Debugging (Days 4-5)
+**Deploy After Phase 1 Implementation**:
+
+#### Breadcrumbs Agent
+**Task**: Add debugging infrastructure to enhanced audio processing pipeline
+**Input**: Phase 1 implementation code from Lead Programmer
+**Deliverables**:
+- LED breadcrumb system for system audio capture monitoring
+- Performance tracking for audio processing latency
+- Error tracking and diagnostics for audio capture failures
+- Debug interface for troubleshooting system audio issues
+
+#### Error Detection Agent
+**Task**: Test enhanced audio capture and identify failure scenarios
+**Input**: Phase 1 implementation + Phase 2 breadcrumb monitoring
+**Deliverables**:
+- Cross-platform compatibility testing (Windows/Mac)
+- Audio capture failure scenario testing and documentation
+- Video platform compatibility validation (Zoom, Teams, Meet)
+- User experience testing for MLM home-based scenarios
+
+### Phase 3: Error Correction & Optimization (Days 6-7)
+**Deploy After Issues Identified**:
+
+#### Error Correction Agent
+**Task**: Fix detected issues and optimize performance autonomously
+**Input**: Phase 2 error detection findings + breadcrumb debugging data
+**Deliverables**:
+- Automated fixes for detected audio capture issues
+- Performance optimization for system audio processing
+- Cross-platform compatibility fixes
+- Final validation and testing completion
+
+**Phase Dependencies**: Simple sequential flow - each phase builds on previous phase results
+
+---
+
+## User Experience Specifications
+
+### MLM Home-Based Seller Journey
+
+#### Pre-Call Preparation
+1. **Open VoiceCoach** on computer
+2. **Load Knowledge Base**: Select MLM product training materials
+3. **Enable Live Mode**: Toggle "Two-Way Conversation Coaching"
+4. **Audio Check**: Verify system audio capture working
+
+#### During Video Call
+```
+[Prospect]: "I don't really need any supplements right now"
+[AI Coaching Display]: 
+🔴 HIGH URGENCY
+→ "Mirror their concern: 'Not right now...' then explore health goals"
+→ "Ask: 'What are you doing currently to stay healthy and energized?'"
+
+[User]: "Not right now, I hear you. What are you doing currently to stay healthy?"
+[Prospect]: "Just trying to eat better and exercise when I can"
+[AI Coaching Display]:
+🟡 MEDIUM URGENCY
+→ "Bridge to pain point: Connect their efforts to easier solutions"  
+→ "Ask: 'How's that working? Any challenges staying consistent?'"
+```
+
+#### Post-Call Review
+- **Conversation Summary**: Key moments and coaching suggestions used
+- **Performance Analytics**: Response rate to AI suggestions
+- **Improvement Areas**: Missed opportunities and alternative approaches
+- **Knowledge Base Updates**: Add new objection patterns discovered
+
+### Technical User Interface
+
+#### Enhanced Coaching Panel
+```typescript
+// Live conversation coaching display
+<CoachingPanel>
+  <AudioIndicator source="system_audio" status="capturing" />
+  <ConversationMode active="live_call" platform="zoom" />
+  <LastSpeaker indicator="prospect" confidence="85%" />
+  <CoachingSuggestion 
+    urgency="high"
+    suggestion="Mirror: 'Not right now...' then ask about health goals"
+    reasoning="Prospect showing time-based objection - need to explore underlying needs"
+    nextAction="Ask: 'What are you doing currently to stay healthy?'"
+  />
+  <ContextHistory messages={5} />
+</CoachingPanel>
+```
+
+---
+
+## Implementation Timeline
+
+### Week 1: Direct Implementation
+**Simple Enhancement Approach**:
+- **Day 1-3**: Lead Programmer Agent - Enhance existing Tauri audio capture
+- **Day 4-5**: Breadcrumbs + Error Detection Agents - Debug and test
+- **Day 6-7**: Error Correction Agent - Fix issues and optimize
+
+### Week 2: Validation & Polish  
+**User Testing & Refinement**:
+- **Day 1-2**: User testing with MLM market validation
+- **Day 3-4**: Performance optimization and bug fixes
+- **Day 5**: Documentation and deployment preparation
+
+**Total Timeline**: 10 days instead of 4 weeks - leveraging existing working system
+
+---
+
+## Success Metrics & Validation
+
+### Technical Performance KPIs
+- **Audio Capture Reliability**: 95%+ successful system audio capture
+- **Real-Time Latency**: <2 seconds from speech to coaching suggestion
+- **Cross-Platform Compatibility**: Works on Windows/Mac with major video platforms
+- **Processing Accuracy**: 90%+ relevant coaching suggestions based on conversation context
+
+### Business Impact Metrics  
+- **User Adoption**: 80%+ of existing VoiceCoach users enable live conversation mode
+- **Conversation Quality**: 25%+ improvement in sales conversation outcomes
+- **Session Duration**: 3x longer average session time (live calls vs practice)
+- **User Satisfaction**: 4.5+ star rating for live conversation coaching feature
+
+### MLM Market Validation
+- **Beta Testing**: 50 Utah-based MLM sellers testing live conversation coaching
+- **Objection Handling**: 40%+ improvement in handling family/friend objections
+- **Sales Performance**: 15%+ increase in conversion rates during coached calls
+- **User Retention**: 90%+ continue using live coaching after 30-day trial
+
+---
+
+## Risk Assessment & Mitigation
+
+### Technical Risks
+
+#### Audio Capture Reliability
+**Risk**: System audio capture fails on certain computer configurations
+**Probability**: Medium  
+**Impact**: High
+**Mitigation**: 
+- Comprehensive cross-platform testing during Phase 2
+- Fallback to microphone-only mode if system audio unavailable
+- User-friendly troubleshooting guide and audio diagnostics
+
+#### Real-Time Processing Performance
+**Risk**: AI coaching suggestions too slow for live conversation flow
+**Probability**: Low
+**Impact**: High  
+**Mitigation**:
+- Performance optimization during Phase 3 implementation
+- Local Ollama processing ensures minimal latency
+- Asynchronous processing pipeline prevents UI blocking
+
+#### Video Platform Compatibility
+**Risk**: Audio routing doesn't work with specific video conferencing software
+**Probability**: Medium
+**Impact**: Medium
+**Mitigation**:
+- Test with top 5 video platforms during development
+- Universal system audio capture approach reduces platform dependencies
+- User feedback loop for platform-specific issues
+
+### Business Risks
+
+#### User Experience Complexity  
+**Risk**: Two-way conversation mode too complicated for home-based MLM users
+**Probability**: Low
+**Impact**: High
+**Mitigation**:
+- Simplified UI design focused on ease of use
+- One-click "Live Conversation Mode" toggle
+- Comprehensive user onboarding and training materials
+
+#### Market Adoption Rate
+**Risk**: MLM users prefer practice mode over live conversation coaching
+**Probability**: Low  
+**Impact**: Medium
+**Mitigation**:
+- Beta testing with actual MLM sellers before full release
+- Gradual feature rollout with user feedback integration
+- Marketing focus on revenue-generating benefits vs practice-only tools
+
+---
+
+## Quality Assurance Strategy
+
+### Automated Testing Framework
+```typescript
+// Audio capture testing suite
+describe('Enhanced Audio Processing', () => {
+  test('System audio capture initialization', async () => {
+    // Verify system audio device detection
+    // Test audio stream routing
+    // Validate cross-platform compatibility
+  });
+  
+  test('Two-way conversation processing', async () => {
+    // Mock conversation audio input
+    // Verify AI coaching suggestion generation  
+    // Test conversation context management
+  });
+  
+  test('Real-time performance', async () => {
+    // Measure audio-to-coaching latency
+    // Test concurrent processing load
+    // Validate memory usage optimization
+  });
+});
+```
+
+### User Acceptance Testing
+- **MLM Seller Beta Group**: 25 Utah-based sellers conducting real prospect calls
+- **Conversation Scenarios**: Family objections, friend skepticism, time constraints
+- **Platform Testing**: Zoom, Teams, Google Meet, Facebook Messenger video calls
+- **Performance Validation**: Real-world latency and suggestion relevance testing
+
+### Error Detection & Correction Protocol
+- **Breadcrumb System**: LED debugging throughout audio processing pipeline
+- **Automated Error Recovery**: Self-healing for common audio capture failures  
+- **User Feedback Loop**: In-app reporting for audio or coaching issues
+- **Performance Monitoring**: Real-time diagnostics and optimization suggestions
+
+---
+
+## Deployment Strategy
+
+### Phase 1 Release: Beta Testing (Week 4)
+- **Target Users**: 25 Utah MLM sellers (existing VoiceCoach users)
+- **Features**: Basic system audio capture and two-way coaching
+- **Platforms**: Windows computers with Zoom/Teams calls
+- **Success Criteria**: 90% successful audio capture, positive user feedback
+
+### Phase 2 Release: Limited Production (Week 6)  
+- **Target Users**: All existing VoiceCoach users (opt-in basis)
+- **Features**: Cross-platform support, enhanced UI, performance optimization
+- **Platforms**: Windows/Mac with top 5 video conferencing platforms
+- **Success Criteria**: <2 second latency, 95% reliability, 4+ star rating
+
+### Phase 3 Release: Full Production (Week 8)
+- **Target Users**: All VoiceCoach users + new MLM market acquisition
+- **Features**: Complete feature set, analytics dashboard, team collaboration
+- **Platforms**: Universal video platform compatibility
+- **Success Criteria**: Market expansion metrics, revenue impact validation
+
+---
+
+## Resource Requirements
+
+### Development Team (Streamlined Multi-Agent Coordination)
+- **Project Manager**: Overall coordination and stakeholder management (Claude)
+- **Lead Programmer**: Enhance existing Tauri audio capture for system audio
+- **Breadcrumbs Agent**: Debugging infrastructure and monitoring systems
+- **Error Detection Agent**: Quality assurance and testing automation
+- **Error Correction Agent**: Automated bug fixing and optimization
+
+**Removed**: Researcher, Backend Engineer, UI Designer (leveraging existing working systems)
+
+### Technical Infrastructure
+- **Development Environment**: Existing VoiceCoach codebase and build pipeline
+- **Testing Infrastructure**: Cross-platform testing environment for Windows/Mac
+- **AI Processing**: Enhanced Ollama integration with conversation context management
+- **Monitoring**: LED breadcrumb system and performance analytics dashboard
+
+### Market Validation Resources
+- **Beta Testing Group**: 25 Utah MLM sellers for real-world validation
+- **User Research**: Conversation recording and analysis for coaching effectiveness
+- **Performance Metrics**: Analytics dashboard for feature adoption and success tracking
+
+---
+
+## Success Definition
+
+### Technical Success
+✅ **System audio capture works reliably** across Windows/Mac platforms  
+✅ **Two-way conversation processing** provides contextually relevant coaching suggestions  
+✅ **Real-time performance** maintains <2 second latency during live calls  
+✅ **Universal compatibility** with major video conferencing platforms  
+
+### Business Success  
+✅ **Market expansion** into live conversation coaching segment  
+✅ **User adoption** with 80%+ of existing users enabling live mode  
+✅ **Performance improvement** in actual sales conversation outcomes  
+✅ **Revenue impact** through enhanced coaching effectiveness  
+
+### User Success
+✅ **MLM sellers** successfully handle family/friend objections with AI coaching  
+✅ **Conversation quality** improves measurably during coached calls  
+✅ **User experience** remains simple and non-intrusive during live conversations  
+✅ **Sales performance** increases through better real-time guidance  
+
+---
+
+**Project Manager**: Claude (Coordinating all subagent activities and deliverables)  
+**Next Action**: Deploy Phase 1 parallel agents for research and technical analysis  
+**Success Criteria**: Complete enhanced two-way audio processing within 3-4 weeks with MLM market validation

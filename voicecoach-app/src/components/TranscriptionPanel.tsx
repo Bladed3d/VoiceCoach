@@ -27,8 +27,11 @@ function TranscriptionPanel({ isRecording, transcriptions: externalTranscription
   // Listen for real voice transcription events
   useEffect(() => {
     if (externalTranscriptions && externalTranscriptions.length > 0) {
-      // Use real transcriptions from orchestrator
-      setTranscriptions(externalTranscriptions);
+      // Use real transcriptions from orchestrator, sorted newest first
+      const sortedTranscriptions = [...externalTranscriptions].sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      setTranscriptions(sortedTranscriptions);
       setIsLive(isRecording);
       return;
     }
@@ -84,7 +87,7 @@ function TranscriptionPanel({ isRecording, transcriptions: externalTranscription
           confidence: 0.9 // Web Speech API doesn't provide confidence, use default
         };
         
-        setTranscriptions(prev => [...prev, newTranscription]);
+        setTranscriptions(prev => [newTranscription, ...prev]);
         setCurrentInterimText(''); // Clear interim text
         
         // Only call Ollama on final text (prevents duplicates)
@@ -139,12 +142,8 @@ function TranscriptionPanel({ isRecording, transcriptions: externalTranscription
     };
   }, [isRecording, externalTranscriptions]);
 
-  // Auto-scroll to bottom when new transcriptions arrive
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [transcriptions]);
+  // Keep scroll position stable when new transcriptions are added at top
+  // No auto-scroll needed since new items appear at the top
 
   const clearTranscriptionHistory = () => {
     trail.light(620, { operation: 'clear_transcription_history_clicked' });
@@ -154,8 +153,8 @@ function TranscriptionPanel({ isRecording, transcriptions: externalTranscription
   };
 
   return (
-    <div className="glass-panel h-full flex flex-col">
-      <div className="p-4 border-b border-slate-700">
+    <div className="glass-panel-scrollable h-full">
+      <div className="p-4 border-b border-slate-700 flex-shrink-0">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold">Live Conversation</h3>
           <div className="flex items-center space-x-3">
@@ -178,7 +177,7 @@ function TranscriptionPanel({ isRecording, transcriptions: externalTranscription
         </div>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div ref={scrollRef} className="flex-1 scrollable-content force-scrollbar p-4 space-y-4 min-scroll-content">
         {transcriptions.length === 0 && (
           <div className="text-center text-slate-400 mt-12">
             {isRecording ? (
@@ -193,6 +192,23 @@ function TranscriptionPanel({ isRecording, transcriptions: externalTranscription
                 <p>Click "Start Coaching Session" to begin voice transcription</p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Show current interim speech in real-time - AT THE TOP */}
+        {currentInterimText && (
+          <div className="flex space-x-3 p-3 rounded-lg bg-primary-900/20 ml-8 border-2 border-primary-500/50 border-dashed">
+            <div className="p-2 rounded-full bg-primary-600 animate-pulse">
+              <User className="w-4 h-4 text-white" />
+            </div>
+            
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center space-x-2 mb-1">
+                <span className="text-sm font-medium">You</span>
+                <span className="text-xs text-primary-400 animate-pulse">Speaking...</span>
+              </div>
+              <p className="text-sm leading-relaxed text-primary-200 italic">{currentInterimText}</p>
+            </div>
           </div>
         )}
 
@@ -240,20 +256,30 @@ function TranscriptionPanel({ isRecording, transcriptions: externalTranscription
           </div>
         ))}
 
-        {/* Show current interim speech in real-time */}
-        {currentInterimText && (
-          <div className="flex space-x-3 p-3 rounded-lg bg-primary-900/20 ml-8 border-2 border-primary-500/50 border-dashed">
-            <div className="p-2 rounded-full bg-primary-600 animate-pulse">
-              <User className="w-4 h-4 text-white" />
-            </div>
-            
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center space-x-2 mb-1">
-                <span className="text-sm font-medium">You</span>
-                <span className="text-xs text-primary-400 animate-pulse">Speaking...</span>
-              </div>
-              <p className="text-sm leading-relaxed text-primary-200 italic">{currentInterimText}</p>
-            </div>
+        {/* Add dummy content to guarantee scrollbar visibility when testing */}
+        {process.env.NODE_ENV === 'development' && transcriptions.length === 0 && (
+          <div className="text-xs text-slate-600 space-y-2 mt-8">
+            <div className="p-2 bg-slate-800/30 rounded">Debug: Transcription scrollbar test content</div>
+            <div className="p-2 bg-slate-800/30 rounded">This content ensures scrollbar appears during development</div>
+            <div className="p-2 bg-slate-800/30 rounded">Live transcriptions will appear above this area</div>
+            <div className="p-2 bg-slate-800/30 rounded">Scrollbar should be visible on the right →</div>
+            <div className="p-2 bg-slate-800/30 rounded">Content continues below...</div>
+            <div className="p-2 bg-slate-800/30 rounded">More testing content for scroll verification</div>
+            <div className="p-2 bg-slate-800/30 rounded">Additional test content</div>
+            <div className="p-2 bg-slate-800/30 rounded">Even more content to trigger overflow</div>
+            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 1</div>
+            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 2</div>
+            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 3</div>
+            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 4</div>
+            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 5</div>
+            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 6</div>
+            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 7</div>
+            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 8</div>
+            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 9</div>
+            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 10</div>
+            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 11</div>
+            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 12</div>
+            <div className="p-2 bg-slate-800/30 rounded">Final test content block - transcription scrolling works!</div>
           </div>
         )}
       </div>
