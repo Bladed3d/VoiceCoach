@@ -409,8 +409,70 @@ if (typeof window !== 'undefined') {
   });
 }
 
+// Load core principles for filtering inappropriate suggestions
+const loadCorePrinciples = async (): Promise<string> => {
+  try {
+    const response = await fetch('/docs/Core-Principles.md');
+    if (response.ok) {
+      return await response.text();
+    }
+  } catch (error) {
+    console.warn('Could not load Core-Principles.md, using default filtering');
+  }
+  
+  // Default fallback principles
+  return `
+PROHIBITED: Never suggest ending calls, hanging up, wrapping up conversations, or giving up on objections.
+FOCUS: Keep conversations going, handle objections constructively, build value and trust, advance the sale.
+BLOCK: end the call, hang up, wrap up, say goodbye, conclude, finish the call, close the conversation, terminate, disconnect
+  `;
+};
+
+// Filter coaching suggestions against core principles
+const filterCoachingSuggestion = (suggestion: string, principles: string): { allowed: boolean; replacement?: string } => {
+  const suggestionLower = suggestion.toLowerCase();
+  const principlesLower = principles.toLowerCase();
+  
+  // Check for prohibited phrases
+  const blockedPhrases = [
+    'end the call', 'hang up', 'wrap up', 'say goodbye', 'conclude the conversation',
+    'finish the call', 'close the conversation', 'terminate', 'disconnect',
+    'end on a high note', 'close positively'
+  ];
+  
+  for (const phrase of blockedPhrases) {
+    if (suggestionLower.includes(phrase)) {
+      return {
+        allowed: false,
+        replacement: 'Ask deeper discovery questions to understand their specific needs and concerns'
+      };
+    }
+  }
+  
+  return { allowed: true };
+};
+
+// Conversation context tracking for better coaching
+let conversationHistory: string[] = [];
+const MAX_CONTEXT_MESSAGES = 5; // Keep last 5 messages for context
+
+// Add message to conversation context
+const addToConversationContext = (text: string) => {
+  conversationHistory.push(text);
+  if (conversationHistory.length > MAX_CONTEXT_MESSAGES) {
+    conversationHistory = conversationHistory.slice(-MAX_CONTEXT_MESSAGES);
+  }
+};
+
+// Get conversation context for AI
+const getConversationContext = () => {
+  return conversationHistory.join(' ... ');
+};
+
 // Ollama local AI integration for real-time coaching
 export const generateOllamaCoaching = async (transcriptionText: string): Promise<any> => {
+  // Add current message to context
+  addToConversationContext(transcriptionText);
   trail.light(970, { 
     ollama_request: 'coaching_prompt_generation',
     text_length: transcriptionText.length,
@@ -419,12 +481,44 @@ export const generateOllamaCoaching = async (transcriptionText: string): Promise
   });
 
   try {
-    // Find relevant knowledge from uploaded documents
+    // Load core principles for filtering
+    const corePrinciples = await loadCorePrinciples();
+    // Find relevant knowledge from uploaded documents with enhanced contextual matching
     let relevantKnowledge = '';
+    let contextualExamples = '';
+    
     if (uploadedKnowledge.length > 0) {
       const searchWords = transcriptionText.toLowerCase().split(' ');
+      const conversationContext = getConversationContext().toLowerCase();
       
-      for (const doc of uploadedKnowledge) {
+      // Filter to only use documents that are checked for live coaching
+      const enabledDocs = uploadedKnowledge.filter((doc, index) => {
+        const checkbox = document.querySelector(`#use-file-${index}`) as HTMLInputElement;
+        return checkbox ? checkbox.checked : true; // Default to enabled if checkbox not found
+      });
+      
+      console.log(`📚 Using ${enabledDocs.length} of ${uploadedKnowledge.length} documents for coaching`);
+      
+      for (const doc of enabledDocs) {
+        // Look for contextual examples in the document
+        if (doc.content.includes('contextual_examples')) {
+          try {
+            const docContent = JSON.parse(doc.content);
+            if (docContent.contextual_examples) {
+              // Find matching contextual examples based on conversation keywords
+              for (const [topic, example] of Object.entries(docContent.contextual_examples)) {
+                if (conversationContext.includes(topic.replace('_', ' ')) || 
+                    transcriptionText.toLowerCase().includes(topic.replace('_', ' '))) {
+                  contextualExamples += `\nCONTEXTUAL SUGGESTION for "${topic}": ${example}\n`;
+                }
+              }
+            }
+          } catch (e) {
+            // Not JSON, continue with regular processing
+          }
+        }
+        
+        // Regular chunk processing for relevance
         for (const chunk of doc.chunks) {
           const chunkLower = chunk.toLowerCase();
           const relevanceScore = searchWords.filter(word => 
@@ -440,23 +534,41 @@ export const generateOllamaCoaching = async (transcriptionText: string): Promise
 
     const prompt = `You are an expert sales coach providing real-time guidance based on the user's specific methodology and documents.
 
+CORE PRINCIPLES (MUST FOLLOW):
+${corePrinciples}
+
 UPLOADED KNOWLEDGE BASE:
 ${relevantKnowledge || 'No specific knowledge loaded - use general best practices'}
 
-CURRENT CONVERSATION:
+CONTEXTUAL EXAMPLES FROM KNOWLEDGE BASE:
+${contextualExamples || 'No contextual examples found - create contextually appropriate suggestions'}
+
+CONVERSATION CONTEXT (Last 5 messages):
+"${getConversationContext()}"
+
+LATEST MESSAGE:
 "${transcriptionText}"
 
-Based on the uploaded documents and this conversation snippet, provide immediate coaching advice that follows the user's specific methodology.
+Based on the uploaded documents and this conversation snippet, provide immediate coaching advice that follows the user's specific methodology and NEVER violates the core principles above.
+
+NEVER suggest ending calls, hanging up, or concluding conversations. Always focus on keeping the conversation going and advancing the sale.
+
+IMPORTANT: Create CONTEXTUALLY RELEVANT suggestions with SPECIFIC EXAMPLES based on the conversation content. Instead of generic advice like "ask calibrated questions", provide the actual calibrated question to ask based on what was just discussed.
+
+Examples:
+- If they mentioned "website design", suggest: "Ask: 'What do you hope your visitors will take away from visiting your site?'"
+- If they mentioned "budget concerns", suggest: "Ask: 'Help me understand what you've budgeted for solving this problem?'"
+- If they mentioned "timeline", suggest: "Ask: 'What needs to happen for you to move forward by [specific date mentioned]?'"
 
 Respond with JSON in this exact format:
 {
   "urgency": "high|medium|low",
-  "suggestion": "Brief, actionable coaching tip based on uploaded methodology (max 15 words)",
-  "reasoning": "Why this matters according to your documents (max 25 words)",
-  "next_action": "What to say or do next per your methodology (max 20 words)"
+  "suggestion": "Contextual, ready-to-use coaching suggestion with specific examples based on conversation (max 25 words)",
+  "reasoning": "Why this matters according to conversation context and your documents (max 25 words)",
+  "next_action": "Specific words to say or question to ask related to current topic (max 30 words)"
 }
 
-Focus on the user's specific approach from their documents. If no relevant knowledge is found, provide general coaching.`;
+Focus on making suggestions immediately actionable and contextually relevant to what was just discussed.`;
 
     const response = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
@@ -468,7 +580,7 @@ Focus on the user's specific approach from their documents. If no relevant knowl
         options: {
           temperature: 0.3,
           top_p: 0.9,
-          max_tokens: 200
+          num_predict: 300 // Increased for contextual suggestions
         }
       })
     });
@@ -479,10 +591,26 @@ Focus on the user's specific approach from their documents. If no relevant knowl
     // Parse JSON response from AI
     try {
       const coaching = JSON.parse(aiResponse);
+      
+      // Filter suggestion against core principles
+      const filterResult = filterCoachingSuggestion(coaching.suggestion, corePrinciples);
+      
+      if (!filterResult.allowed) {
+        // Replace with safe alternative
+        coaching.suggestion = filterResult.replacement || 'Ask discovery questions to understand their needs better';
+        coaching.reasoning = 'Filtered inappropriate suggestion - keeping conversation focused on sales objectives';
+        trail.light(972, { 
+          ollama_filtered: 'inappropriate_suggestion_blocked',
+          original_suggestion: coaching.suggestion,
+          replacement: filterResult.replacement
+        });
+      }
+      
       trail.light(971, { 
         ollama_success: 'coaching_generated',
         urgency: coaching.urgency,
-        suggestion_length: coaching.suggestion?.length || 0
+        suggestion_length: coaching.suggestion?.length || 0,
+        filtered: !filterResult.allowed
       });
       
       return {
