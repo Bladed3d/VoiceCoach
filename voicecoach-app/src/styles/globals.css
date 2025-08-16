@@ -1,8 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 /* Base styles for VoiceCoach application */
 @layer base {
@@ -13,24 +13,54 @@
   body {
     @apply bg-slate-950 text-white font-sans;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-    overflow: hidden; /* Prevent scrolling for desktop app */
+    /* REMOVED: overflow: hidden - Allow scrollbars in content panels */
   }
   
-  /* Custom scrollbar for better UX */
+  /* Enhanced scrollbar styling for split view content areas */
   ::-webkit-scrollbar {
-    width: 8px;
+    width: 12px; /* Increased width for better visibility */
   }
   
   ::-webkit-scrollbar-track {
-    @apply bg-slate-800;
+    @apply bg-slate-800/50;
+    border-radius: 6px;
   }
   
   ::-webkit-scrollbar-thumb {
-    @apply bg-slate-600 rounded-full;
+    @apply bg-slate-600;
+    border-radius: 6px;
+    border: 2px solid transparent;
+    background-clip: content-box;
   }
   
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-slate-500;
+  }
+  
+  /* Force scrollbar to always be visible in overflow areas */
+  .force-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(71 85 105) rgb(30 41 59);
+  }
+  
+  .force-scrollbar::-webkit-scrollbar {
+    width: 12px;
+  }
+  
+  .force-scrollbar::-webkit-scrollbar-track {
+    background: rgb(30 41 59 / 0.5);
+    border-radius: 6px;
+  }
+  
+  .force-scrollbar::-webkit-scrollbar-thumb {
+    background: rgb(71 85 105);
+    border-radius: 6px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  
+  .force-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgb(100 116 139);
   }
 }
 
@@ -38,6 +68,18 @@
   /* Game-like UI components for immersive coaching experience */
   .glass-panel {
     @apply bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg;
+  }
+  
+  /* Enhanced glass panel for scrollable content */
+  .glass-panel-scrollable {
+    @apply bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg;
+    /* Force height constraints for scrolling in Split View */
+    min-height: 0;
+    max-height: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Prevent panel itself from expanding */
   }
   
   .neon-border {
@@ -85,11 +127,34 @@
     width: 100vw;
   }
   
+  /* Modified full-screen to allow content scrolling */
+  .full-screen-app {
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden; /* Only prevent body scrolling, not content scrolling */
+  }
+  
   .no-drag {
     -webkit-app-region: no-drag;
   }
   
   .drag-region {
     -webkit-app-region: drag;
+  }
+  
+  /* Scrollable content area utilities */
+  .scrollable-content {
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(71 85 105) rgb(30 41 59);
+    /* Force height constraint for Split View panels */
+    flex: 1;
+    min-height: 0;
+    max-height: 100%;
+  }
+  
+  /* Guaranteed minimum content height to trigger scrolling */
+  .min-scroll-content {
+    min-height: calc(100% + 1px);
   }
 }

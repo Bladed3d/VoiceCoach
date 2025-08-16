@@ -741,7 +741,7 @@ Focus on creating the most practical, actionable sales guide possible.`;
       console.error('Claude analysis error:', error);
       return JSON.stringify({
         error: "Claude analysis failed",
-        message: error.message,
+        message: error instanceof Error ? error.message : 'Unknown error',
         fallback: "Please check your instructions and try again"
       }, null, 2);
     }

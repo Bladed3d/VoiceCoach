@@ -28,20 +28,6 @@ POST http://localhost:3000/api/pipelines
 }
 ```
 
-2. **Send connection test:**
-```javascript
-POST http://localhost:3000/api/pipelines
-{
-  "id": "test-connection-${Date.now()}",
-  "projectName": "lightwalker", 
-  "feature": "Dashboard Connection Test",
-  "status": "testing",
-  "progress": 0,
-  "assignedTo": "Project Manager",
-  "currentTask": "Testing dashboard connectivity"
-}
-```
-
 3. **Send complete project structure (if breakdown files exist):**
 ```javascript
 POST http://localhost:3000/api/pipelines
@@ -70,30 +56,37 @@ POST http://localhost:3000/api/pipelines
 }
 ```
 
-4. **WAIT FOR HUMAN CONFIRMATION**: "Please confirm you can see both the new project AND the connection test on your dashboard"
+4. **WAIT FOR HUMAN CONFIRMATION**: "Please confirm you can see the new project on your dashboard"
 
-4. **ABSOLUTE RULE**: DO NOT START ANY WORK until human confirms they can see BOTH entries
+4. **ABSOLUTE RULE**: DO NOT START ANY WORK until human confirms they can see the dashboard update
 
 5. **If dashboard fails**: STOP project work and troubleshoot API connection
 
-6. **Once confirmed**: Delete test entry and proceed
+6. **Once confirmed**: Continue
 
 ### **STEP 2: CONTINUOUS DASHBOARD UPDATES**
 Update dashboard at EVERY phase transition:
 
+**🚨 CRITICAL: ALL DASHBOARD UPDATES MUST INCLUDE COMPLETE REQUIRED FIELDS**
+
 ```javascript
-// At each phase completion
+// At each phase completion - ALWAYS include ALL required fields
 POST http://localhost:3000/api/pipelines
 {
   "id": "[same-feature-id]",
-  "projectName": "lightwalker",
-  "feature": "[Feature Name]",
-  "status": "active",
-  "progress": [0-100],
-  "assignedTo": "[Current Agent]",
-  "currentTask": "[What's happening now]"
+  "projectName": "[project-name]",          // REQUIRED - Never omit
+  "feature": "[Feature Name]",              // REQUIRED - Never omit  
+  "status": "active",                       // REQUIRED - Never omit
+  "progress": [0-100],                      // REQUIRED - Never omit
+  "assignedTo": "[Current Agent]",          // REQUIRED - Never omit
+  "currentTask": "[What's happening now]",  // REQUIRED - Never omit
+  "phases": [...],                          // REQUIRED - Include full phases array
+  "totalPhases": [number],                  // REQUIRED - Never omit
+  "currentPhase": [number]                  // REQUIRED - Never omit
 }
 ```
+
+**⚠️ WARNING**: Partial updates with only changed fields will fail with "Missing required fields" error. Always include the complete field set even when only updating progress or currentTask.
 
 ## 🔄 **TASK-BREAKDOWN WORKFLOW**
 
@@ -200,16 +193,27 @@ POST http://localhost:3000/api/pipelines
 POST http://localhost:3000/api/pipelines
 {
   "id": "[project-id]",
+  "projectName": "[project-name]",          // REQUIRED - Always include
+  "feature": "[Feature Name]",              // REQUIRED - Always include
+  "status": "active",                       // REQUIRED - Always include
+  "progress": [current-progress],           // REQUIRED - Always include
   "assignedTo": "[current-agent]",
-  "currentTask": "Task [TASK-ID] STARTING: [TASK-NAME] - [agent] beginning work"
+  "currentTask": "Task [TASK-ID] STARTING: [TASK-NAME] - [agent] beginning work",
+  "phases": [...],                          // REQUIRED - Include full phases array
+  "totalPhases": [number],                  // REQUIRED - Always include
+  "currentPhase": [number]                  // REQUIRED - Always include
 }
 ```
 
-**2B: UPDATE When Agent Completes (Multi-Agent Tasks):**
+**2C: UPDATE When Agent Completes (Multi-Agent Tasks):**
 ```javascript
 POST http://localhost:3000/api/pipelines
 {
   "id": "[project-id]",
+  "projectName": "[project-name]",          // REQUIRED - Always include
+  "feature": "[Feature Name]",              // REQUIRED - Always include
+  "status": "active",                       // REQUIRED - Always include
+  "progress": [updated-progress],           // REQUIRED - Always include
   "assignedTo": "[next-agent]",
   "currentTask": "Task [TASK-ID] IN PROGRESS: [TASK-NAME] - [completed-part] complete ([completed-agent]), [active-part] active ([active-agent])",
   "phases": [
@@ -219,19 +223,26 @@ POST http://localhost:3000/api/pipelines
         {"name": "[TASK-NAME] - [Part 2]", "complete": false}
       ]
     }
-  ]
+  ],
+  "totalPhases": [number],                  // REQUIRED - Always include
+  "currentPhase": [number]                  // REQUIRED - Always include
 }
 ```
 
-**2C: FINAL Update When Task Fully Complete:**
+**2D: FINAL Update When Task Fully Complete:**
 ```javascript
 POST http://localhost:3000/api/pipelines
 {
   "id": "[project-id]",
+  "projectName": "[project-name]",          // REQUIRED - Always include
+  "feature": "[Feature Name]",              // REQUIRED - Always include
+  "status": "active",                       // REQUIRED - Always include
   "progress": [milestone-percentage-from-breakdown],
   "assignedTo": "Project Manager",
   "currentTask": "Task [TASK-ID] COMPLETE: [TASK-NAME] - ready for next task",
-  "phases": [updated-phase-array-with-completed-task]
+  "phases": [updated-phase-array-with-completed-task],
+  "totalPhases": [number],                  // REQUIRED - Always include
+  "currentPhase": [number]                  // REQUIRED - Always include
 }
 ```
 
@@ -240,8 +251,7 @@ POST http://localhost:3000/api/pipelines
   ### **CRITICAL: How to Call Custom Subagents**
 
   **When instructions reference a specific agent file path like:**
-  `D:\Projects\Ai\Apps\Life-Designer\sub-projects\Lightwalker\.claude\agents\task-breakdown
-  -agent.md`
+  `.claude\agents\task-breakdown-agent.md`
 
   **The subagent_type parameter is:** `task-breakdown-agent` (the filename without .md)
 
@@ -439,18 +449,30 @@ NEVER PARALLELIZE WHEN:
 ### **MANDATORY TODO SYNC PROTOCOL:**
 ```bash
 # When internal todo list changes, IMMEDIATELY update dashboard:
-curl -X POST http://localhost:3000/api/pipelines/sync-todos \
+curl -X POST http://localhost:3000/api/pipelines \
   -H "Content-Type: application/json" \
   -d '{
-    "projectId": "[project-id]",
-    "todos": [
-      {"name": "STEP 1: Execute mandatory dashboard verification test", "complete": true},
-      {"name": "Deploy Task 2.1: JSON Configuration Framework", "complete": false}
-    ],
+    "id": "[project-id]",
+    "projectName": "[project-name]",          // REQUIRED - Always include
+    "feature": "[Feature Name]",              // REQUIRED - Always include
+    "status": "active",                       // REQUIRED - Always include
+    "progress": [current-progress],           // REQUIRED - Always include
+    "assignedTo": "[current-agent]",
     "currentTask": "Next: Deploy Task 2.1: JSON Configuration Framework",
-    "assignedTo": "[current-agent]"
+    "phases": [
+      {
+        "subtasks": [
+          {"name": "STEP 1: Execute mandatory dashboard verification test", "complete": true},
+          {"name": "Deploy Task 2.1: JSON Configuration Framework", "complete": false}
+        ]
+      }
+    ],
+    "totalPhases": [number],                  // REQUIRED - Always include
+    "currentPhase": [number]                  // REQUIRED - Always include
   }'
 ```
+
+**🚨 CRITICAL**: Use standard pipeline endpoint, not sync-todos endpoint. Always include ALL required fields.
 
 ## 🚨 **PROBLEM ESCALATION**
 

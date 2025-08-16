@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import CoachingInterface from "./components/CoachingInterface";
 import StatusBar from "./components/StatusBar";
 import SettingsPanel from "./components/SettingsPanel";
+import AudioDeviceSelector from "./components/AudioDeviceSelector";
 import { KnowledgeBaseManager } from "./components/KnowledgeBaseManager";
 import UserTestingFramework from "./components/UserTestingFramework";
 import FeedbackCollectionSystem from "./components/FeedbackCollectionSystem";
@@ -39,6 +40,8 @@ function App() {
   const [showBetaOnboarding, setShowBetaOnboarding] = useState(false);
   const [showPerformanceValidation, setShowPerformanceValidation] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentAudioMode, setCurrentAudioMode] = useState<string>('microphone_only');
+  const [selectedAudioDevice, setSelectedAudioDevice] = useState<string>('default');
   
   // LED 300: Initial state setup
   trail.light(300, { 
@@ -143,19 +146,32 @@ function App() {
     // LED 100: User interaction - Start recording button clicked
     trail.light(100, { 
       user_action: 'start_recording_clicked',
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      audio_mode: currentAudioMode,
+      selected_device: selectedAudioDevice
     });
     
     try {
-      console.log("🎙️ User requested recording start");
+      console.log(`🎙️ User requested recording start with mode: ${currentAudioMode}`);
       
-      // LED 200: API operation - Starting audio recording
-      trail.light(200, { api_operation: 'start_audio_recording' });
+      // LED 200: API operation - Starting audio recording with enhanced parameters
+      trail.light(200, { 
+        api_operation: 'start_audio_recording_enhanced',
+        audio_mode: currentAudioMode,
+        device: selectedAudioDevice
+      });
       
-      await startAudioRecording();
+      // Pass audio mode and device to the recording function
+      await startAudioRecording({
+        audio_mode: currentAudioMode,
+        selected_device: selectedAudioDevice
+      });
       
       // LED 201: API operation complete
-      trail.light(201, { api_operation: 'start_audio_recording_complete' });
+      trail.light(201, { 
+        api_operation: 'start_audio_recording_complete',
+        mode: currentAudioMode
+      });
       
     } catch (error) {
       // LED 200: API operation failed
@@ -195,7 +211,7 @@ function App() {
   });
 
   return (
-    <div className="full-screen bg-slate-950 text-white overflow-hidden">
+    <div className="full-screen-app bg-slate-950 text-white">
       {/* Status Bar - Fixed at top */}
       <StatusBar 
         appState={appState}
@@ -250,6 +266,23 @@ function App() {
 
       {/* Main Coaching Interface */}
       <div className="flex-1 flex flex-col" style={{ height: 'calc(100vh - 60px)' }}>
+        {/* Audio Device Selector - Integrated above coaching interface */}
+        <div className="mx-4 mt-4 mb-2">
+          <AudioDeviceSelector
+            isRecording={appState.isRecording}
+            onModeChange={(mode, device) => {
+              setCurrentAudioMode(mode);
+              setSelectedAudioDevice(device);
+              trail.light(315, {
+                audio_config_change: { mode, device },
+                timestamp: Date.now()
+              });
+              console.log(`🔧 Audio configuration updated: ${mode} on ${device}`);
+            }}
+            className="mb-0"
+          />
+        </div>
+        
         <CoachingInterface 
           appState={appState}
           onStartRecording={handleStartRecording}

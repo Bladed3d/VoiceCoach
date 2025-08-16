@@ -220,44 +220,148 @@ export const useAudioProcessor = () => {
     stopMetricsPolling();
   }, [stopLevelsPolling, stopMetricsPolling]);
 
-  // Start recording with explicit user consent and microphone permission
-  const startRecording = useCallback(async () => {
-    // LED 509: Start recording operation
-    trail.light(509, { operation: 'start_recording_begin' });
+  // Start recording with explicit user consent and enhanced audio mode support
+  const startRecording = useCallback(async (audioOptions?: { 
+    audio_mode?: string; 
+    selected_device?: string;
+  }) => {
+    // LED 509: Start recording operation with enhanced parameters
+    trail.light(509, { 
+      operation: 'start_recording_begin',
+      audio_mode: audioOptions?.audio_mode || 'microphone_only',
+      selected_device: audioOptions?.selected_device || 'default'
+    });
     
     try {
-      console.log('🎙️ User explicitly requested recording start...');
-      setError(null);
+      const audioMode = audioOptions?.audio_mode || 'microphone_only';
+      const selectedDevice = audioOptions?.selected_device || 'default';
       
-      // Check if browser permissions are needed (web mode)
+      console.log(`🎙️ User explicitly requested recording start with mode: ${audioMode}`);
+      setError(null);
+
+      // Enhanced audio mode tracking
+      if (audioMode === 'system_audio') {
+        // LED 170: Video platform compatibility check for system audio
+        trail.light(170, {
+          video_platform_compatibility_check: true,
+          mode: 'system_audio',
+          checking_zoom_teams_meet: true
+        });
+      } else if (audioMode === 'combined') {
+        // LED 170: Video platform compatibility check for combined mode  
+        trail.light(170, {
+          video_platform_compatibility_check: true,
+          mode: 'combined',
+          enhanced_coaching_mode: true
+        });
+      }
+      
+      // Check if enhanced permissions are needed for system audio (web mode)
       if (!isTauriEnvironment()) {
         try {
-          console.log('🔒 Requesting microphone permission...');
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          console.log('✅ Microphone permission granted');
-          // Stop the test stream
-          stream.getTracks().forEach(track => track.stop());
+          if (audioMode === 'system_audio' || audioMode === 'combined') {
+            console.log('🖥️ Requesting system audio permissions for video call capture...');
+            
+            // LED 161: System audio permissions request
+            trail.light(161, {
+              system_audio_permissions_request: true,
+              mode: audioMode,
+              platform: 'browser',
+              video_call_coaching: true
+            });
+
+            // For system audio, we need display media permission
+            const permissionPromises = [];
+            
+            if (audioMode === 'combined') {
+              // Combined mode needs both microphone and system audio
+              permissionPromises.push(
+                navigator.mediaDevices.getUserMedia({ audio: true }),
+                navigator.mediaDevices.getDisplayMedia({ video: false, audio: true })
+              );
+            } else {
+              // System audio only
+              permissionPromises.push(
+                navigator.mediaDevices.getDisplayMedia({ video: false, audio: true })
+              );
+            }
+            
+            const streams = await Promise.all(permissionPromises);
+            console.log('✅ Enhanced audio permissions granted for video call coaching');
+            
+            // LED 162: System audio permissions granted
+            trail.light(162, {
+              system_audio_permissions_granted: true,
+              mode: audioMode,
+              streams_acquired: streams.length,
+              video_call_ready: true
+            });
+
+            // LED 175: Video platform permissions verified
+            trail.light(175, {
+              video_platform_permissions_verified: true,
+              audio_mode: audioMode,
+              permissions_status: 'granted'
+            });
+
+            // Stop the test streams
+            streams.forEach(stream => {
+              stream.getTracks().forEach(track => track.stop());
+            });
+            
+          } else {
+            // Standard microphone permission
+            console.log('🔒 Requesting microphone permission...');
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            console.log('✅ Microphone permission granted');
+            // Stop the test stream
+            stream.getTracks().forEach(track => track.stop());
+          }
         } catch (permissionError) {
-          console.error('❌ Microphone permission denied:', permissionError);
-          setError('Microphone permission is required for VoiceCoach to function. Please allow microphone access and try again.');
+          console.error('❌ Audio permission denied:', permissionError);
+          
+          // LED 163: System audio permissions denied
+          trail.light(163, {
+            system_audio_permissions_denied: true,
+            mode: audioMode,
+            error: permissionError instanceof Error ? permissionError.message : 'Permission denied',
+            fallback_needed: true
+          });
+
+          const errorMessage = audioMode === 'system_audio' || audioMode === 'combined' 
+            ? 'System audio permission is required for video call coaching. Please allow screen/audio sharing and try again.'
+            : 'Microphone permission is required for VoiceCoach to function. Please allow microphone access and try again.';
+          setError(errorMessage);
           return;
         }
       }
       
-      // LED 220: Tauri API call - Start recording
-      trail.light(220, { api_call: 'start_recording' });
+      // LED 220: Tauri API call - Start recording with enhanced parameters
+      trail.light(220, { 
+        api_call: 'start_recording_enhanced',
+        audio_mode: audioMode,
+        selected_device: selectedDevice
+      });
       
-      const response = await smartInvoke('start_recording');
-      console.log('✅ Recording started:', response);
+      const response = await smartInvoke('start_recording', {
+        audio_mode: audioMode,
+        selected_device: selectedDevice
+      });
+      console.log(`✅ Recording started with ${audioMode} mode:`, response);
       
       // LED 221: Start recording API success
       trail.light(221, { 
         api_response: 'start_recording_success',
-        response: response
+        response: response,
+        audio_mode: audioMode
       });
       
       // LED 510: Recording started successfully
-      trail.light(510, { operation: 'start_recording_complete' });
+      trail.light(510, { 
+        operation: 'start_recording_complete',
+        mode: audioMode,
+        device: selectedDevice
+      });
       
       // Explicitly set recording state and start polling
       setIsRecording(true);
@@ -275,10 +379,11 @@ export const useAudioProcessor = () => {
       // LED 511: Recording start failed
       trail.light(511, { 
         operation: 'start_recording_failed',
-        error: err as string
+        error: err as string,
+        audio_mode: audioOptions?.audio_mode
       });
     }
-  }, []);
+  }, [startLevelsPolling, startMetricsPolling]);
 
   // Stop recording
   const stopRecording = useCallback(async () => {
