@@ -1132,8 +1132,8 @@ ALWAYS: keep conversations going, handle objections constructively, advance the 
   // Smart knowledge compression - prioritize most relevant chunks
   const compressedKnowledge = compressKnowledgeBase(data.relevantKnowledge, 800);
   
-  // Prioritize recent conversation context (last 2 messages instead of 5)
-  const recentContext = getRecentContext(data.conversationContextForPrompt, 2);
+  // Use full conversation context (all 5 messages for maximum contextual awareness)
+  const recentContext = data.conversationContextForPrompt;
   
   // Build stage-aware contextual examples
   const relevantExamples = getStageExamples(data.detectedStage, data.contextualExamples);
@@ -1162,11 +1162,8 @@ JSON format:
   "next_action": "Specific question or statement to say next (max 25 words)"
 }`;
 
-  // Ensure prompt fits within limit
-  if (basePrompt.length > OLLAMA_MAX_CHARS) {
-    return buildMinimalPrompt(data);
-  }
-  
+  // Always use full context prompt - monitor actual Ollama failures instead of pre-emptive cutting
+  // If Ollama fails due to token limits, we'll catch and log it for optimization
   return basePrompt;
 };
 
@@ -1436,12 +1433,30 @@ export const generateOllamaCoaching = async (transcriptionText: string): Promise
       compression_ratio: compressionRatio,
       compression_effective: compressionEffective,
       ollama_max_tokens: ollamaMaxTokens,
-      size_warning: estimatedTokens > ollamaMaxTokens ? 'PROMPT_TOO_LARGE' : 'COMPRESSION_SUCCESS',
+      size_warning: estimatedTokens > ollamaMaxTokens ? 'FULL_CONTEXT_OVER_LIMIT' : 'FULL_CONTEXT_SUCCESS',
       truncation_risk: estimatedTokens > ollamaMaxTokens,
+      full_context_preserved: true,
+      context_messages_count: 5,
       proactive_coaching_enabled: detectedStage !== 'unknown',
       stage_detected: detectedStage,
       construction_time_ms: Date.now() - promptStart
     });
+    
+    // Log token limit warnings for monitoring
+    if (estimatedTokens > ollamaMaxTokens) {
+      console.warn(`🚨 Token limit exceeded: ${estimatedTokens} > ${ollamaMaxTokens} (Full context preserved for better coaching)`);
+    }
+    
+    // Dispatch token count event for dev mode overlay
+    const tokenEvent = new CustomEvent('ollamaTokenCount', {
+      detail: {
+        estimatedTokens,
+        promptSizeChars,
+        isOverLimit: estimatedTokens > ollamaMaxTokens,
+        timestamp: Date.now()
+      }
+    });
+    window.dispatchEvent(tokenEvent);
 
 
     // LED 500: Ollama Request Start
@@ -1475,8 +1490,17 @@ export const generateOllamaCoaching = async (transcriptionText: string): Promise
     const requestDuration = requestEndTime - requestStart;
     
     if (!response.ok) {
-      trail.fail(500, new Error(`Ollama request failed: ${response.status} ${response.statusText}`));
-      throw new Error(`Ollama request failed: ${response.status} ${response.statusText}`);
+      const errorMessage = `Ollama request failed: ${response.status} ${response.statusText}`;
+      
+      // Special handling for token limit errors
+      if (response.status === 413 || response.status === 400) {
+        console.error(`🚨 POTENTIAL TOKEN LIMIT ISSUE: ${errorMessage}`);
+        console.error(`📊 Prompt stats: ${promptSizeChars} chars, ~${estimatedTokens} tokens`);
+        console.error(`💡 Consider reducing knowledge base or conversation context`);
+      }
+      
+      trail.fail(500, new Error(errorMessage));
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();

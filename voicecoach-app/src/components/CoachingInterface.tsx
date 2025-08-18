@@ -1,9 +1,23 @@
-import { useState } from "react";
-import { Play, Square, MessageSquare, Brain, Target, TrendingUp, BarChart3, Layout } from "lucide-react";
+import { useState, useEffect } from "react";
+import { 
+  Play, 
+  Square, 
+  MessageSquare, 
+  Brain, 
+  Target, 
+  TrendingUp, 
+  BarChart3, 
+  Layout, 
+  Clock, 
+  Users, 
+  Zap, 
+  Award 
+} from "lucide-react";
 import TranscriptionPanel from "./TranscriptionPanel";
 import CoachingPrompts from "./CoachingPrompts";
 import CoachingDashboard from "./CoachingDashboard";
 import AudioVisualizer from "./AudioVisualizer";
+import AudioDeviceSelector from "./AudioDeviceSelector";
 import { BreadcrumbTrail } from "../lib/breadcrumb-system";
 import { useCoachingOrchestrator } from "../hooks/useCoachingOrchestrator";
 
@@ -22,9 +36,10 @@ interface CoachingInterfaceProps {
   };
   onStartRecording: () => void;
   onStopRecording: () => void;
+  audioDeviceSelector?: React.ReactNode;
 }
 
-function CoachingInterface({ appState, onStartRecording, onStopRecording }: CoachingInterfaceProps) {
+function CoachingInterface({ appState, onStartRecording, onStopRecording, audioDeviceSelector }: CoachingInterfaceProps) {
   // Initialize LED breadcrumb trail for CoachingInterface
   const trail = new BreadcrumbTrail('CoachingInterface');
   
@@ -39,6 +54,17 @@ function CoachingInterface({ appState, onStartRecording, onStopRecording }: Coac
   });
   
   const [activeTab, setActiveTab] = useState<'transcription' | 'prompts' | 'dashboard' | 'insights' | 'split-view'>('dashboard');
+  const [ragStatus, setRagStatus] = useState<{
+    connected: boolean;
+    status: string;
+    color: string;
+    message: string;
+  }>({
+    connected: false,
+    status: 'checking',
+    color: 'bg-slate-400',
+    message: 'Checking RAG connection...'
+  });
   
   // Real-time coaching orchestration engine
   const {
@@ -72,6 +98,66 @@ function CoachingInterface({ appState, onStartRecording, onStopRecording }: Coac
     isConnected: appState.isConnected
   });
 
+  // BALANCED: RAG status checking - once per session start to maintain performance
+  // Check Ollama connection when recording starts, then assume available during session
+  useEffect(() => {
+    const checkOllamaHealth = async () => {
+      if (isRecording) {
+        // Only check when recording starts, not continuously
+        try {
+          const response = await fetch('http://localhost:11434/api/tags', {
+            method: 'GET',
+            timeout: 2000 // 2 second timeout
+          });
+          
+          if (response.ok) {
+            setRagStatus({
+              connected: true,
+              status: 'connected',
+              color: 'bg-success-400',
+              message: 'RAG: Connected to Ollama'
+            });
+          } else {
+            throw new Error(`HTTP ${response.status}`);
+          }
+        } catch (error) {
+          console.warn('Ollama health check failed:', error);
+          setRagStatus({
+            connected: false,
+            status: 'failed',
+            color: 'bg-warning-400',
+            message: 'RAG: Ollama connection failed'
+          });
+        }
+      } else {
+        // When not recording, show ready status
+        setRagStatus({
+          connected: true,
+          status: 'ready',
+          color: 'bg-slate-400',
+          message: 'RAG: Ready for coaching session'
+        });
+      }
+    };
+    
+    checkOllamaHealth();
+  }, [appState.isRecording]); // Only check when recording state changes
+
+  // Helper function for formatting duration
+  const formatDuration = (ms: number) => {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes % 60}m`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds % 60}s`;
+    } else {
+      return `${seconds}s`;
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col p-4 space-y-4">
       {/* Main Control Panel */}
@@ -79,17 +165,36 @@ function CoachingInterface({ appState, onStartRecording, onStopRecording }: Coac
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <h2 className="text-xl font-semibold">AI Sales Coach</h2>
-            {appState.currentCall ? (
-              <div className="flex items-center space-x-2 text-success-400">
-                <div className="w-2 h-2 rounded-full bg-success-400 animate-pulse"></div>
-                <span className="text-sm font-medium">Active Call Session</span>
+            
+            {/* RAG System Status Indicator */}
+            <div className="flex items-center space-x-2">
+              {appState.currentCall ? (
+                <div className="flex items-center space-x-2 text-success-400">
+                  <div className="w-2 h-2 rounded-full bg-success-400 animate-pulse"></div>
+                  <span className="text-sm font-medium">Active Call Session</span>
+                </div>
+              ) : (
+                <span className="text-slate-400 text-sm">Ready to coach your next call</span>
+              )}
+              
+              {/* Knowledge Base Status */}
+              <div className="flex items-center space-x-1 text-xs">
+                <div className={`w-2 h-2 rounded-full ${ragStatus.color} ${ragStatus.status === 'checking' ? 'animate-pulse' : ''}`}></div>
+                <span className={`${ragStatus.connected ? 'text-success-400' : ragStatus.status === 'failed' ? 'text-danger-400' : 'text-warning-400'}`}>
+                  {ragStatus.message}
+                </span>
               </div>
-            ) : (
-              <span className="text-slate-400 text-sm">Ready to coach your next call</span>
-            )}
+            </div>
           </div>
 
           <div className="flex items-center space-x-3">
+            {/* Audio Device Selector - Compact dropdown */}
+            {audioDeviceSelector && (
+              <div className="flex-shrink-0">
+                {audioDeviceSelector}
+              </div>
+            )}
+            
             {!appState.isRecording ? (
               <button
                 onClick={() => {
@@ -423,24 +528,122 @@ function CoachingInterface({ appState, onStartRecording, onStopRecording }: Coac
               });
               return null;
             })()}
-            <div className="h-full flex gap-4" style={{ maxHeight: '600px', height: '600px' }}>
-              {/* AI Coaching - Left 2/3 */}
-              <div className="flex-[2] min-h-0" style={{ maxHeight: '600px' }}>
-                <CoachingPrompts 
-                  isRecording={appState.isRecording}
-                  prompts={coachingPrompts}
-                  conversationContext={conversationContext}
-                  onPromptUsed={markPromptAsUsed}
-                  onPromptDismissed={dismissPrompt}
-                />
+            <div className="h-full flex flex-col space-y-4">
+              {/* Stats Bar at Top of Split View */}
+              <div className="grid grid-cols-6 gap-4">
+                {/* Session Duration */}
+                <div className="glass-panel p-3">
+                  <div className="flex items-center space-x-2">
+                    <Clock className="w-4 h-4 text-primary-400" />
+                    <div>
+                      <div className="text-xs text-slate-400">Session</div>
+                      <div className="text-sm font-semibold">
+                        {formatDuration(conversationContext.duration)}
+                        {/* Debug: show raw duration */}
+                        {process.env.NODE_ENV === 'development' && (
+                          <span className="text-xs text-slate-500 ml-1">({conversationContext.duration}ms)</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Current Stage */}
+                <div className="glass-panel p-3">
+                  <div className="flex items-center space-x-2">
+                    <Target className="w-4 h-4 text-success-400" />
+                    <div>
+                      <div className="text-xs text-slate-400">Stage</div>
+                      <div className="text-sm font-semibold capitalize">
+                        {conversationContext.currentStage.replace('_', ' ')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Active Prompts */}
+                <div className="glass-panel p-3">
+                  <div className="flex items-center space-x-2">
+                    <Brain className="w-4 h-4 text-warning-400" />
+                    <div>
+                      <div className="text-xs text-slate-400">Prompts</div>
+                      <div className="text-sm font-semibold">
+                        {coachingPrompts.length}
+                        {coachingPrompts.filter(p => p.priority === 'critical').length > 0 && (
+                          <span className="ml-1 text-red-400">({coachingPrompts.filter(p => p.priority === 'critical').length}!)</span>
+                        )}
+                        {/* Debug: show transcription count */}
+                        {process.env.NODE_ENV === 'development' && (
+                          <span className="text-xs text-slate-500 ml-1">(T:{transcriptions.length})</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Talk Ratio */}
+                <div className="glass-panel p-3">
+                  <div className="flex items-center space-x-2">
+                    <Users className="w-4 h-4 text-blue-400" />
+                    <div>
+                      <div className="text-xs text-slate-400">Talk Ratio</div>
+                      <div className="text-sm font-semibold">
+                        {conversationContext.talkTimeRatio.user}% / {conversationContext.talkTimeRatio.prospect}%
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Response Time */}
+                <div className="glass-panel p-3">
+                  <div className="flex items-center space-x-2">
+                    <Zap className="w-4 h-4 text-yellow-400" />
+                    <div>
+                      <div className="text-xs text-slate-400">Response</div>
+                      <div className="text-sm font-semibold">
+                        {getAverageResponseTime().toFixed(0)}ms
+                        {isProcessing && (
+                          <span className="ml-1 animate-pulse text-yellow-400">⚡</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Effectiveness */}
+                <div className="glass-panel p-3">
+                  <div className="flex items-center space-x-2">
+                    <Award className="w-4 h-4 text-purple-400" />
+                    <div>
+                      <div className="text-xs text-slate-400">Effectiveness</div>
+                      <div className="text-sm font-semibold">
+                        {getCoachingEffectiveness().toFixed(0)}%
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              
-              {/* Live Transcription - Right 1/3 */}
-              <div className="flex-1 min-h-0" style={{ maxHeight: '600px' }}>
-                <TranscriptionPanel 
-                  isRecording={appState.isRecording} 
-                  transcriptions={transcriptions}
-                />
+
+              {/* Split View Content */}
+              <div className="flex-1 flex gap-4" style={{ maxHeight: '550px', height: '550px' }}>
+                {/* AI Coaching - Left 2/3 */}
+                <div className="flex-[2] min-h-0" style={{ maxHeight: '550px' }}>
+                  <CoachingPrompts 
+                    isRecording={appState.isRecording}
+                    prompts={coachingPrompts}
+                    conversationContext={conversationContext}
+                    onPromptUsed={markPromptAsUsed}
+                    onPromptDismissed={dismissPrompt}
+                  />
+                </div>
+                
+                {/* Live Transcription - Right 1/3 */}
+                <div className="flex-1 min-h-0" style={{ maxHeight: '550px' }}>
+                  <TranscriptionPanel 
+                    isRecording={appState.isRecording} 
+                    transcriptions={transcriptions}
+                  />
+                </div>
               </div>
             </div>
           </>

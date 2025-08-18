@@ -32,6 +32,8 @@ export interface PerformanceMetrics {
   total_transcriptions: number;
   status: string;
   target_latency_ms: number;
+  ollama_tokens?: number;
+  ollama_over_limit?: boolean;
 }
 
 export type AudioStatus = 'Stopped' | 'Starting' | 'Recording' | 'Processing' | { Error: string };
@@ -51,6 +53,8 @@ export const useAudioProcessor = () => {
   const [audioStatus, setAudioStatus] = useState<AudioStatus>('Stopped');
   const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetrics | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [ollamaTokens, setOllamaTokens] = useState<number>(0);
+  const [ollamaOverLimit, setOllamaOverLimit] = useState<boolean>(false);
   
   // LED 501: Initial state setup complete
   trail.light(501, { 
@@ -120,11 +124,21 @@ export const useAudioProcessor = () => {
 
     initializeAudioProcessor();
 
+    // Listen for Ollama token count events
+    const handleTokenCount = (event: CustomEvent) => {
+      const { estimatedTokens, isOverLimit } = event.detail;
+      setOllamaTokens(estimatedTokens);
+      setOllamaOverLimit(isOverLimit);
+    };
+
+    window.addEventListener('ollamaTokenCount', handleTokenCount as EventListener);
+
     // Cleanup on unmount
     return () => {
       // LED 505: Cleanup on unmount
       trail.light(505, { operation: 'audio_processor_cleanup' });
       stopAllPolling();
+      window.removeEventListener('ollamaTokenCount', handleTokenCount as EventListener);
     };
   }, []);
 
@@ -155,7 +169,7 @@ export const useAudioProcessor = () => {
         trail.fail(213, err as Error);
         console.warn('Failed to get audio levels:', err);
       }
-    }, 16); // ~60 FPS for smooth visualization
+    }, 100); // ~10 FPS - more reasonable for most computers (was 60 FPS)
   }, []);
 
   // Stop audio levels polling
@@ -185,7 +199,7 @@ export const useAudioProcessor = () => {
       } catch (err) {
         console.warn('Failed to get audio status:', err);
       }
-    }, 500); // 2 FPS for status updates
+    }, 1000); // 1 FPS for status updates (was 2 FPS)
   }, []);
 
   // Start performance metrics polling
@@ -199,7 +213,7 @@ export const useAudioProcessor = () => {
       } catch (err) {
         console.warn('Failed to get performance metrics:', err);
       }
-    }, 2000); // Every 2 seconds for metrics
+    }, 5000); // Every 5 seconds for metrics (was 2 seconds)
   }, []);
 
   // Stop metrics polling
@@ -542,12 +556,12 @@ export const useAudioProcessor = () => {
     
     return {
       averageLatency: `${performanceMetrics.average_latency_ms.toFixed(1)}ms`,
-      uptime: formatUptime(performanceMetrics.uptime_seconds),
+      tokens: ollamaTokens > 0 ? `${ollamaTokens}${ollamaOverLimit ? ' ⚠️' : ''}` : '0',
       transcriptions: performanceMetrics.total_transcriptions,
       targetLatency: `${performanceMetrics.target_latency_ms}ms`,
       status: performanceMetrics.status,
     };
-  }, [performanceMetrics]);
+  }, [performanceMetrics, ollamaTokens, ollamaOverLimit]);
 
   return {
     // State

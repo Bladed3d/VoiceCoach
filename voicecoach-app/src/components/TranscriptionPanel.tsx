@@ -256,32 +256,6 @@ function TranscriptionPanel({ isRecording, transcriptions: externalTranscription
           </div>
         ))}
 
-        {/* Add dummy content to guarantee scrollbar visibility when testing */}
-        {process.env.NODE_ENV === 'development' && transcriptions.length === 0 && (
-          <div className="text-xs text-slate-600 space-y-2 mt-8">
-            <div className="p-2 bg-slate-800/30 rounded">Debug: Transcription scrollbar test content</div>
-            <div className="p-2 bg-slate-800/30 rounded">This content ensures scrollbar appears during development</div>
-            <div className="p-2 bg-slate-800/30 rounded">Live transcriptions will appear above this area</div>
-            <div className="p-2 bg-slate-800/30 rounded">Scrollbar should be visible on the right →</div>
-            <div className="p-2 bg-slate-800/30 rounded">Content continues below...</div>
-            <div className="p-2 bg-slate-800/30 rounded">More testing content for scroll verification</div>
-            <div className="p-2 bg-slate-800/30 rounded">Additional test content</div>
-            <div className="p-2 bg-slate-800/30 rounded">Even more content to trigger overflow</div>
-            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 1</div>
-            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 2</div>
-            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 3</div>
-            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 4</div>
-            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 5</div>
-            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 6</div>
-            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 7</div>
-            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 8</div>
-            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 9</div>
-            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 10</div>
-            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 11</div>
-            <div className="p-2 bg-slate-800/30 rounded">Live conversation test content line 12</div>
-            <div className="p-2 bg-slate-800/30 rounded">Final test content block - transcription scrolling works!</div>
-          </div>
-        )}
       </div>
     </div>
   );

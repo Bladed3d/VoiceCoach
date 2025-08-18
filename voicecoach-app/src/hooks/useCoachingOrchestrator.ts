@@ -604,14 +604,34 @@ export const useCoachingOrchestrator = (isRecording: boolean) => {
     }
   }, [isRecording, performanceMetrics.promptsDelivered]);
 
-  // DISABLED: Mock transcription simulation 
-  // This was causing auto-start behavior and unwanted demo data
-  // Mock data is COMPLETELY DISABLED to ensure clean user experience
+  // Real-time metrics update timer during recording
   useEffect(() => {
-    // No mock data will be generated - user must explicitly start recording
-    // This prevents privacy violations and ensures proper user control
-    return;
-  }, [isRecording, processNewTranscription]);
+    if (!isRecording || !sessionStartTime.current) return;
+
+    // Update metrics every second during recording
+    const interval = setInterval(() => {
+      const currentDuration = Date.now() - sessionStartTime.current!.getTime();
+      
+      // Update conversation context with current duration
+      setConversationContext(prev => ({
+        ...prev,
+        duration: currentDuration,
+        lastActivity: new Date()
+      }));
+
+      // Update performance metrics
+      setPerformanceMetrics(prev => ({
+        ...prev,
+        sessionDuration: currentDuration
+      }));
+    }, 1000); // Update every 1 second
+
+    return () => clearInterval(interval);
+  }, [isRecording]);
+
+  // DISABLED: Test coaching prompt generation removed to restore original functionality
+  // The coaching system should work with real voice transcriptions and Ollama integration
+  // No artificial test prompts to avoid interfering with the real coaching pipeline
 
   // Public API
   return {

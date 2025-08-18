@@ -266,27 +266,24 @@ function App() {
 
       {/* Main Coaching Interface */}
       <div className="flex-1 flex flex-col" style={{ height: 'calc(100vh - 60px)' }}>
-        {/* Audio Device Selector - Integrated above coaching interface */}
-        <div className="mx-4 mt-4 mb-2">
-          <AudioDeviceSelector
-            isRecording={appState.isRecording}
-            onModeChange={(mode, device) => {
-              setCurrentAudioMode(mode);
-              setSelectedAudioDevice(device);
-              trail.light(315, {
-                audio_config_change: { mode, device },
-                timestamp: Date.now()
-              });
-              console.log(`🔧 Audio configuration updated: ${mode} on ${device}`);
-            }}
-            className="mb-0"
-          />
-        </div>
-        
         <CoachingInterface 
           appState={appState}
           onStartRecording={handleStartRecording}
           onStopRecording={handleStopRecording}
+          audioDeviceSelector={
+            <AudioDeviceSelector
+              isRecording={appState.isRecording}
+              onModeChange={(mode, device) => {
+                setCurrentAudioMode(mode);
+                setSelectedAudioDevice(device);
+                trail.light(315, {
+                  audio_config_change: { mode, device },
+                  timestamp: Date.now()
+                });
+                console.log(`🔧 Audio configuration updated: ${mode} on ${device}`);
+              }}
+            />
+          }
         />
       </div>
 
@@ -424,7 +421,7 @@ function App() {
           {performanceMetrics && getFormattedMetrics() && (
             <div className="text-xs text-slate-400 bg-slate-900/80 px-2 py-1 rounded space-y-1">
               <div>Latency: {getFormattedMetrics()?.averageLatency}</div>
-              <div>Uptime: {getFormattedMetrics()?.uptime}</div>
+              <div>Tokens: {getFormattedMetrics()?.tokens}</div>
               <div>Transcriptions: {getFormattedMetrics()?.transcriptions}</div>
             </div>
           )}
