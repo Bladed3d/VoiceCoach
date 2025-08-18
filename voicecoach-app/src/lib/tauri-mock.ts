@@ -1126,14 +1126,22 @@ const buildOptimizedPrompt = (data: PromptData): string => {
   const compressedPrinciples = `NEVER suggest: ending calls, hanging up, wrapping up, giving up on objections.
 ALWAYS: keep conversations going, handle objections constructively, advance the sale.`;
 
+  // Use full conversation context (all 5 messages for maximum contextual awareness)
+  const recentContext = data.conversationContextForPrompt;
+  
   // Stage-specific knowledge filtering for proactive coaching
   const stageGuidance = getStageSpecificGuidance(data.detectedStage, data.relevantKnowledge);
   
-  // Smart knowledge compression - prioritize most relevant chunks
-  const compressedKnowledge = compressKnowledgeBase(data.relevantKnowledge, 800);
-  
-  // Use full conversation context (all 5 messages for maximum contextual awareness)
-  const recentContext = data.conversationContextForPrompt;
+  // Context-aware knowledge selection - prioritize most relevant chunks based on conversation
+  const compressedKnowledge = compressKnowledgeBase(
+    data.relevantKnowledge, 
+    800, 
+    {
+      conversationContext: recentContext,
+      currentStage: data.detectedStage,
+      latestMessage: data.transcriptionText
+    }
+  );
   
   // Build stage-aware contextual examples
   const relevantExamples = getStageExamples(data.detectedStage, data.contextualExamples);
@@ -1180,28 +1188,127 @@ const getStageSpecificGuidance = (stage: string, _knowledge: string): string => 
   return stageGuides[stage as keyof typeof stageGuides] || stageGuides.unknown;
 };
 
-// Compress knowledge base while preserving key techniques
-const compressKnowledgeBase = (knowledge: string, maxChars: number): string => {
+// Enhanced knowledge selection with smart contextual relevance
+const compressKnowledgeBase = (knowledge: string, maxChars: number, context?: {
+  conversationContext?: string;
+  currentStage?: string;
+  latestMessage?: string;
+}): string => {
   if (!knowledge || knowledge.length <= maxChars) return knowledge;
   
-  // Prioritize Chris Voss techniques and specific examples
-  const keyPhrases = [
-    "That's exactly why",
-    "How am I supposed to",
-    "What would need to happen",
-    "calibrated question",
-    "tactical empathy",
-    "mirroring",
-    "labeling"
-  ];
+  // Enhanced knowledge selection: prioritize by relevance and technique importance
+  return selectRelevantKnowledge(knowledge, maxChars, context);
+};
+
+// Smart knowledge selection based on context and conversation patterns
+const selectRelevantKnowledge = (knowledge: string, maxChars: number, context?: {
+  conversationContext?: string;
+  currentStage?: string;
+  latestMessage?: string;
+}): string => {
+  // Core negotiation techniques with contextual weighting
+  const knowledgeCategories = {
+    voss_core: {
+      weight: 10,
+      patterns: ["That's exactly why", "How am I supposed to", "calibrated question", "tactical empathy", "mirroring", "labeling"]
+    },
+    discovery_techniques: {
+      weight: context?.currentStage === 'discovery' ? 12 : 8, // Boost if in discovery stage
+      patterns: ["open-ended question", "pain point", "discovery", "tell me more", "help me understand"]
+    },
+    objection_handling: {
+      weight: context?.currentStage === 'objection' ? 12 : 9, // Boost if handling objections
+      patterns: ["objection", "concern", "but", "however", "pushback", "resistance"]
+    },
+    closing_strategies: {
+      weight: context?.currentStage === 'closing' ? 12 : 7, // Boost if in closing stage
+      patterns: ["close", "next steps", "decision", "commitment", "move forward", "ready"]
+    },
+    rapport_building: {
+      weight: 6,
+      patterns: ["rapport", "trust", "connection", "relationship", "empathy"]
+    }
+  };
   
-  const sentences = knowledge.split('. ');
-  const prioritized = sentences.filter(sentence => 
-    keyPhrases.some(phrase => sentence.toLowerCase().includes(phrase.toLowerCase()))
-  );
+  // Analyze conversation context for additional relevance signals
+  const contextKeywords: string[] = [];
+  if (context?.conversationContext) {
+    const lowerContext = context.conversationContext.toLowerCase();
+    if (lowerContext.includes('price') || lowerContext.includes('cost') || lowerContext.includes('budget')) {
+      contextKeywords.push('pricing', 'budget', 'cost');
+    }
+    if (lowerContext.includes('timeline') || lowerContext.includes('when') || lowerContext.includes('deadline')) {
+      contextKeywords.push('timeline', 'urgency', 'deadline');
+    }
+    if (lowerContext.includes('decision') || lowerContext.includes('approve') || lowerContext.includes('manager')) {
+      contextKeywords.push('decision-maker', 'authority', 'approval');
+    }
+  }
   
-  const compressed = prioritized.slice(0, 3).join('. ');
-  return compressed.length > maxChars ? compressed.substring(0, maxChars) + '...' : compressed;
+  const sentences = knowledge.split('. ').filter(s => s.trim().length > 10);
+  
+  // Score and rank sentences by relevance
+  const scoredSentences = sentences.map(sentence => {
+    let score = 0;
+    const lowerSentence = sentence.toLowerCase();
+    
+    // Calculate relevance score based on knowledge categories
+    Object.entries(knowledgeCategories).forEach(([category, config]) => {
+      const matches = config.patterns.filter(pattern => 
+        lowerSentence.includes(pattern.toLowerCase())
+      ).length;
+      score += matches * config.weight;
+    });
+    
+    // Bonus for practical examples and specific phrases
+    if (lowerSentence.includes('example') || lowerSentence.includes('for instance')) score += 3;
+    if (lowerSentence.includes('"') && lowerSentence.includes('say')) score += 4; // Direct quotes
+    if (lowerSentence.length > 80 && lowerSentence.length < 200) score += 2; // Optimal length
+    
+    // Context-based relevance boost
+    contextKeywords.forEach(keyword => {
+      if (lowerSentence.includes(keyword)) score += 5;
+    });
+    
+    return { sentence, score, length: sentence.length };
+  });
+  
+  // Sort by relevance score (highest first)
+  const rankedSentences = scoredSentences
+    .filter(item => item.score > 0) // Only include relevant sentences
+    .sort((a, b) => b.score - a.score);
+  
+  // Select sentences that fit within maxChars while maximizing value
+  let selectedSentences = [];
+  let totalLength = 0;
+  
+  for (const item of rankedSentences) {
+    const potentialLength = totalLength + item.length + (selectedSentences.length > 0 ? 2 : 0); // +2 for '. '
+    
+    if (potentialLength <= maxChars) {
+      selectedSentences.push(item.sentence);
+      totalLength = potentialLength;
+    }
+    
+    // Aim for 2-4 high-quality sentences rather than many low-quality ones
+    if (selectedSentences.length >= 4) break;
+  }
+  
+  // Fallback: if no relevant sentences found, use first sentences up to limit
+  if (selectedSentences.length === 0) {
+    let fallback = '';
+    for (const sentence of sentences) {
+      if (fallback.length + sentence.length + 2 <= maxChars) {
+        fallback += (fallback ? '. ' : '') + sentence;
+      } else {
+        break;
+      }
+    }
+    return fallback;
+  }
+  
+  const result = selectedSentences.join('. ');
+  return result.length > maxChars ? result.substring(0, maxChars - 3) + '...' : result;
 };
 
 // Get recent context (last N messages)

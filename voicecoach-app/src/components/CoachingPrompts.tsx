@@ -603,7 +603,7 @@ Be encouraging and practical.`;
         </div>
       </div>
 
-      <div className="flex-1 scrollable-content force-scrollbar p-4 space-y-4 min-scroll-content">
+      <div className="flex-1 scrollable-content force-scrollbar p-4 space-y-2 min-scroll-content">
         {prompts.length === 0 && (
           <div className="text-center text-slate-400 mt-12">
             {isRecording ? (
@@ -639,89 +639,90 @@ Be encouraging and practical.`;
               getPriorityColor(prompt.priority)
             }`}
           >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center space-x-3">
+            {/* Top Row: Main Content with Source and Time */}
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center space-x-3 flex-1">
                 {getPromptIcon(prompt.type)}
-                <div className="flex items-center space-x-2">
-                  <div>
-                    <h4 className="font-medium text-white">{prompt.title}</h4>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      prompt.priority === 'critical' ? 'bg-red-600 text-white' :
-                      prompt.priority === 'high' ? 'bg-danger-600 text-white' :
-                      prompt.priority === 'medium' ? 'bg-warning-600 text-white' :
-                      'bg-slate-600 text-slate-300'
-                    }`}>
-                      {prompt.priority} priority
-                    </span>
-                  </div>
-                  {prompt.actionable && (
-                    <div className="flex items-center space-x-2">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMoreInfo(prompt);
-                        }}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors flex items-center space-x-1"
-                      >
-                        <Info className="w-3 h-3" />
-                        <span>More Info</span>
-                      </button>
-                      
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleAskMode(prompt.id);
-                        }}
-                        className={`px-3 py-2 rounded text-sm font-medium transition-colors flex items-center space-x-1 ${
-                          askMode[prompt.id]?.active 
-                            ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
-                            : 'bg-yellow-500 hover:bg-yellow-600 text-white'
-                        }`}
-                      >
-                        <MessageCircle className="w-3 h-3" />
-                        <span>Ask</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <h4 className="font-medium text-white">{prompt.content}</h4>
               </div>
-
-              <div className="flex items-center space-x-2">
+              
+              {/* Source and Time on the right */}
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center text-xs text-slate-400">
+                  <Database className="w-3 h-3 mr-1" />
+                  <span>Source: {prompt.source || 'AI Analysis'}</span>
+                </div>
                 <span className="text-xs text-slate-400">
                   {prompt.timestamp.toLocaleTimeString()}
                 </span>
               </div>
             </div>
 
-            <div className="mt-3">
-              <p className="text-slate-200 leading-relaxed">{prompt.content}</p>
-              
-              {/* Show source for AI-generated suggestions */}
-              {prompt.source && (
-                <div className="mt-2 flex items-center text-xs text-slate-400">
-                  <Database className="w-3 h-3 mr-1" />
-                  <span>Source: {prompt.source}</span>
-                </div>
-              )}
-
-              {/* Show contextual next action if available */}
-              {(prompt as any).next_action && (
-                <div className="mt-3 p-2 bg-green-900/20 border border-green-600/30 rounded-lg">
+            {/* Bottom Row: Contextual Action + Action Buttons */}
+            <div className="flex items-center justify-between space-x-3">
+              {/* Contextual Action - takes most space */}
+              {(prompt as any).next_action ? (
+                <div className="flex-1 p-2 bg-green-900/20 border border-green-600/30 rounded-lg">
                   <div className="flex items-center space-x-2 mb-1">
                     <ArrowRight className="w-3 h-3 text-green-400" />
                     <span className="text-xs font-medium text-green-400">Contextual Action</span>
                   </div>
                   <p className="text-sm text-green-200 italic">"{(prompt as any).next_action}"</p>
                 </div>
+              ) : (
+                <div className="flex-1"></div>
               )}
-
-              {/* Show reasoning if available */}
-              {(prompt as any).reasoning && (
-                <div className="mt-2 text-xs text-slate-400 italic">
-                  💡 {(prompt as any).reasoning}
-                </div>
-              )}
+              
+              {/* Action Buttons on the right */}
+              <div className="flex items-center space-x-2">
+                {prompt.actionable && (
+                  <>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMoreInfo(prompt);
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors flex items-center space-x-1"
+                    >
+                      <Info className="w-3 h-3" />
+                      <span>More Info</span>
+                    </button>
+                    
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleAskMode(prompt.id);
+                      }}
+                      className={`px-3 py-2 rounded text-sm font-medium transition-colors flex items-center space-x-1 ${
+                        askMode[prompt.id]?.active 
+                          ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
+                          : 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                      }`}
+                    >
+                      <MessageCircle className="w-3 h-3" />
+                      <span>Ask</span>
+                    </button>
+                  </>
+                )}
+                
+                <span className={`text-xs px-2 py-1 rounded-full ${
+                  prompt.priority === 'critical' ? 'bg-red-600 text-white' :
+                  prompt.priority === 'high' ? 'bg-danger-600 text-white' :
+                  prompt.priority === 'medium' ? 'bg-warning-600 text-white' :
+                  'bg-slate-600 text-slate-300'
+                }`}>
+                  {prompt.priority} priority
+                </span>
+              </div>
             </div>
+
+
+            {/* Reasoning if available */}
+            {(prompt as any).reasoning && (
+              <div className="mt-2 text-xs text-slate-400 italic">
+                💡 {(prompt as any).reasoning}
+              </div>
+            )}
 
 
             {/* Expanded Info Section */}

@@ -102,13 +102,18 @@ function CoachingInterface({ appState, onStartRecording, onStopRecording, audioD
   // Check Ollama connection when recording starts, then assume available during session
   useEffect(() => {
     const checkOllamaHealth = async () => {
-      if (isRecording) {
+      if (appState.isRecording) {
         // Only check when recording starts, not continuously
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
+          
           const response = await fetch('http://localhost:11434/api/tags', {
             method: 'GET',
-            timeout: 2000 // 2 second timeout
+            signal: controller.signal
           });
+          
+          clearTimeout(timeoutId);
           
           if (response.ok) {
             setRagStatus({

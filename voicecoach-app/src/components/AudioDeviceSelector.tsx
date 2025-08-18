@@ -83,7 +83,7 @@ const AudioDeviceSelector: React.FC<AudioDeviceSelectorProps> = ({
   const getModeTitle = (mode: string) => {
     switch (mode) {
       case 'microphone_only':
-        return 'Microphone Only';
+        return 'Microphone';
       case 'system_audio':
         return 'Video Call Audio';
       case 'combined':
@@ -96,11 +96,11 @@ const AudioDeviceSelector: React.FC<AudioDeviceSelectorProps> = ({
   const getModeDescription = (mode: string) => {
     switch (mode) {
       case 'microphone_only':
-        return 'Standard microphone recording for practice sessions';
+        return 'Record me only';
       case 'system_audio':
-        return 'Capture video call audio (Zoom, Teams, Meet) for real-time coaching';
+        return 'Record them only';
       case 'combined':
-        return 'Capture both your voice and video call audio for comprehensive coaching';
+        return 'Record both';
       default:
         return 'Unknown audio mode';
     }
@@ -123,17 +123,17 @@ const AudioDeviceSelector: React.FC<AudioDeviceSelectorProps> = ({
           }
         }}
         disabled={isRecording}
-        className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-all duration-200 border ${
+        className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-medium transition-all duration-200 border ${
           isRecording 
             ? 'bg-slate-700 text-slate-400 border-slate-600 cursor-not-allowed' 
             : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600 hover:border-slate-500'
         } ${isDropdownOpen ? 'ring-2 ring-primary-500' : ''}`}
-        style={{ minWidth: '180px' }}
+        style={{ minWidth: '140px' }}
         title={isRecording ? "Audio mode locked during recording session" : "Select audio capture mode"}
       >
         <div className="flex items-center space-x-2">
           {getModeIcon(currentMode)}
-          <span className="text-sm">{getModeTitle(currentMode)}</span>
+          <span className="text-xs">{getModeTitle(currentMode)}</span>
         </div>
         
         <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${
@@ -147,7 +147,7 @@ const AudioDeviceSelector: React.FC<AudioDeviceSelectorProps> = ({
 
       {/* Dropdown Menu */}
       {isDropdownOpen && !isRecording && (
-        <div className="absolute top-full left-0 mt-2 w-80 bg-slate-800 rounded-lg shadow-2xl border border-slate-600 z-50">
+        <div className="absolute top-full left-0 mt-2 w-64 bg-slate-800 rounded-lg shadow-2xl border border-slate-600 z-50">
           <div className="p-2">
             <div className="text-xs font-medium text-slate-400 mb-2 px-2">Audio Capture Modes</div>
             {modes.map((mode) => (
@@ -155,12 +155,12 @@ const AudioDeviceSelector: React.FC<AudioDeviceSelectorProps> = ({
                 key={mode}
                 onClick={() => handleModeChange(mode)}
                 disabled={isLoading}
-                className={`w-full text-left p-3 rounded-lg transition-all duration-200 hover:bg-slate-700 disabled:opacity-50 ${
+                className={`w-full text-left p-2 rounded-lg transition-all duration-200 hover:bg-slate-700 disabled:opacity-50 ${
                   currentMode === mode ? 'bg-primary-900/30 border border-primary-500' : 'border border-transparent'
                 }`}
               >
-                <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-lg ${
+                <div className="flex items-center space-x-2">
+                  <div className={`p-1 rounded-lg ${
                     mode === 'system_audio' ? 'bg-blue-900/50 text-blue-400' :
                     mode === 'combined' ? 'bg-purple-900/50 text-purple-400' :
                     'bg-green-900/50 text-green-400'
@@ -169,13 +169,13 @@ const AudioDeviceSelector: React.FC<AudioDeviceSelectorProps> = ({
                   </div>
                   
                   <div className="flex-1">
-                    <div className="font-medium flex items-center space-x-2">
+                    <div className="text-xs font-medium flex items-center space-x-2">
                       <span>{getModeTitle(mode)}</span>
                       {currentMode === mode && (
-                        <span className="text-xs bg-primary-600 text-white px-2 py-1 rounded-full">CURRENT</span>
+                        <span className="text-xs bg-primary-600 text-white px-1 py-0.5 rounded-full">CURRENT</span>
                       )}
                     </div>
-                    <div className="text-sm text-slate-400 mt-1">{getModeDescription(mode)}</div>
+                    <div className="text-xs text-slate-400 mt-0.5">{getModeDescription(mode)}</div>
                   </div>
                 </div>
               </button>
