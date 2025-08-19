@@ -4,6 +4,107 @@
 
 ---
 
+## ✅ Tech Stack Selection Pattern (Critical - Added 2025-08-19)
+
+### The Right Way to Choose Technology
+
+**ALWAYS validate tech stack choices against core requirements:**
+
+1. **Start with the HARDEST requirement**
+   ```
+   Example: "Must capture system audio from YouTube/Google Meet"
+   NOT: "Must have good performance"
+   ```
+
+2. **Find WORKING examples first**
+   ```
+   ✅ RIGHT: "Show me 3 apps using [Tech] for [Core Feature]"
+   ❌ WRONG: "Does [Tech] support [Feature]?" (marketing speak)
+   ```
+
+3. **Compare implementation complexity**
+   ```
+   Electron for system audio: 10 lines JavaScript
+   Tauri for system audio: 500+ lines Rust + Native APIs
+   Winner: OBVIOUS
+   ```
+
+4. **Use the Tech Stack Validation Checklist**
+   - Can implement core requirements? YES/NO
+   - Has production examples? YES/NO  
+   - Reasonable complexity? YES/NO
+   - If any NO → PICK DIFFERENT TECH
+
+### Proven Tech Choices for Common Requirements
+
+**For Desktop Apps with Media Capture**:
+- ✅ **Electron** - Discord, Slack, VS Code, Loom all use it
+- ❌ **Tauri** - No built-in media APIs
+
+**For Lightweight Desktop Apps**:
+- ✅ **Tauri** - When you DON'T need complex native features
+- ✅ **Electron** - When you need media/complex native features
+
+**For Real-time Audio Processing**:
+- ✅ **Web Audio API** in Electron
+- ✅ **WebRTC** for cross-platform
+- ❌ **Native Rust audio** unless you have weeks to spare
+
+---
+
+## 🖥️ TAURI DESKTOP BUILD SETUP - WINDOWS GNU TOOLCHAIN INSTALLATION ✅
+
+### Windows Tauri Development Environment ✅
+**Use when**: Setting up Tauri desktop development or getting "dlltool.exe: program not found" errors
+
+**Complete Setup Procedure**:
+```bash
+# 1. Install MSYS2 (one-time setup)
+winget install MSYS2.MSYS2
+
+# 2. Install MinGW-w64 toolchain (one-time setup)
+powershell -Command "& 'C:\msys64\usr\bin\bash.exe' -l -c 'pacman -S --noconfirm mingw-w64-x86_64-toolchain'"
+
+# 3. Add to system PATH (one-time setup)
+setx PATH "%PATH%;C:\msys64\mingw64\bin"
+
+# 4. Create run-tauri.bat for consistent builds
+@echo off
+set PATH=C:\msys64\mingw64\bin;%PATH%
+cd voicecoach-app
+npm run tauri dev
+
+# 5. Execute with proper environment
+powershell -Command "Start-Process -FilePath 'run-tauri.bat' -NoNewWindow -Wait"
+```
+
+**Why This Works**:
+- Tauri requires both MSVC (for main Rust code) AND GNU tools (for dependencies)
+- Some Windows Rust crates need `dlltool.exe`, `x86_64-w64-mingw32-gcc`, GNU libraries
+- MSYS2 provides complete MinGW-w64 environment without conflicts
+- Proper PATH ensures both toolchains are available during build
+
+**Critical Success Factors**:
+- ✅ **Install complete toolchain** - don't try partial solutions
+- ✅ **Use proper PATH setup** - MinGW must be in PATH during build
+- ✅ **Create batch scripts** - ensures consistent environment 
+- ✅ **Verify with dlltool --version** - confirms tools are accessible
+
+**Time Investment**: ~30 minutes setup, saves hours of troubleshooting
+
+**ICON FILE REQUIREMENTS**:
+- Tauri requires both `icon.ico` (for Windows build) AND `icon.png` (for system tray)
+- ICO file must contain valid icon data (not empty/corrupted)
+- Create minimal valid icons if needed: 32x32 pixels minimum
+- Both files must exist in `src-tauri/icons/` directory
+
+**Desktop vs Web Capabilities**:
+- **Web Version**: Limited to microphone input only
+- **Desktop Version**: Full system audio capture (YouTube, meetings, all apps)
+- **Why Desktop Matters**: System audio recording requires native OS access
+
+---
+
 ## 📱 MOBILE TIMELINE MOVE FUNCTIONALITY - UX DESIGN ✅
 
 ### Timeline Activity Move Causing Database Foreign Key Errors ✅

@@ -4,6 +4,122 @@
 
 ---
 
+## 🚨 2025-08-19 - CATASTROPHIC: Wrong Tech Stack for Core Requirements (8 Hours Wasted)
+
+**What Failed**: Recommended Tauri for desktop app that MUST capture system audio (YouTube/Google Meet), but Tauri has NO built-in audio capture capabilities, requiring complex Rust + Windows API implementation.
+
+**The Devastating Impact**:
+- ⏰ **8+ hours wasted** on impossible implementation
+- 🔄 **3 separate Claude sessions** all failed the same way
+- 💸 **Potential weeks of development** for what Electron does in 10 lines
+- 😤 **User frustration** at repeated trial-and-error approach
+
+**Root Cause - Researcher Agent Failed**:
+1. **No validation of claims**: Accepted "native system integration" without verifying audio capture capability
+2. **Wrong priorities**: Chose based on performance metrics instead of core requirements
+3. **No POC validation**: Never searched for actual Tauri system audio examples
+4. **Ignored complexity**: Buried "Cross-platform audio Risk: 6/10" in document
+
+**What Should Have Been Done**:
+```javascript
+// Electron - 10 lines for system audio capture
+const { desktopCapturer } = require('electron')
+const sources = await desktopCapturer.getSources({ 
+  types: ['screen'], 
+  audio: true  // ← Captures ALL system audio
+})
+// DONE. Works on Windows AND Mac.
+```
+
+**vs What Tauri Requires**:
+- 500+ lines of Rust code
+- Windows WASAPI implementation
+- Complex COM interfaces
+- Platform-specific code for each OS
+- Weeks of development and testing
+
+**Prevention Rules Added**:
+1. ✅ **Tech Stack Validation Checklist** now MANDATORY in researcher.md
+2. ✅ **Core requirement MUST drive selection** - not performance metrics
+3. ✅ **POC validation required** - find 3+ working examples or RED FLAG
+4. ✅ **Complexity assessment** - if core feature > 7/10 difficulty = ABORT
+5. ✅ **Reality check searches** - "[Tech] [Feature] not working" required
+
+**The Correct Solution**:
+- **Electron** for desktop apps requiring media capture
+- **Tauri** for lightweight apps WITHOUT complex native requirements
+- **When in doubt**: Choose the solution with WORKING EXAMPLES
+
+**Lesson**: A fast car is useless if it can't drive on your roads. Core requirements > Performance metrics.
+
+---
+
+## 2025-08-19 - TAURI DESKTOP BUILD: Missing GNU Toolchain for Windows Rust Compilation
+
+**What Failed**: `npm run tauri dev` failed with "Error calling dlltool 'dlltool.exe': program not found" and multiple linking errors with `x86_64-w64-mingw32-gcc`
+
+**Symptoms Observed**:
+- ✅ Rust MSVC toolchain correctly installed (`stable-x86_64-pc-windows-msvc`)
+- ✅ Web app worked fine on localhost:1420
+- ✅ Tauri configuration files properly set up
+- ❌ **Build failed with missing GNU binutils (`dlltool.exe`, `crt2.o`, `crtbegin.o`)**
+- ❌ **Dependencies tried to use GNU toolchain despite MSVC being default**
+- ❌ **Linking errors: "cannot find -lkernel32", "cannot find -lmingwex"**
+
+**Root Cause Analysis**:
+1. **Mixed Toolchain Dependencies**: Some Rust crates (`windows_x86_64_gnu`, etc.) require GNU build tools even when using MSVC as primary toolchain
+2. **Missing GNU Binutils**: Windows doesn't include GNU development tools by default
+3. **Incomplete Rust Installation**: Standard Rust installation includes toolchains but not all required build dependencies
+4. **Build Script Requirements**: Tauri's build scripts need both MSVC and GNU tools available
+
+**What Actually Worked**:
+```bash
+# 1. Install MSYS2 (provides MinGW-w64 toolchain)
+winget install MSYS2.MSYS2
+
+# 2. Install MinGW-w64 toolchain via MSYS2
+powershell -Command "& 'C:\msys64\usr\bin\bash.exe' -l -c 'pacman -S --noconfirm mingw-w64-x86_64-toolchain'"
+
+# 3. Add MinGW to PATH
+setx PATH "%PATH%;C:\msys64\mingw64\bin"
+
+# 4. Create batch file for consistent environment
+@echo off
+set PATH=C:\msys64\mingw64\bin;%PATH%
+cd voicecoach-app
+npm run tauri dev
+
+# 5. Run via PowerShell with proper PATH
+powershell -Command "Start-Process -FilePath 'run-tauri.bat' -NoNewWindow -Wait"
+```
+
+**Critical Files Installed**:
+- `C:\msys64\mingw64\bin\dlltool.exe` ✅
+- `C:\msys64\mingw64\bin\x86_64-w64-mingw32-gcc.exe` ✅
+- MinGW libraries (`libkernel32.a`, `libmingwex.a`, etc.) ✅
+- GNU binutils and runtime libraries ✅
+
+**Prevention Rules (MUST follow)**:
+1. **ALWAYS install MSYS2 + MinGW-w64** on Windows systems for Tauri development
+2. **NEVER assume Rust MSVC toolchain alone is sufficient** for complex build dependencies
+3. **ALWAYS check for missing GNU tools** when seeing `dlltool.exe` or linking errors
+4. **ALWAYS add MinGW to PATH** before running Tauri builds
+5. **CREATE batch scripts** with proper PATH setup for consistent builds
+6. **DOCUMENT desktop vs web requirements** - desktop needs system audio access
+
+**Time Spent**: ~3 hours of intensive troubleshooting
+**Impact**: CRITICAL - Required for desktop app functionality (system audio recording from YouTube/meetings)
+
+**System Context**: 
+- Windows 11, Tauri 1.6, Rust 1.88.0
+- VoiceCoach desktop app needs system audio capture (web version cannot do this)
+- Mixed toolchain environment (MSVC + GNU) required for full Tauri support
+
+**Quick Resolution for Future**:
+If seeing "dlltool.exe: program not found" → Install MSYS2 + MinGW-w64 toolchain immediately
+
+---
+
 ## 2025-08-06 - Variable Hoisting Error: State Declaration Order
 
 **What Failed**: JavaScript initialization error "Cannot access 'allTimelineActivities' before initialization" crashed the app
