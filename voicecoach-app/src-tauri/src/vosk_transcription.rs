@@ -121,6 +121,10 @@ pub struct TranscriptionPayload {
 static TRANSCRIPTION_RUNNING: once_cell::sync::Lazy<Arc<Mutex<bool>>> = 
     once_cell::sync::Lazy::new(|| Arc::new(Mutex::new(false)));
 
+// Simple stream ID to prevent duplicates (working solution)
+static CURRENT_STREAM_ID: once_cell::sync::Lazy<Arc<Mutex<u32>>> = 
+    once_cell::sync::Lazy::new(|| Arc::new(Mutex::new(0)));
+
 // Audio buffer to accumulate samples before processing
 static AUDIO_BUFFER: once_cell::sync::Lazy<Arc<Mutex<Vec<i16>>>> = 
     once_cell::sync::Lazy::new(|| Arc::new(Mutex::new(Vec::new())));
@@ -225,8 +229,13 @@ pub async fn start_vosk_transcription(app: AppHandle, model_path: String) -> Res
     
     info!("Starting Vosk transcription (using preloaded model for <1s startup)");
     
-    // Stop any existing transcription first to prevent duplicates
-    let _ = stop_vosk_transcription().await;
+    // Increment stream ID to invalidate any existing streams
+    let stream_id = {
+        let mut id = CURRENT_STREAM_ID.lock().unwrap();
+        *id += 1;
+        info!("📌 Starting new transcription stream with ID: {}", *id);
+        *id
+    };
     
     // FAST STARTUP: Try to use preloaded model from app state first
     let model = if let Some(state) = app.try_state::<crate::VoskAppState>() {
@@ -359,6 +368,9 @@ pub async fn start_vosk_transcription(app: AppHandle, model_path: String) -> Res
     let audio_level_log_frequency = vosk_config.debugging.audio_level_log_frequency;
     let _log_processing_stats = vosk_config.debugging.log_processing_stats;
     
+    // Clone for the audio callback
+    let current_id = Arc::clone(&CURRENT_STREAM_ID);
+    
     // Build the audio stream
     let stream = device.build_input_stream(
         &config,
@@ -370,11 +382,11 @@ pub async fn start_vosk_transcription(app: AppHandle, model_path: String) -> Res
                 info!("🎙️ AUDIO CALLBACK FIRST CALL - Stream is working! Data length: {}", data.len());
             }
             
-            // Check if transcription is still running - if not, stop processing
+            // Check if this is still the current stream
             {
-                let running = TRANSCRIPTION_RUNNING.lock().unwrap();
-                if !*running {
-                    return; // Stop processing if transcription was stopped
+                let current = current_id.lock().unwrap();
+                if *current != stream_id {
+                    return; // This stream has been superseded
                 }
             }
             

@@ -7,6 +7,15 @@ license = "MIT"
 repository = ""
 default-run = "voicecoach"
 edition = "2021"
+
+# [[bin]]
+# name = "test_audio"
+# path = "src/bin/test_audio.rs"
+
+# [[bin]]
+# name = "test_vosk"
+# path = "src/bin/test_vosk.rs"
+
 rust-version = "1.60"
 
 [build-dependencies]
@@ -15,15 +24,39 @@ tauri-build = { version = "1.5", features = [] }
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "1.6", features = [ "fs-write-file", "fs-remove-dir", "fs-read-file", "fs-exists", "dialog-confirm", "fs-read-dir", "fs-create-dir", "fs-rename-file", "shell-open", "fs-copy-file", "fs-remove-file", "dialog-save", "dialog-ask", "system-tray", "notification-all", "dialog-open", "dialog-message", "window-close", "window-hide", "window-show", "window-maximize", "window-minimize", "window-unmaximize", "window-unminimize", "window-start-dragging"] }
+tauri = { version = "1.6", features = ["fs-write-file", "fs-remove-dir", "fs-read-file", "fs-exists", "dialog-confirm", "fs-read-dir", "fs-create-dir", "fs-rename-file", "shell-open", "fs-copy-file", "fs-remove-file", "dialog-save", "dialog-ask", "system-tray", "notification-all", "dialog-open", "dialog-message", "window-close", "window-hide", "window-show", "window-maximize", "window-minimize", "window-unmaximize", "window-unminimize", "window-start-dragging"] }
 tokio = { version = "1.0", features = ["full"] }
+futures = "0.3"  # T015: Required for futures::executor::block_on
 anyhow = "1.0"
 log = "0.4"
 env_logger = "0.11"
 chrono = { version = "0.4", features = ["serde"] }
+once_cell = "1.19"  # Required for global static initialization
+# Existing audio dependencies (DO NOT MODIFY - Task 1.1 requirement)
 cpal = "0.15"
 crossbeam-channel = "0.5"
 parking_lot = "0.12"
+ringbuf = "0.3"
+# Vosk transcription dependencies (Task 1.1 - Vosk Dependencies Setup)
+vosk = "0.3.1"  # Latest available version for offline speech recognition
+bytemuck = "1.14"  # Required for audio format conversion to Vosk-compatible formats
+# Vosk Model Management dependencies (Task 1.2 - Model Download Integration)
+reqwest = { version = "0.11", features = ["json", "stream"] }  # HTTP client for model downloads
+futures-util = "0.3"  # Stream utilities for download progress
+zip = "0.6"  # ZIP archive extraction for model files
+sha2 = "0.10"  # SHA256 checksum verification for model integrity
+# Cloud transcription for WebKit-quality results
+tokio-tungstenite = { version = "0.20", features = ["native-tls"] }
+base64 = "0.21"
+http = "0.2"
+rand = "0.8"
+# Windows-specific dependencies
+windows-sys = { version = "0.52", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_Threading",
+    "Win32_UI_WindowsAndMessaging"
+] }
 
 [features]
 # This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!
