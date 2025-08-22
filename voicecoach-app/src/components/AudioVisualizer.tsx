@@ -18,8 +18,8 @@ function AudioVisualizer({ audioLevels, isRecording }: AudioVisualizerProps) {
     }
 
     const interval = setInterval(() => {
-      const userLevel = audioLevels.user;
-      const prospectLevel = audioLevels.prospect;
+      const userLevel = audioLevels.user || 0;
+      const prospectLevel = audioLevels.prospect || 0;
       
       // Generate visualization bars based on real audio levels
       const newData = Array.from({ length: 40 }, (_, index) => {
@@ -86,29 +86,29 @@ function AudioVisualizer({ audioLevels, isRecording }: AudioVisualizerProps) {
       {/* Real-time Speaking Indicator */}
       <div className="flex items-center justify-center space-x-6">
         <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 ${
-          audioLevels.user > 30 ? 'bg-primary-900/50 text-primary-400 border border-primary-500/30' : 'bg-slate-800 text-slate-400'
+          (audioLevels.user || 0) > 30 ? 'bg-primary-900/50 text-primary-400 border border-primary-500/30' : 'bg-slate-800 text-slate-400'
         }`}>
           <div className={`w-2 h-2 rounded-full transition-all duration-150 ${
-            audioLevels.user > 30 ? 'bg-primary-400 animate-pulse shadow-lg shadow-primary-400/50' : 'bg-slate-500'
+            (audioLevels.user || 0) > 30 ? 'bg-primary-400 animate-pulse shadow-lg shadow-primary-400/50' : 'bg-slate-500'
           }`} />
           <span className="text-sm font-medium">You</span>
           {isRecording && (
             <span className="text-xs text-primary-300 ml-1">
-              {audioLevels.user.toFixed(0)}%
+              {(audioLevels.user || 0).toFixed(0)}%
             </span>
           )}
         </div>
 
         <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 ${
-          audioLevels.prospect > 30 ? 'bg-success-900/50 text-success-400 border border-success-500/30' : 'bg-slate-800 text-slate-400'
+          (audioLevels.prospect || 0) > 30 ? 'bg-success-900/50 text-success-400 border border-success-500/30' : 'bg-slate-800 text-slate-400'
         }`}>
           <div className={`w-2 h-2 rounded-full transition-all duration-150 ${
-            audioLevels.prospect > 30 ? 'bg-success-400 animate-pulse shadow-lg shadow-success-400/50' : 'bg-slate-500'
+            (audioLevels.prospect || 0) > 30 ? 'bg-success-400 animate-pulse shadow-lg shadow-success-400/50' : 'bg-slate-500'
           }`} />
           <span className="text-sm font-medium">Prospect</span>
           {isRecording && (
             <span className="text-xs text-success-300 ml-1">
-              {audioLevels.prospect.toFixed(0)}%
+              {(audioLevels.prospect || 0).toFixed(0)}%
             </span>
           )}
         </div>

@@ -24,6 +24,9 @@ export interface TranscriptionEntry {
   timestamp: Date;
   confidence: number;
   processed?: boolean;
+  isFinal?: boolean;  // Whether this is a final transcription (not partial)
+  led_number?: number;  // LED tracking number from backend
+  source?: string;  // Source identifier (e.g., "vosk_final")
 }
 
 export interface ConversationContext {
@@ -146,6 +149,7 @@ export const useCoachingOrchestrator = (isRecording: boolean) => {
   // 1. Real-time Transcription Processing
   const processNewTranscription = useCallback(async (transcription: TranscriptionEntry) => {
     const startTime = performance.now();
+    console.log('🚀 processNewTranscription called with ID:', transcription.id);
     
     // LED 610: New transcription processing start
     trail.light(610, { 
@@ -158,7 +162,42 @@ export const useCoachingOrchestrator = (isRecording: boolean) => {
     try {
       // Add to processing queue
       processingQueue.current.push(transcription);
-      setTranscriptions(prev => [...prev, transcription]);
+      setTranscriptions(prev => {
+        // Check for duplicates based on ID
+        if (prev.some(t => t.id === transcription.id)) {
+          console.log('⚠️ DUPLICATE DETECTED - Skipping:', transcription.id);
+          return prev;
+        }
+        const updated = [...prev, transcription];
+        console.log('📊 Transcriptions updated. Total count:', updated.length);
+        console.log('📊 Latest transcription:', transcription);
+        return updated;
+      });
+
+      // OPTIONAL: Send transcription to Ollama for real-time coaching if available
+      // Only process final transcriptions (not partials) and non-empty text
+      // This is optional - transcriptions work without Ollama
+      if (transcription.isFinal && transcription.text.trim().length > 0) {
+        // Don't await - let Ollama run in background without blocking
+        import('../lib/tauri-mock').then(({ generateOllamaCoaching }) => {
+          generateOllamaCoaching(transcription.text).then(ollamaResponse => {
+            if (ollamaResponse && ollamaResponse.suggestion) {
+              window.dispatchEvent(new CustomEvent('ollama-coaching', { 
+                detail: ollamaResponse 
+              }));
+              
+              trail.light(615, { 
+                operation: 'ollama_coaching_generated',
+                suggestion_length: ollamaResponse.suggestion?.length || 0,
+                urgency: ollamaResponse.urgency
+              });
+            }
+          }).catch((error: any) => {
+            // Silently ignore Ollama errors - it's optional
+            console.log('📝 Ollama not available (optional) - transcription continues');
+          });
+        });
+      }
 
       // Trigger analysis pipeline
       await triggerAnalysisPipeline(transcription);
@@ -172,7 +211,6 @@ export const useCoachingOrchestrator = (isRecording: boolean) => {
         processingTimeMs: processingTime,
         queueLength: processingQueue.current.length
       });
-
     } catch (error) {
       // LED 610: Transcription processing failed
       trail.fail(610, error as Error);
@@ -462,7 +500,7 @@ export const useCoachingOrchestrator = (isRecording: boolean) => {
       });
 
       const prompts: CoachingPrompt[] = knowledgeResults.map((result, index) => ({
-        id: `knowledge-${Date.now()}-${index}`,
+        id: `knowledge-${index}-${Math.random().toString(36).substr(2, 9)}`,
         type: 'suggestion',
         title: `Knowledge Base: ${result.type}`,
         content: result.content,
@@ -514,7 +552,7 @@ export const useCoachingOrchestrator = (isRecording: boolean) => {
       });
 
       const prompts: CoachingPrompt[] = aiPrompts.map((aiPrompt, index) => ({
-        id: `ai-${Date.now()}-${index}`,
+        id: `ai-orchestrator-${index}-${Math.random().toString(36).substr(2, 9)}`,
         type: aiPrompt.suggestion_type.includes('objection') ? 'objection' : 
               aiPrompt.suggestion_type.includes('opportunity') ? 'opportunity' : 
               aiPrompt.suggestion_type.includes('warning') ? 'warning' : 'suggestion',
@@ -632,6 +670,137 @@ export const useCoachingOrchestrator = (isRecording: boolean) => {
   // DISABLED: Test coaching prompt generation removed to restore original functionality
   // The coaching system should work with real voice transcriptions and Ollama integration
   // No artificial test prompts to avoid interfering with the real coaching pipeline
+
+  // Listen for transcription events from Tauri backend
+  useEffect(() => {
+    let unlistenFn: (() => void) | null = null;
+    console.log('📡 Setting up orchestrator transcription listener');
+
+    const setupTranscriptionListener = async () => {
+      try {
+        console.log('🔍 Checking Tauri environment:', {
+          hasTauri: !!(window as any).__TAURI__,
+          hasTauriIPC: !!(window as any).__TAURI_IPC__,
+          userAgent: navigator.userAgent
+        });
+        
+        // Check if we're in a Tauri environment
+        if (typeof window !== 'undefined' && ((window as any).__TAURI__ || (window as any).__TAURI_IPC__)) {
+          let listen: any;
+          try {
+            // Try to import the event module
+            const eventModule = await import('@tauri-apps/api/event');
+            listen = eventModule.listen;
+          } catch (importError) {
+            // Fallback: try to access from window
+            const tauriAPI = (window as any).__TAURI__;
+            if (tauriAPI && tauriAPI.event && tauriAPI.event.listen) {
+              listen = tauriAPI.event.listen;
+            } else {
+              console.error('Cannot access Tauri event.listen function');
+              return;
+            }
+          }
+          
+          // Listen for voice_transcription events
+          let eventCounter = 0;
+          const unlisten = await listen('voice_transcription', (event: any) => {
+            eventCounter++;
+            console.log(`🎙️ [EVENT #${eventCounter}] Orchestrator received transcription:`, event.payload);
+            console.log('📝 Raw event data:', event);
+            console.log('🔴 LED NUMBER:', event.payload.led_number, 'SOURCE:', event.payload.source);
+            
+            // Convert to TranscriptionEntry format - PRESERVE LED TRACKING
+            const entry: TranscriptionEntry = {
+              id: `trans_${event.payload.timestamp}_${event.payload.led_number}`, // Use timestamp+LED as unique ID
+              speaker: event.payload.is_user ? 'user' : 'prospect',
+              text: event.payload.text || '',
+              timestamp: new Date(event.payload.timestamp || Date.now()),
+              confidence: event.payload.confidence || 0,
+              processed: false,
+              isFinal: true,  // Mark as final since Vosk sends final transcriptions
+              led_number: event.payload.led_number,  // PRESERVE LED tracking
+              source: event.payload.source  // PRESERVE source tracking
+            };
+            
+            console.log('✅ Created transcription entry:', entry);
+            console.log('🔍 Entry ID for dedup check:', entry.id);
+            
+            // Process the transcription
+            processNewTranscription(entry);
+          });
+          
+          unlistenFn = unlisten;
+          console.log('✅ Orchestrator listening for voice_transcription events');
+        } else {
+          console.warn('⚠️ Not in Tauri environment - transcriptions will not work');
+        }
+      } catch (error) {
+        console.error('Failed to setup transcription listener:', error);
+      }
+    };
+
+    setupTranscriptionListener();
+
+    return () => {
+      if (unlistenFn) {
+        console.log('🧹 Cleaning up orchestrator listener');
+        unlistenFn();
+      }
+    };
+  }, []); // Empty array - only run once on mount!
+
+  // Manual test function for debugging
+  const addTestTranscription = useCallback(() => {
+    const testEntry: TranscriptionEntry = {
+      id: `test_${Date.now()}`,
+      speaker: 'user',
+      text: `Test transcription at ${new Date().toLocaleTimeString()}`,
+      timestamp: new Date(),
+      confidence: 0.95,
+      processed: false,
+      isFinal: true
+    };
+    console.log('🧪 Adding test transcription:', testEntry);
+    processNewTranscription(testEntry);
+  }, [processNewTranscription]);
+
+  // Expose test function globally for debugging
+  useEffect(() => {
+    (window as any).addTestTranscription = addTestTranscription;
+    console.log('💡 Test function available: window.addTestTranscription()');
+    
+    // Also expose the Tauri event system for debugging
+    (window as any).testTauriEvent = async () => {
+      try {
+        let emit: any;
+        try {
+          const eventModule = await import('@tauri-apps/api/event');
+          emit = eventModule.emit;
+        } catch (importError) {
+          const tauriAPI = (window as any).__TAURI__;
+          if (tauriAPI && tauriAPI.event && tauriAPI.event.emit) {
+            emit = tauriAPI.event.emit;
+          } else {
+            console.error('Cannot access Tauri emit function');
+            return;
+          }
+        }
+        
+        const testPayload = {
+          text: "Test Vosk transcription from Tauri",
+          is_user: true,
+          confidence: 0.95,
+          timestamp: Date.now()
+        };
+        console.log('🚀 Emitting test voice_transcription event:', testPayload);
+        await emit('voice_transcription', testPayload);
+      } catch (error) {
+        console.error('Failed to emit test event:', error);
+      }
+    };
+    console.log('💡 Test Tauri event available: window.testTauriEvent()');
+  }, [addTestTranscription]);
 
   // Public API
   return {

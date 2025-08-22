@@ -1,9 +1,11 @@
+#![allow(dead_code)]  // These functions are part of the debugging infrastructure
+
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, RwLock};
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
-use log::{info, warn, error, debug};
-use anyhow::Result;
+use log::{info, error};
+use tauri::Manager;
 
 /// Individual breadcrumb entry representing a traced operation
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -25,6 +27,7 @@ pub struct BreadcrumbTrail {
     sequence: Arc<Mutex<Vec<Breadcrumb>>>,
     start_time: Instant,
     current_led: Arc<RwLock<Option<u16>>>,
+    app_handle: Option<tauri::AppHandle>,
 }
 
 impl BreadcrumbTrail {
@@ -35,11 +38,27 @@ impl BreadcrumbTrail {
             sequence: Arc::new(Mutex::new(Vec::new())),
             start_time: Instant::now(),
             current_led: Arc::new(RwLock::new(None)),
+            app_handle: None,
         };
         
         // Register with global trail manager
-        GLOBAL_TRAIL_MANAGER.lock().unwrap().register_trail(component_name, trail.clone());
+        get_global_manager().lock().unwrap().register_trail(component_name, trail.clone());
         
+        trail
+    }
+    
+    /// Create a new breadcrumb trail with app handle for event emission
+    pub fn new_with_app_handle(component_name: &str, app_handle: tauri::AppHandle) -> Self {
+        let trail = Self {
+            component_name: component_name.to_string(),
+            sequence: Arc::new(Mutex::new(Vec::new())),
+            start_time: Instant::now(),
+            current_led: Arc::new(RwLock::new(None)),
+            app_handle: Some(app_handle),
+        };
+        
+        // Register with global trail manager
+        get_global_manager().lock().unwrap().register_trail(component_name, trail.clone());
         trail
     }
     
@@ -86,8 +105,13 @@ impl BreadcrumbTrail {
             led_id, led_name, self.component_name, data_str
         );
         
+        // Emit breadcrumb event to frontend if app handle available
+        if let Some(ref app) = self.app_handle {
+            let _ = app.emit_all("breadcrumb_event", &breadcrumb);
+        }
+        
         // Update global trail
-        GLOBAL_TRAIL_MANAGER.lock().unwrap().add_breadcrumb(breadcrumb);
+        get_global_manager().lock().unwrap().add_breadcrumb(breadcrumb);
     }
     
     /// Mark current operation as failed
@@ -124,8 +148,13 @@ impl BreadcrumbTrail {
             led_id, led_name, self.component_name, error_msg
         );
         
+        // Emit breadcrumb error event to frontend if app handle available
+        if let Some(ref app) = self.app_handle {
+            let _ = app.emit_all("breadcrumb_event", &breadcrumb);
+        }
+        
         // Update global trail and failure tracking
-        let mut manager = GLOBAL_TRAIL_MANAGER.lock().unwrap();
+        let mut manager = get_global_manager().lock().unwrap();
         manager.add_breadcrumb(breadcrumb.clone());
         manager.add_failure(breadcrumb);
     }
@@ -138,23 +167,91 @@ impl BreadcrumbTrail {
     /// Get LED name based on numbering scheme
     fn get_led_name(&self, led_id: u16) -> String {
         match led_id {
-            // 100-199: WASAPI Audio System Operations
-            100..=199 => format!("WASAPI_AUDIO_{}", led_id),
+            // 3000-3099: Main initialization and Tauri setup
+            3000..=3099 => format!("MAIN_INIT_{}", led_id),
             
-            // 200-299: Device Management & Enumeration
-            200..=299 => format!("DEVICE_MGMT_{}", led_id),
+            // 3100-3199: Audio device enumeration and selection
+            3100..=3199 => format!("DEVICE_ENUM_{}", led_id),
             
-            // 300-399: Audio Processing & Pipeline
-            300..=399 => format!("AUDIO_PROCESSING_{}", led_id),
+            // 3200-3299: Stream creation and lifecycle
+            3200..=3299 => format!("STREAM_LIFECYCLE_{}", led_id),
             
-            // 400-499: Python Bridge Communication
-            400..=499 => format!("PYTHON_BRIDGE_{}", led_id),
+            // 3300-3399: Audio processing and sample conversion
+            3300..=3399 => format!("AUDIO_PROCESSING_{}", led_id),
             
-            // 500-599: Performance & Latency Monitoring
-            500..=599 => format!("PERFORMANCE_{}", led_id),
+            // 3400-3499: Async operations and mutex handling
+            3400..=3499 => format!("ASYNC_MUTEX_{}", led_id),
             
-            // 600-699: Error Recovery & Validation
-            600..=699 => format!("ERROR_RECOVERY_{}", led_id),
+            // 3500-3599: Error conditions and recovery
+            3500..=3599 => format!("ERROR_RECOVERY_{}", led_id),
+            
+            // 3600-3699: AudioDeviceManager operations (Phase 2 Enhancement)
+            3600..=3699 => format!("AUDIO_DEVICE_MGR_{}", led_id),
+            
+            // 3700-3799: Ring buffer operations (Phase 2 Enhancement)
+            3700..=3799 => format!("RING_BUFFER_{}", led_id),
+            
+            // 3800-3899: Sample format conversions (Phase 2 Enhancement)
+            3800..=3899 => format!("SAMPLE_FORMAT_{}", led_id),
+            
+            // 3900-3999: Audio mixing operations (Phase 2 Enhancement)
+            3900..=3999 => format!("AUDIO_MIXER_{}", led_id),
+            
+            // 4000-4099: Level monitoring (Phase 2 Enhancement)
+            4000..=4099 => format!("LEVEL_MONITOR_{}", led_id),
+            
+            // 4100-4199: WASAPI loopback specific (Phase 2 Enhancement)
+            4100..=4199 => format!("WASAPI_LOOPBACK_{}", led_id),
+            
+            // 4200-4299: Async runtime operations (Phase 3 Integration)
+            4200..=4299 => format!("ASYNC_RUNTIME_{}", led_id),
+            
+            // 4300-4399: Stream lifecycle management (Phase 3 Integration)
+            4300..=4399 => format!("STREAM_LIFECYCLE_MGR_{}", led_id),
+            
+            // 4400-4499: User guidance and error messages (Phase 3 Integration)
+            4400..=4499 => format!("USER_GUIDANCE_{}", led_id),
+            
+            // 4500-4599: Performance monitoring (Phase 3 Integration)
+            4500..=4599 => format!("PERFORMANCE_MONITOR_{}", led_id),
+            
+            // 4600-4699: Error recovery paths (Phase 3 Integration)
+            4600..=4699 => format!("ERROR_RECOVERY_PATH_{}", led_id),
+            
+            // 4700-4799: Integration test tracking (Phase 3 Integration)
+            4700..=4799 => format!("INTEGRATION_TEST_{}", led_id),
+            
+            // Phase 1 LED Range Allocation (Extended to accommodate all operations):
+            // 7000-7009: Vosk initialization (Task 1.2 - Vosk Model Manager Initialization)
+            7000..=7009 => format!("VOSK_INIT_{}", led_id),
+            // 7010-7034: Model download and management operations (Task 1.2 - Vosk Model Download)
+            7010..=7034 => format!("MODEL_DOWNLOAD_{}", led_id),
+            // 7035-7039: Test operations (Task 1.3 - Standalone Vosk Test)
+            7035..=7039 => format!("VOSK_TEST_{}", led_id),
+            // 7040-7049: Event emission and reception tracking (Phase 2)
+            7040..=7049 => format!("TRANSCRIPTION_EVENT_{}", led_id),
+            // 7050-7089: Audio format conversion (Task 1.4 - Audio Format Conversion)
+            7050..=7089 => format!("AUDIO_FORMAT_CONVERT_{}", led_id),
+            
+            // Phase 2 LED Range Allocation - Task 2.2: Main.rs Integration 
+            // 7090-7099: Main process integration and command handling
+            7090..=7099 => format!("MAIN_INTEGRATION_{}", led_id),
+            
+            // Phase 3 LED Range Allocation - Task 3.1: Audio Processing CPAL Integration
+            // 7100-7109: Audio stream flow and CPAL operations 
+            7100..=7109 => format!("CPAL_INTEGRATION_{}", led_id),
+            
+            // Phase 3 LED Range Allocation - Task 3.2: TranscriptionPanel Frontend Component
+            // 7110-7119: Frontend transcription panel operations and UI events
+            7110..=7119 => format!("TRANSCRIPTION_UI_{}", led_id),
+            
+            // Legacy numbering for backward compatibility
+            100..=199 => format!("LEGACY_WASAPI_{}", led_id),
+            200..=299 => format!("LEGACY_DEVICE_{}", led_id),
+            300..=399 => format!("LEGACY_PROCESSING_{}", led_id),
+            400..=499 => format!("LEGACY_PYTHON_{}", led_id),
+            500..=599 => format!("LEGACY_PERFORMANCE_{}", led_id),
+            600..=699 => format!("LEGACY_ERROR_{}", led_id),
             
             _ => format!("OPERATION_{}", led_id),
         }
@@ -179,6 +276,7 @@ impl Clone for BreadcrumbTrail {
             sequence: self.sequence.clone(),
             start_time: self.start_time,
             current_led: self.current_led.clone(),
+            app_handle: self.app_handle.clone(),
         }
     }
 }
@@ -293,20 +391,23 @@ impl GlobalTrailManager {
     }
 }
 
-/// Global trail manager instance
-static GLOBAL_TRAIL_MANAGER: Mutex<GlobalTrailManager> = Mutex::new(GlobalTrailManager {
-    trails: HashMap::new(),
-    global_sequence: Vec::new(),
-    failures: Vec::new(),
-});
+/// Global trail manager instance  
+use std::sync::OnceLock;
+static GLOBAL_TRAIL_MANAGER: OnceLock<Mutex<GlobalTrailManager>> = OnceLock::new();
+
+fn get_global_manager() -> &'static Mutex<GlobalTrailManager> {
+    GLOBAL_TRAIL_MANAGER.get_or_init(|| {
+        Mutex::new(GlobalTrailManager::new())
+    })
+}
 
 /// Public API functions for external access
 pub fn get_global_statistics() -> serde_json::Value {
-    GLOBAL_TRAIL_MANAGER.lock().unwrap().get_statistics()
+    get_global_manager().lock().unwrap().get_statistics()
 }
 
 pub fn get_all_trails() -> HashMap<String, Vec<Breadcrumb>> {
-    let manager = GLOBAL_TRAIL_MANAGER.lock().unwrap();
+    let manager = get_global_manager().lock().unwrap();
     manager.trails
         .iter()
         .map(|(name, trail)| (name.clone(), trail.get_sequence()))
@@ -314,19 +415,19 @@ pub fn get_all_trails() -> HashMap<String, Vec<Breadcrumb>> {
 }
 
 pub fn get_global_sequence() -> Vec<Breadcrumb> {
-    GLOBAL_TRAIL_MANAGER.lock().unwrap().global_sequence.clone()
+    get_global_manager().lock().unwrap().global_sequence.clone()
 }
 
 pub fn get_failures() -> Vec<Breadcrumb> {
-    GLOBAL_TRAIL_MANAGER.lock().unwrap().failures.clone()
+    get_global_manager().lock().unwrap().failures.clone()
 }
 
 pub fn get_component_trail(component: &str) -> Option<Vec<Breadcrumb>> {
-    GLOBAL_TRAIL_MANAGER.lock().unwrap().get_component_trail(component)
+    get_global_manager().lock().unwrap().get_component_trail(component)
 }
 
 pub fn clear_all_trails() {
-    GLOBAL_TRAIL_MANAGER.lock().unwrap().clear_all();
+    get_global_manager().lock().unwrap().clear_all();
 }
 
 /// Macro for easy LED lighting with automatic error handling
@@ -336,7 +437,7 @@ macro_rules! led_light {
         $trail.light($led_id, None)
     };
     ($trail:expr, $led_id:expr, $data:expr) => {
-        $trail.light($led_id, Some(serde_json::to_value($data).unwrap_or(serde_json::Value::Null)))
+        $trail.light($led_id, Some($data))
     };
 }
 
@@ -416,10 +517,10 @@ mod tests {
     #[test]
     fn test_led_naming() {
         let trail = BreadcrumbTrail::new("TestComponent");
-        assert!(trail.get_led_name(150).contains("WASAPI_AUDIO"));
-        assert!(trail.get_led_name(250).contains("DEVICE_MGMT"));
-        assert!(trail.get_led_name(350).contains("AUDIO_PROCESSING"));
-        assert!(trail.get_led_name(450).contains("PYTHON_BRIDGE"));
-        assert!(trail.get_led_name(550).contains("PERFORMANCE"));
+        assert!(trail.get_led_name(150).contains("LEGACY_WASAPI"));
+        assert!(trail.get_led_name(250).contains("LEGACY_DEVICE"));
+        assert!(trail.get_led_name(350).contains("LEGACY_PROCESSING"));
+        assert!(trail.get_led_name(450).contains("LEGACY_PYTHON"));
+        assert!(trail.get_led_name(550).contains("LEGACY_PERFORMANCE"));
     }
 }

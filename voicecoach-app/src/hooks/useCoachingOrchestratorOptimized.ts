@@ -673,7 +673,7 @@ export const useCoachingOrchestratorOptimized = (isRecording: boolean) => {
       const processingTime = performance.now() - knowledgeStart;
 
       const prompts: OptimizedCoachingPrompt[] = knowledgeResults.map((result, index) => ({
-        id: `knowledge-${Date.now()}-${index}`,
+        id: `knowledge-${index}-${Math.random().toString(36).substr(2, 9)}`,
         type: 'suggestion',
         title: `Knowledge: ${result.type}`,
         content: result.content,
@@ -765,7 +765,7 @@ export const useCoachingOrchestratorOptimized = (isRecording: boolean) => {
       const processingTime = performance.now() - aiStart;
 
       const prompts: OptimizedCoachingPrompt[] = aiPrompts.map((aiPrompt, index) => ({
-        id: `ai-${Date.now()}-${index}`,
+        id: `ai-optimized-${index}-${Math.random().toString(36).substr(2, 9)}`,
         type: aiPrompt.suggestion_type.includes('objection') ? 'objection' : 
               aiPrompt.suggestion_type.includes('opportunity') ? 'opportunity' : 
               aiPrompt.suggestion_type.includes('warning') ? 'warning' : 'suggestion',

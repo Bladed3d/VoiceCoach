@@ -89,6 +89,12 @@ export class BreadcrumbTrail {
       window.globalBreadcrumbTrail.push(breadcrumb);
     }
     
+    // Log important LEDs to console for debugging
+    const importantLEDs = [100, 104, 200, 210, 211, 503, 3200];
+    if (importantLEDs.includes(ledId)) {
+      console.log(`🔦 LED ${ledId} [${this.componentName}]: ${this._getLedName(ledId)}`, data);
+    }
+    
     this._cleanup();
   }
 
@@ -105,6 +111,9 @@ export class BreadcrumbTrail {
     
     this.sequence.push(breadcrumb);
     
+    // Always log failures to console
+    console.error(`❌ LED ${ledId} FAILED [${this.componentName}]: ${this._getLedName(ledId)}`, error.message);
+    
     // Add to global trail and failures
     if (typeof window !== 'undefined') {
       if (window.globalBreadcrumbTrail) {
@@ -120,8 +129,111 @@ export class BreadcrumbTrail {
   }
 
   private _getLedName(ledId: number): string {
+    // VoiceCoach Audio-to-Transcription Flow LEDs (5000-5500)
+    if (ledId >= 5000 && ledId <= 5099) {
+      const ledMap: Record<number, string> = {
+        5000: 'RUST_AUDIO_RECORDING_START',
+        5001: 'RUST_AUDIO_NOT_INITIALIZED',
+        5002: 'RUST_AUDIO_CONTROLLER_ACCESS',
+        5003: 'RUST_AUDIO_CONTROLLER_START_CALL',
+        5004: 'RUST_AUDIO_CAPTURE_ACTIVE',
+        5005: 'RUST_AUDIO_STREAMING_THREAD_START',
+        5006: 'RUST_AUDIO_STREAM_ATTEMPT',
+        5007: 'RUST_AUDIO_RECORDING_STOPPED',
+        5008: 'RUST_AUDIO_CONTROLLER_LOST',
+        5009: 'RUST_AUDIO_STREAMING_THREAD_END',
+        5010: 'RUST_AUDIO_RECORDING_SUCCESS',
+        5020: 'RUST_AUDIO_THREAD_START_COMMAND',
+        5021: 'RUST_AUDIO_THREAD_COMMAND_SENT',
+        5030: 'RUST_AUDIO_THREAD_RECORDING_COMMAND_RECEIVED',
+        5031: 'RUST_AUDIO_THREAD_MIC_STREAM_CREATE',
+        5032: 'RUST_AUDIO_THREAD_MIC_STREAM_STARTED',
+        5033: 'RUST_AUDIO_THREAD_SYSTEM_STREAM_CREATE',
+        5034: 'RUST_AUDIO_THREAD_SYSTEM_STREAM_STARTED',
+        5040: 'RUST_AUDIO_CAPTURE_MIC_DATA',
+        5041: 'RUST_AUDIO_CAPTURE_MIC_DATA_SENT',
+        5042: 'RUST_AUDIO_CAPTURE_MIC_STREAM_ERROR',
+        5043: 'RUST_AUDIO_CAPTURE_MIC_DATA_I16',
+        5044: 'RUST_AUDIO_CAPTURE_MIC_DATA_I16_SENT',
+        5045: 'RUST_AUDIO_CAPTURE_MIC_STREAM_I16_ERROR',
+        5050: 'RUST_AUDIO_CAPTURE_SYSTEM_DATA',
+        5051: 'RUST_AUDIO_CAPTURE_SYSTEM_DATA_SENT',
+        5052: 'RUST_AUDIO_CAPTURE_SYSTEM_STREAM_ERROR',
+        5053: 'RUST_AUDIO_CAPTURE_SYSTEM_DATA_I16',
+        5054: 'RUST_AUDIO_CAPTURE_SYSTEM_DATA_I16_SENT',
+        5055: 'RUST_AUDIO_CAPTURE_SYSTEM_STREAM_I16_ERROR'
+      };
+      return ledMap[ledId] || `RUST_AUDIO_BACKEND_${ledId}`;
+    }
+    
+    // Tauri Event Emission (5100-5199)
+    else if (ledId >= 5100 && ledId <= 5199) {
+      const ledMap: Record<number, string> = {
+        5100: 'RUST_TAURI_EVENT_STREAM_START',
+        5101: 'RUST_TAURI_EVENT_AUDIO_DATA_RETRIEVED',
+        5102: 'RUST_TAURI_EVENT_EMIT',
+        5103: 'RUST_TAURI_EVENT_EMIT_SUCCESS'
+      };
+      return ledMap[ledId] || `RUST_TAURI_EVENT_${ledId}`;
+    }
+    
+    // Frontend Event Reception (5200-5299)
+    else if (ledId >= 5200 && ledId <= 5299) {
+      const ledMap: Record<number, string> = {
+        5200: 'FRONTEND_SETUP_TAURI_AUDIO_LISTENERS_START',
+        5201: 'FRONTEND_TAURI_LISTEN_API_IMPORTED',
+        5202: 'FRONTEND_TAURI_AUDIO_EVENT_RECEIVED',
+        5203: 'FRONTEND_TAURI_AUDIO_LISTENERS_SETUP_COMPLETE',
+        5210: 'FRONTEND_PROCESS_AUDIO_DATA_FOR_TRANSCRIPTION',
+        5211: 'FRONTEND_SYSTEM_AUDIO_PROCESSING',
+        5212: 'FRONTEND_MICROPHONE_AUDIO_PROCESSING'
+      };
+      return ledMap[ledId] || `FRONTEND_EVENT_RECEPTION_${ledId}`;
+    }
+    
+    // Transcription Processing (5300-5399)
+    else if (ledId >= 5300 && ledId <= 5399) {
+      const ledMap: Record<number, string> = {
+        5300: 'TRANSCRIPTION_WEB_SPEECH_API_INITIALIZATION',
+        5301: 'TRANSCRIPTION_WEB_SPEECH_API_CONSTRUCTOR_AVAILABLE',
+        5302: 'TRANSCRIPTION_WEB_SPEECH_EXISTING_INSTANCE_STOPPED',
+        5303: 'TRANSCRIPTION_WEB_SPEECH_INSTANCE_CREATED',
+        5310: 'TRANSCRIPTION_WEB_SPEECH_STARTED',
+        5320: 'TRANSCRIPTION_WEB_SPEECH_RESULT_RECEIVED',
+        5321: 'TRANSCRIPTION_WEB_SPEECH_INTERIM_TRANSCRIPTION',
+        5322: 'TRANSCRIPTION_WEB_SPEECH_FINAL_TRANSCRIPTION'
+      };
+      return ledMap[ledId] || `TRANSCRIPTION_PROCESSING_${ledId}`;
+    }
+    
+    // UI Updates (5400-5499)
+    else if (ledId >= 5400 && ledId <= 5499) {
+      const ledMap: Record<number, string> = {
+        5400: 'UI_TRANSCRIPTION_PANEL_EFFECT_START',
+        5401: 'UI_USING_EXTERNAL_TRANSCRIPTIONS',
+        5402: 'UI_USING_VOICE_EVENT_LISTENERS',
+        5403: 'UI_CLEARED_INTERIM_TEXT_NOT_RECORDING',
+        5410: 'UI_VOICE_TRANSCRIPTION_RECEIVED',
+        5411: 'UI_INTERIM_TEXT_DISPLAY',
+        5420: 'UI_FINAL_TRANSCRIPTION_PROCESSING',
+        5421: 'UI_TRANSCRIPTION_ENTRY_CREATED',
+        5422: 'UI_TRANSCRIPTION_LIST_UPDATED',
+        5430: 'UI_OLLAMA_COACHING_CALL_TRIGGERED',
+        5431: 'UI_COACHING_GENERATED_SUCCESSFULLY',
+        5432: 'UI_COACHING_EVENT_DISPATCHED',
+        5433: 'UI_NO_COACHING_GENERATED',
+        5434: 'UI_TEXT_TOO_SHORT_FOR_COACHING',
+        5440: 'UI_VOICE_TRANSCRIPTION_LISTENER_ATTACHED',
+        5441: 'UI_VOICE_TRANSCRIPTION_LISTENER_REMOVED',
+        5450: 'UI_CLEAR_TRANSCRIPTION_HISTORY_CLICKED',
+        5451: 'UI_TRANSCRIPTION_HISTORY_CLEARED',
+        5460: 'UI_TRANSCRIPTION_PANEL_RENDER'
+      };
+      return ledMap[ledId] || `UI_UPDATES_${ledId}`;
+    }
+    
     // User Interactions (100-199)
-    if (ledId >= 100 && ledId <= 199) {
+    else if (ledId >= 100 && ledId <= 199) {
       const ledMap: Record<number, string> = {
         100: 'START_RECORDING_CLICKED',
         101: 'STOP_RECORDING_CLICKED',
@@ -334,6 +446,74 @@ export class BreadcrumbTrail {
         804: 'MODE_CHANGE_SUCCESS'
       };
       return ledMap[ledId] || `AUDIO_DEVICE_SELECTOR_${ledId}`;
+    }
+    
+    // Phase 2 & 3 LED Ranges - Task 2.1: TranscriptionService Event Architecture
+    else if (ledId >= 7040 && ledId <= 7049) {
+      const ledMap: Record<number, string> = {
+        7040: 'TRANSCRIPTION_EVENT_EMISSION_START',
+        7041: 'TRANSCRIPTION_EVENT_ID_GENERATION',
+        7042: 'TAURI_EVENT_EMIT_ATTEMPT',
+        7043: 'TRANSCRIPTION_EVENT_EMISSION_SUCCESS',
+        7044: 'TRANSCRIPTION_EVENT_EMISSION_FAILURE',
+        7045: 'VOSK_RESULT_PROCESSING_START',
+        7046: 'FINAL_TRANSCRIPTION_STORAGE',
+        7047: 'EVENT_FORWARDING_TO_EMISSION',
+        7048: 'VOSK_RESULT_PROCESSING_COMPLETE',
+        7049: 'TRANSCRIPTION_EVENT_PIPELINE_COMPLETE'
+      };
+      return ledMap[ledId] || `TRANSCRIPTION_EVENT_${ledId}`;
+    }
+
+    // Phase 2 & 3 LED Ranges - Task 2.2: Main Integration Commands  
+    else if (ledId >= 7090 && ledId <= 7099) {
+      const ledMap: Record<number, string> = {
+        7090: 'MAIN_INTEGRATION_START_RECORDING',
+        7091: 'GLOBAL_AUDIO_PROCESSOR_ACCESS',
+        7092: 'AUDIO_RECORDING_INITIATION',
+        7093: 'RECORDING_START_SUCCESS',
+        7094: 'RECORDING_START_FAILED',
+        7095: 'MAIN_INTEGRATION_STOP_RECORDING',
+        7096: 'GLOBAL_AUDIO_PROCESSOR_STOP_ACCESS',
+        7097: 'AUDIO_RECORDING_TERMINATION',
+        7098: 'RECORDING_STOP_SUCCESS',
+        7099: 'RECORDING_STOP_FAILED'
+      };
+      return ledMap[ledId] || `MAIN_INTEGRATION_${ledId}`;
+    }
+
+    // Phase 3 LED Ranges - Task 3.1: CPAL Integration (Audio Processing)
+    else if (ledId >= 7100 && ledId <= 7109) {
+      const ledMap: Record<number, string> = {
+        7100: 'CPAL_MICROPHONE_THREAD_SETUP',
+        7101: 'TRANSCRIPTION_CHANNEL_FULL',
+        7102: 'TRANSCRIPTION_AUDIO_SENT',
+        7103: 'CPAL_SYSTEM_AUDIO_THREAD_SETUP',
+        7104: 'CPAL_MICROPHONE_STREAM_PLAY',
+        7105: 'CPAL_MICROPHONE_STREAM_PLAY_FAILED',
+        7106: 'CPAL_MICROPHONE_STREAM_ACTIVE',
+        7107: 'CPAL_SYSTEM_AUDIO_STREAM_PLAY',
+        7108: 'CPAL_SYSTEM_AUDIO_STREAM_PLAY_FAILED',
+        7109: 'CPAL_SYSTEM_AUDIO_STREAM_ACTIVE'
+      };
+      return ledMap[ledId] || `CPAL_INTEGRATION_${ledId}`;
+    }
+
+    // Phase 3 LED Ranges - Task 3.2: TranscriptionPanel Frontend Component
+    else if (ledId >= 7110 && ledId <= 7119) {
+      const ledMap: Record<number, string> = {
+        7110: 'TRANSCRIPTION_PANEL_INIT',
+        7111: 'EVENT_LISTENER_REGISTRATION',
+        7112: 'TRANSCRIPTION_EVENT_RECEIVED',
+        7113: 'UI_STATE_UPDATE_TRANSCRIPTION',
+        7114: 'TRANSCRIPTION_EVENT_PROCESSING_ERROR',
+        7115: 'EVENT_LISTENER_CLEANUP_REGISTRATION',
+        7116: 'EVENT_LISTENER_CLEANUP_EXECUTED',
+        7117: 'UI_START_RECORDING_CLICKED',
+        7118: 'UI_STOP_RECORDING_CLICKED',
+        7119: 'UI_CLEAR_TRANSCRIPTIONS'
+      };
+      return ledMap[ledId] || `TRANSCRIPTION_UI_${ledId}`;
     }
     
     // Default fallback

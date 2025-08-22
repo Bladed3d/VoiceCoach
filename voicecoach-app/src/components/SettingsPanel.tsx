@@ -1,5 +1,12 @@
-import { useState } from "react";
-import { X, Mic, Volume2, Brain, Database, Shield } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Mic, Volume2, Brain, Database, Shield, AlertCircle } from "lucide-react";
+import { BreadcrumbTrail } from '../lib/breadcrumb-system';
+
+interface AudioDevice {
+  deviceId: string;
+  label: string;
+  groupId: string;
+}
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -12,9 +19,19 @@ interface SettingsPanelProps {
 }
 
 function SettingsPanel({ onClose, appState }: SettingsPanelProps) {
+  const trail = new BreadcrumbTrail('SettingsPanel');
   const [activeTab, setActiveTab] = useState<'audio' | 'ai' | 'privacy' | 'about'>('audio');
+  const [audioDevices, setAudioDevices] = useState<AudioDevice[]>([]);
+  const [loadingDevices, setLoadingDevices] = useState(false);
+  const [deviceError, setDeviceError] = useState<string | null>(null);
+  
+  // Load saved microphone selection from localStorage or use default
+  const savedMicId = localStorage.getItem('selectedMicrophoneId') || 'default';
+  const savedMicLabel = localStorage.getItem('selectedMicrophoneLabel') || 'System Default';
+  
   const [settings, setSettings] = useState({
-    audioInput: 'default',
+    audioInput: savedMicId,
+    audioInputLabel: savedMicLabel,
     audioOutput: 'default',
     micSensitivity: 75,
     noiseSuppression: true,
@@ -25,8 +42,118 @@ function SettingsPanel({ onClose, appState }: SettingsPanelProps) {
     analytics: true,
   });
 
+  // Enumerate audio devices when component mounts or audio tab is selected
+  useEffect(() => {
+    if (activeTab === 'audio') {
+      enumerateAudioDevices();
+    }
+  }, [activeTab]);
+
+  const enumerateAudioDevices = async () => {
+    setLoadingDevices(true);
+    setDeviceError(null);
+    
+    // LED 150: Starting audio device enumeration
+    trail.light(150, {
+      action: 'enumerate_audio_devices_start',
+      timestamp: Date.now()
+    });
+
+    try {
+      // Request microphone permission first if needed
+      await navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+          // LED 151: Microphone permission granted
+          trail.light(151, {
+            action: 'microphone_permission_granted',
+            stream_active: true
+          });
+          // Stop the stream immediately - we just needed permission
+          stream.getTracks().forEach(track => track.stop());
+        });
+
+      // Enumerate all devices
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      
+      // LED 152: Devices enumerated successfully
+      trail.light(152, {
+        action: 'devices_enumerated',
+        total_devices: devices.length
+      });
+
+      // Filter for audio input devices
+      const audioInputs = devices
+        .filter(device => device.kind === 'audioinput')
+        .map(device => ({
+          deviceId: device.deviceId,
+          label: device.label || `Microphone ${device.deviceId.substring(0, 8)}`,
+          groupId: device.groupId
+        }));
+
+      // LED 153: Audio input devices filtered
+      trail.light(153, {
+        action: 'audio_inputs_filtered',
+        microphone_count: audioInputs.length,
+        devices: audioInputs.map(d => ({ id: d.deviceId, label: d.label }))
+      });
+
+      setAudioDevices(audioInputs);
+      
+      // Log devices to console for debugging
+      console.log('🎤 Available microphones:', audioInputs);
+      
+    } catch (error) {
+      // LED 154: Device enumeration failed
+      trail.fail(154, error as Error);
+      console.error('Failed to enumerate audio devices:', error);
+      setDeviceError('Failed to access audio devices. Please check permissions.');
+    } finally {
+      setLoadingDevices(false);
+    }
+  };
+
   const handleSettingChange = (key: string, value: any) => {
     setSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleMicrophoneChange = (deviceId: string) => {
+    const device = audioDevices.find(d => d.deviceId === deviceId);
+    const label = device?.label || 'System Default';
+    
+    // LED 155: Microphone selection changed
+    trail.light(155, {
+      action: 'microphone_selected',
+      device_id: deviceId,
+      device_label: label,
+      previous_id: settings.audioInput,
+      previous_label: settings.audioInputLabel
+    });
+
+    // Update settings
+    setSettings(prev => ({ 
+      ...prev, 
+      audioInput: deviceId,
+      audioInputLabel: label 
+    }));
+
+    // Save to localStorage for persistence
+    localStorage.setItem('selectedMicrophoneId', deviceId);
+    localStorage.setItem('selectedMicrophoneLabel', label);
+
+    // LED 156: Microphone selection saved
+    trail.light(156, {
+      action: 'microphone_selection_saved',
+      saved_to_localStorage: true,
+      device_id: deviceId,
+      device_label: label
+    });
+
+    console.log(`🎤 Microphone selected: ${label} (${deviceId})`);
+    
+    // Notify the app about the microphone change
+    window.dispatchEvent(new CustomEvent('microphoneChanged', {
+      detail: { deviceId, label }
+    }));
   };
 
   return (
@@ -98,16 +225,48 @@ function SettingsPanel({ onClose, appState }: SettingsPanelProps) {
                   
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium mb-2">Microphone Input</label>
+                      <label className="block text-sm font-medium mb-2">
+                        Microphone Input
+                        {loadingDevices && <span className="ml-2 text-slate-400">(Loading...)</span>}
+                      </label>
+                      
+                      {deviceError && (
+                        <div className="mb-2 p-2 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center space-x-2">
+                          <AlertCircle className="w-4 h-4 text-red-400" />
+                          <span className="text-sm text-red-400">{deviceError}</span>
+                        </div>
+                      )}
+                      
                       <select
                         value={settings.audioInput}
-                        onChange={(e) => handleSettingChange('audioInput', e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500"
+                        onChange={(e) => handleMicrophoneChange(e.target.value)}
+                        disabled={loadingDevices || appState.isRecording}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <option value="default">System Default</option>
-                        <option value="usb">USB Headset</option>
-                        <option value="bluetooth">Bluetooth Device</option>
+                        {audioDevices.map((device) => (
+                          <option key={device.deviceId} value={device.deviceId}>
+                            {device.label}
+                          </option>
+                        ))}
                       </select>
+                      
+                      {appState.isRecording && (
+                        <p className="mt-1 text-xs text-yellow-400">
+                          Cannot change microphone while recording
+                        </p>
+                      )}
+                      
+                      <div className="mt-2 p-2 bg-slate-800/50 rounded-lg">
+                        <p className="text-xs text-slate-400">
+                          Currently selected: <span className="text-primary-400 font-medium">{settings.audioInputLabel}</span>
+                        </p>
+                        {audioDevices.length > 0 && (
+                          <p className="text-xs text-slate-500 mt-1">
+                            Found {audioDevices.length} microphone{audioDevices.length !== 1 ? 's' : ''} on your system
+                          </p>
+                        )}
+                      </div>
                     </div>
 
                     <div>

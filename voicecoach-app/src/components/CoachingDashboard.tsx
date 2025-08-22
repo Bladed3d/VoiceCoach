@@ -592,7 +592,7 @@ function CoachingDashboard({
                   </div>
                   <div className="text-center bg-slate-800/50 rounded-lg p-3">
                     <div className="text-xl font-bold text-blue-400">
-                      {performanceMetrics.transcriptionLatency.toFixed(0)}ms
+                      {(performanceMetrics.transcriptionLatency || 0).toFixed(0)}ms
                     </div>
                     <div className="text-xs text-slate-400">Transcription</div>
                     <div className={`text-xs mt-1 ${performanceMetrics.transcriptionLatency < 500 ? 'text-success-400' : 'text-warning-400'}`}>
@@ -604,7 +604,7 @@ function CoachingDashboard({
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center bg-slate-800/50 rounded-lg p-3">
                     <div className="text-xl font-bold text-green-400">
-                      {performanceMetrics.aiProcessingLatency.toFixed(0)}ms
+                      {(performanceMetrics.aiProcessingLatency || 0).toFixed(0)}ms
                     </div>
                     <div className="text-xs text-slate-400">AI Processing</div>
                     <div className={`text-xs mt-1 ${performanceMetrics.aiProcessingLatency < 500 ? 'text-success-400' : 'text-warning-400'}`}>
@@ -613,7 +613,7 @@ function CoachingDashboard({
                   </div>
                   <div className="text-center bg-slate-800/50 rounded-lg p-3">
                     <div className="text-xl font-bold text-purple-400">
-                      {performanceMetrics.knowledgeRetrievalLatency.toFixed(0)}ms
+                      {(performanceMetrics.knowledgeRetrievalLatency || 0).toFixed(0)}ms
                     </div>
                     <div className="text-xs text-slate-400">Knowledge Retrieval</div>
                     <div className={`text-xs mt-1 ${performanceMetrics.knowledgeRetrievalLatency < 100 ? 'text-success-400' : 'text-warning-400'}`}>

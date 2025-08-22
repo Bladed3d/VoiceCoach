@@ -371,7 +371,7 @@ async fn get_breadcrumb_statistics() -> Result<Value, String> {
     match get_audio_breadcrumb_statistics() {
         stats => {
             info!("Retrieved breadcrumb statistics with {} components", 
-                  stats.get("global_statistics").and_then(|g| g.get("active_components")).unwrap_or(&Value::Number(0.into())));
+                  stats.get("global_statistics").and_then(|g| g.get("active_components")).unwrap_or(&Value::Number(0.into()));
             Ok(stats)
         }
     }

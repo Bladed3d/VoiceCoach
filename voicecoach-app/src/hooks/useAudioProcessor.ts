@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { smartInvoke, getEnvironmentInfo, isTauriEnvironment } from '../lib/tauri-mock';
 import { BreadcrumbTrail } from '../lib/breadcrumb-system';
+import { testAudioSimulator } from '../lib/test-audio-simulator';
+import { wavTestMode } from '../lib/wav-test-mode';
+// Removed useSystemAudio import - Electron dependency removed
 
 // Types for audio processing data
 export interface AudioLevels {
@@ -15,6 +18,8 @@ export interface AudioDevice {
   is_default: boolean;
   sample_rate: number;
   channels: number;
+  device_type?: 'Microphone' | 'SystemAudio' | 'LoopbackDevice' | 'Unknown';
+  is_available?: boolean;
 }
 
 export interface AudioConfig {
@@ -24,6 +29,23 @@ export interface AudioConfig {
   device_name?: string;
   enable_preprocessing: boolean;
   latency_target_ms: number;
+  ring_buffer_duration_secs?: number;
+  enable_dual_source_mixing?: boolean;
+  microphone_gain?: number;
+  system_audio_gain?: number;
+}
+
+export interface RingBufferStatus {
+  capacity: number;
+  remaining_write_space: number;
+  remaining_read_space: number;
+  utilization_percent: number;
+}
+
+export interface AudioMixerStatus {
+  microphone_gain: number;
+  system_audio_gain: number;
+  dual_source_mixing: boolean;
 }
 
 export interface PerformanceMetrics {
@@ -65,6 +87,9 @@ export const useAudioProcessor = () => {
     }
   });
   
+  // Phase 3: System Audio Integration
+  // Removed systemAudio - Electron dependency removed
+  
   // Refs for cleanup and polling
   const levelsPollingRef = useRef<NodeJS.Timeout | null>(null);
   const statusPollingRef = useRef<NodeJS.Timeout | null>(null);
@@ -82,6 +107,13 @@ export const useAudioProcessor = () => {
         
         console.log('🎙️ Initializing VoiceCoach audio processor...');
         console.log('🔧 Environment info:', getEnvironmentInfo());
+        console.log('🚀 CRITICAL: Tauri detection result:', {
+          isTauri: isTauriEnvironment(),
+          userAgent: navigator.userAgent,
+          hasTauriInAgent: navigator.userAgent.includes('Tauri'),
+          __TAURI__: (window as any).__TAURI__,
+          __TAURI_IPC__: (window as any).__TAURI_IPC__
+        });
         const response = await smartInvoke('initialize_voicecoach');
         console.log('✅ Audio processor initialized:', response);
         
@@ -151,15 +183,16 @@ export const useAudioProcessor = () => {
     
     levelsPollingRef.current = setInterval(async () => {
       try {
-        // LED 213: Tauri API call - Get audio levels (high frequency)
+        // LED 213: Tauri API call - Get audio levels (enhanced backend handles dual-source)
         const levels = await smartInvoke('get_audio_levels');
         
-        // LED 507: Audio levels received and state updated
+        // LED 507: Audio levels received and state updated (enhanced backend)
         trail.light(507, { 
           audio_levels: {
             user: levels.user,
             prospect: levels.prospect,
-            timestamp: levels.timestamp
+            timestamp: levels.timestamp,
+            enhanced_backend: true
           }
         });
         
@@ -189,7 +222,11 @@ export const useAudioProcessor = () => {
     
     statusPollingRef.current = setInterval(async () => {
       try {
-        const status = await smartInvoke('get_audio_status');
+        const response = await smartInvoke('get_audio_status');
+        // Extract the status string from the response object
+        const status = typeof response === 'object' && response !== null && 'status' in response 
+          ? response.status 
+          : 'Stopped';
         setAudioStatus(status);
         
         // DO NOT automatically change recording state based on backend status
@@ -270,84 +307,36 @@ export const useAudioProcessor = () => {
         });
       }
       
-      // Check if enhanced permissions are needed for system audio (web mode)
-      if (!isTauriEnvironment()) {
+      // For web mode, only check microphone permissions for microphone_only mode
+      // System audio permissions will be handled by the backend/mock system
+      if (!isTauriEnvironment() && audioMode === 'microphone_only') {
         try {
-          if (audioMode === 'system_audio' || audioMode === 'combined') {
-            console.log('🖥️ Requesting system audio permissions for video call capture...');
-            
-            // LED 161: System audio permissions request
-            trail.light(161, {
-              system_audio_permissions_request: true,
-              mode: audioMode,
-              platform: 'browser',
-              video_call_coaching: true
-            });
-
-            // For system audio, we need display media permission
-            const permissionPromises = [];
-            
-            if (audioMode === 'combined') {
-              // Combined mode needs both microphone and system audio
-              permissionPromises.push(
-                navigator.mediaDevices.getUserMedia({ audio: true }),
-                navigator.mediaDevices.getDisplayMedia({ video: false, audio: true })
-              );
-            } else {
-              // System audio only
-              permissionPromises.push(
-                navigator.mediaDevices.getDisplayMedia({ video: false, audio: true })
-              );
-            }
-            
-            const streams = await Promise.all(permissionPromises);
-            console.log('✅ Enhanced audio permissions granted for video call coaching');
-            
-            // LED 162: System audio permissions granted
-            trail.light(162, {
-              system_audio_permissions_granted: true,
-              mode: audioMode,
-              streams_acquired: streams.length,
-              video_call_ready: true
-            });
-
-            // LED 175: Video platform permissions verified
-            trail.light(175, {
-              video_platform_permissions_verified: true,
-              audio_mode: audioMode,
-              permissions_status: 'granted'
-            });
-
-            // Stop the test streams
-            streams.forEach(stream => {
-              stream.getTracks().forEach(track => track.stop());
-            });
-            
-          } else {
-            // Standard microphone permission
-            console.log('🔒 Requesting microphone permission...');
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            console.log('✅ Microphone permission granted');
-            // Stop the test stream
-            stream.getTracks().forEach(track => track.stop());
-          }
+          console.log('🔒 Requesting microphone permission...');
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          console.log('✅ Microphone permission granted');
+          // Stop the test stream
+          stream.getTracks().forEach(track => track.stop());
         } catch (permissionError) {
-          console.error('❌ Audio permission denied:', permissionError);
-          
-          // LED 163: System audio permissions denied
-          trail.light(163, {
-            system_audio_permissions_denied: true,
-            mode: audioMode,
-            error: permissionError instanceof Error ? permissionError.message : 'Permission denied',
-            fallback_needed: true
-          });
-
-          const errorMessage = audioMode === 'system_audio' || audioMode === 'combined' 
-            ? 'System audio permission is required for video call coaching. Please allow screen/audio sharing and try again.'
-            : 'Microphone permission is required for VoiceCoach to function. Please allow microphone access and try again.';
-          setError(errorMessage);
+          console.error('❌ Microphone permission denied:', permissionError);
+          setError('Microphone permission is required for VoiceCoach to function. Please allow microphone access and try again.');
           return;
         }
+      }
+      
+      // Phase 3: Handle system audio modes with Electron desktopCapturer
+      if (audioMode === 'system_audio' || audioMode === 'combined') {
+        console.log(`🖥️ ${audioMode} mode selected - using desktop capture`);
+        
+        // LED 161: System audio mode selected
+        trail.light(161, {
+          system_audio_mode_selected: true,
+          mode: audioMode,
+          platform: 'electron',
+          desktop_capture_enabled: true
+        });
+
+        // Enhanced backend now handles system audio internally
+        console.log('🎯 Enhanced backend will handle system audio capture automatically');
       }
       
       // LED 220: Tauri API call - Start recording with enhanced parameters
@@ -422,6 +411,9 @@ export const useAudioProcessor = () => {
       
       // LED 513: Recording stopped successfully
       trail.light(513, { operation: 'stop_recording_complete' });
+      
+      // Enhanced backend handles system audio stop automatically
+      console.log('🛑 Enhanced backend stopping system audio automatically');
       
       // Explicitly set recording state and stop polling
       setIsRecording(false);
@@ -555,10 +547,10 @@ export const useAudioProcessor = () => {
     if (!performanceMetrics) return null;
     
     return {
-      averageLatency: `${performanceMetrics.average_latency_ms.toFixed(1)}ms`,
+      averageLatency: `${(performanceMetrics.average_latency_ms || 0).toFixed(1)}ms`,
       tokens: ollamaTokens > 0 ? `${ollamaTokens}${ollamaOverLimit ? ' ⚠️' : ''}` : '0',
-      transcriptions: performanceMetrics.total_transcriptions,
-      targetLatency: `${performanceMetrics.target_latency_ms}ms`,
+      transcriptions: performanceMetrics.total_transcriptions || 0,
+      targetLatency: `${performanceMetrics.target_latency_ms || 0}ms`,
       status: performanceMetrics.status,
     };
   }, [performanceMetrics, ollamaTokens, ollamaOverLimit]);

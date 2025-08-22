@@ -380,7 +380,7 @@ Be encouraging and practical.`;
       
       // Convert AI suggestions to coaching prompts
       const aiPrompts: CoachingPrompt[] = suggestions.map((suggestion: any, index: number) => ({
-        id: `ai-${Date.now()}-${index}`,
+        id: `ai-suggestion-${index}-${crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9)}`,
         type: suggestion.suggestion_type.includes('objection') ? 'objection' : 
               suggestion.suggestion_type.includes('opportunity') ? 'opportunity' : 'suggestion',
         title: `AI Knowledge: ${suggestion.suggestion_type}`,
@@ -632,7 +632,7 @@ Be encouraging and practical.`;
           </div>
         )}
 
-        {prompts.map((prompt) => (
+        {prompts.slice().reverse().map((prompt) => (
           <div
             key={prompt.id}
             className={`border-l-4 rounded-lg p-4 transition-all duration-200 animate-slide-up ${

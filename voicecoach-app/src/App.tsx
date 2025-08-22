@@ -32,6 +32,35 @@ function App() {
   // LED 400: App component initialization
   trail.light(400, { operation: 'app_component_init', timestamp: Date.now() });
   
+  // Check which Vosk model is loaded (will appear in browser console)
+  useEffect(() => {
+    const checkVoskModel = async () => {
+      try {
+        const { invoke } = await import('@tauri-apps/api');
+        const status = await invoke('get_vosk_status');
+        
+        console.log('🎤 VOSK STATUS:', status ? '✅ Recording Active' : '❌ Not Recording (Click Start Recording)');
+        
+        if (!status) {
+          console.log('👉 Click the "Start Recording" button to begin transcription');
+        }
+        
+        // Model info - only log once on first check
+        if (!(window as any).voskModelLogged) {
+          console.log('📁 MODEL: Check terminal for "0.22-lgraph" (large/accurate) or "0.15" (small/fast)');
+          (window as any).voskModelLogged = true;
+        }
+      } catch (e) {
+        console.log('⚠️ Could not check Vosk status:', e);
+      }
+    };
+    
+    // Check immediately and every 5 seconds
+    checkVoskModel();
+    const interval = setInterval(checkVoskModel, 5000);
+    return () => clearInterval(interval);
+  }, []);
+  
   const [showSettings, setShowSettings] = useState(false);
   const [showKnowledgeBase, setShowKnowledgeBase] = useState(false);
   const [showUserTesting, setShowUserTesting] = useState(false);

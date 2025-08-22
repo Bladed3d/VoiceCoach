@@ -8,6 +8,7 @@ import {
   TrendingUp, 
   BarChart3, 
   Layout, 
+  Mic,
   Clock, 
   Users, 
   Zap, 
@@ -43,17 +44,9 @@ function CoachingInterface({ appState, onStartRecording, onStopRecording, audioD
   // Initialize LED breadcrumb trail for CoachingInterface
   const trail = new BreadcrumbTrail('CoachingInterface');
   
-  // LED 402: CoachingInterface component initialization
-  trail.light(402, { 
-    operation: 'coaching_interface_init',
-    appState: {
-      isRecording: appState.isRecording,
-      isConnected: appState.isConnected,
-      hasActiveCall: !!appState.currentCall
-    }
-  });
-  
-  const [activeTab, setActiveTab] = useState<'transcription' | 'prompts' | 'dashboard' | 'insights' | 'split-view'>('dashboard');
+  // Default to split-view during development for better testing visibility
+  // Split-view shows both transcription and AI prompts clearly
+  const [activeTab, setActiveTab] = useState<'transcription' | 'prompts' | 'dashboard' | 'insights' | 'split-view'>('split-view');
   const [ragStatus, setRagStatus] = useState<{
     connected: boolean;
     status: string;
@@ -64,6 +57,27 @@ function CoachingInterface({ appState, onStartRecording, onStopRecording, audioD
     status: 'checking',
     color: 'bg-slate-400',
     message: 'Checking RAG connection...'
+  });
+  
+  // Microphone selection state with LED tracking
+  const [selectedMicrophone, setSelectedMicrophone] = useState<{ id: string; label: string }>(() => {
+    // LED 350: Loading saved microphone selection
+    trail.light(350, {
+      action: 'load_saved_microphone',
+      from_localStorage: true
+    });
+    
+    const savedId = localStorage.getItem('selectedMicrophoneId') || 'default';
+    const savedLabel = localStorage.getItem('selectedMicrophoneLabel') || 'System Default';
+    
+    // LED 351: Microphone selection loaded
+    trail.light(351, {
+      action: 'microphone_loaded',
+      device_id: savedId,
+      device_label: savedLabel
+    });
+    
+    return { id: savedId, label: savedLabel };
   });
   
   // Real-time coaching orchestration engine
@@ -77,26 +91,9 @@ function CoachingInterface({ appState, onStartRecording, onStopRecording, audioD
     markPromptAsUsed,
     dismissPrompt,
     getAverageResponseTime,
-    getCoachingEffectiveness
+    getCoachingEffectiveness,
+    clearSession
   } = useCoachingOrchestrator(appState.isRecording);
-  
-  // LED 312: Initial component state setup  
-  trail.light(312, { 
-    state_init: {
-      activeTab: 'dashboard',
-      orchestratorEnabled: true,
-      coachingPromptsCount: coachingPrompts.length,
-      currentStage: conversationContext.currentStage
-    }
-  });
-
-  // LED 403: CoachingInterface render cycle start
-  trail.light(403, { 
-    operation: 'coaching_interface_render',
-    activeTab,
-    isRecording: appState.isRecording,
-    isConnected: appState.isConnected
-  });
 
   // BALANCED: RAG status checking - once per session start to maintain performance
   // Check Ollama connection when recording starts, then assume available during session
@@ -148,6 +145,117 @@ function CoachingInterface({ appState, onStartRecording, onStopRecording, audioD
     checkOllamaHealth();
   }, [appState.isRecording]); // Only check when recording state changes
 
+  // Listen for microphone changes from Settings panel
+  useEffect(() => {
+    const handleMicrophoneChange = (event: CustomEvent) => {
+      const { deviceId, label } = event.detail;
+      
+      // LED 352: Microphone change detected in CoachingInterface
+      trail.light(352, {
+        action: 'microphone_change_detected',
+        new_device_id: deviceId,
+        new_device_label: label,
+        previous_id: selectedMicrophone.id,
+        previous_label: selectedMicrophone.label
+      });
+      
+      setSelectedMicrophone({ id: deviceId, label });
+      
+      // LED 353: Microphone state updated in CoachingInterface
+      trail.light(353, {
+        action: 'microphone_state_updated',
+        device_id: deviceId,
+        device_label: label
+      });
+    };
+
+    window.addEventListener('microphoneChanged', handleMicrophoneChange as EventListener);
+    
+    return () => {
+      window.removeEventListener('microphoneChanged', handleMicrophoneChange as EventListener);
+    };
+  }, [selectedMicrophone]);
+
+  // Breadcrumb event listener for debugging visibility
+  useEffect(() => {
+    let unlistenFn: (() => void) | null = null;
+
+    const setupBreadcrumbListener = async () => {
+      try {
+        // Check if we're in a Tauri environment
+        if (typeof window !== 'undefined' && ((window as any).__TAURI__ || (window as any).__TAURI_IPC__)) {
+          const { listen } = await import('@tauri-apps/api/event');
+          
+          // Register event listener for breadcrumb events from Rust backend
+          const unlisten = await listen('breadcrumb_event', (event: any) => {
+            console.log('🔍 LED Breadcrumb:', {
+              id: event.payload.id,
+              name: event.payload.name,
+              component: event.payload.component,
+              success: event.payload.success,
+              data: event.payload.data,
+              duration_ms: event.payload.duration_ms
+            });
+            
+            // Also log to a special breadcrumb console group for easy filtering
+            console.groupCollapsed(`💡 LED ${event.payload.id} - ${event.payload.name} [${event.payload.component}]`);
+            console.log('Status:', event.payload.success ? '✅ Success' : '❌ Failed');
+            console.log('Duration:', `${event.payload.duration_ms}ms`);
+            if (event.payload.data) {
+              console.log('Data:', event.payload.data);
+            }
+            if (event.payload.error) {
+              console.error('Error:', event.payload.error);
+            }
+            console.groupEnd();
+          });
+
+          unlistenFn = unlisten;
+          console.log('✅ Breadcrumb event listener registered for debugging');
+        }
+      } catch (error) {
+        console.error('Failed to setup breadcrumb listener:', error);
+      }
+    };
+
+    setupBreadcrumbListener();
+
+    return () => {
+      if (unlistenFn) {
+        unlistenFn();
+      }
+    };
+  }, []); // Only setup once
+
+  // LED logging after all hooks
+  // LED 402: CoachingInterface component initialization
+  trail.light(402, { 
+    operation: 'coaching_interface_init',
+    appState: {
+      isRecording: appState.isRecording,
+      isConnected: appState.isConnected,
+      hasActiveCall: !!appState.currentCall
+    }
+  });
+  
+  // LED 312: Initial component state setup  
+  trail.light(312, { 
+    state_init: {
+      activeTab: 'split-view', // Changed to split-view for development
+      orchestratorEnabled: true,
+      coachingPromptsCount: coachingPrompts.length,
+      currentStage: conversationContext.currentStage
+    }
+  });
+
+  // LED 403: CoachingInterface render cycle start
+  trail.light(403, { 
+    operation: 'coaching_interface_render',
+    activeTab,
+    isRecording: appState.isRecording,
+    isConnected: appState.isConnected
+  });
+
   // Helper function for formatting duration
   const formatDuration = (ms: number) => {
     const seconds = Math.floor(ms / 1000);
@@ -182,12 +290,22 @@ function CoachingInterface({ appState, onStartRecording, onStopRecording, audioD
                 <span className="text-slate-400 text-sm">Ready to coach your next call</span>
               )}
               
-              {/* Knowledge Base Status */}
-              <div className="flex items-center space-x-1 text-xs">
-                <div className={`w-2 h-2 rounded-full ${ragStatus.color} ${ragStatus.status === 'checking' ? 'animate-pulse' : ''}`}></div>
-                <span className={`${ragStatus.connected ? 'text-success-400' : ragStatus.status === 'failed' ? 'text-danger-400' : 'text-warning-400'}`}>
-                  {ragStatus.message}
-                </span>
+              {/* Knowledge Base Status and Microphone */}
+              <div className="flex flex-col space-y-1">
+                <div className="flex items-center space-x-1 text-xs">
+                  <div className={`w-2 h-2 rounded-full ${ragStatus.color} ${ragStatus.status === 'checking' ? 'animate-pulse' : ''}`}></div>
+                  <span className={`${ragStatus.connected ? 'text-success-400' : ragStatus.status === 'failed' ? 'text-danger-400' : 'text-warning-400'}`}>
+                    {ragStatus.message}
+                  </span>
+                </div>
+                
+                {/* Microphone Display */}
+                <div className="flex items-center space-x-1 text-xs">
+                  <Mic className="w-3 h-3 text-primary-400" />
+                  <span className="text-slate-400">
+                    Mic: <span className="text-primary-400 font-medium">{selectedMicrophone.label}</span>
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -428,7 +546,9 @@ function CoachingInterface({ appState, onStartRecording, onStopRecording, audioD
               return null;
             })()}
             <TranscriptionPanel 
-              isRecording={appState.isRecording} 
+              isRecording={appState.isRecording}
+              onStartRecording={onStartRecording}
+              onStopRecording={onStopRecording}
               transcriptions={transcriptions}
             />
           </>
@@ -644,10 +764,55 @@ function CoachingInterface({ appState, onStartRecording, onStopRecording, audioD
                 
                 {/* Live Transcription - Right 1/3 */}
                 <div className="flex-1 min-h-0" style={{ maxHeight: '550px' }}>
-                  <TranscriptionPanel 
-                    isRecording={appState.isRecording} 
-                    transcriptions={transcriptions}
-                  />
+                  <div className="glass-panel h-full overflow-hidden flex flex-col">
+                    {/* Header with title and clear button */}
+                    <div className="px-4 py-3 border-b border-slate-700/50 flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <MessageSquare className="w-4 h-4 text-primary-400" />
+                        <h3 className="text-sm font-semibold">Live Transcription</h3>
+                        <span className="text-xs text-slate-400">
+                          ({transcriptions.length} messages)
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => clearSession()}
+                        className="px-3 py-1 text-xs bg-slate-700/50 hover:bg-slate-700 text-slate-300 rounded-md transition-colors"
+                        title="Clear all transcriptions"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                    
+                    {/* Transcription content */}
+                    <div className="flex-1 overflow-y-auto p-4">
+                      {transcriptions.length === 0 ? (
+                        <div className="text-xs text-slate-400 text-center mt-8">
+                          {appState.isRecording ? 
+                            "🎙️ Listening for speech..." : 
+                            "📝 Start recording to see transcriptions"
+                          }
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {transcriptions.slice(-10).reverse().map((t, i) => (
+                            <div key={`trans-${t.id || i}`} className={`text-xs p-2 rounded ${
+                              t.speaker === 'user' ? 'bg-blue-900/20 text-blue-300' : 'bg-purple-900/20 text-purple-300'
+                            }`}>
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-semibold">
+                                  {t.speaker === 'user' ? '🎤 You' : '🎧 Prospect'}
+                                </span>
+                                <span className="text-[10px] opacity-60">
+                                  {new Date(t.timestamp).toLocaleTimeString()}
+                                </span>
+                              </div>
+                              <div className="break-words">{t.text}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

@@ -6,8 +6,7 @@ use std::process::Command;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
-use tauri::State;
-use log::{info, warn, error};
+use log::{info, error};
 
 // LED breadcrumb trail for Rust operations
 // Uses console output for debugging - Rust logs will be prefixed with [TAURI] in frontend

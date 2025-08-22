@@ -1,0 +1,116 @@
+// VoiceCoach Vosk Configuration File
+// This file controls all Vosk transcription parameters
+// Edit these values and restart the app to test different settings
+
+{
+  "model_paths": {
+    // Path to high-accuracy Vosk model (128MB)
+    // Better transcription quality but uses more memory
+    "large_model": "../models/vosk-model-en-us-0.22-lgraph/vosk-model-en-us-0.22-lgraph",
+    
+    // Path to lightweight model (40MB)
+    // Faster but less accurate. Used as fallback if large model isn't found
+    "small_model": "../models/vosk-model-small-en-us-0.15",
+    
+    // Priority: tries large_model first, then small_model as fallback
+    "comment": "Priority order: tries large_model first, then small_model as fallback"
+  },
+  
+  "recognizer_settings": {
+    // Audio sampling rate in Hz. Vosk works best at 16000 Hz (16kHz)
+    // Don't change unless you know what you're doing
+    "sample_rate": 16000,
+    
+    // When false, disables word-by-word partial results
+    // This prevents choppy "how... how is... how is your..." repetitions
+    "partial_words": false,
+    
+    // When false, disables word-level timing information in final results
+    // Set to false for better performance
+    "words": false,
+    
+    "comment": "partial_words=false for cleaner results, words=true for timing info"
+  },
+  
+  "audio_processing": {
+    // Number of audio samples to accumulate before processing
+    // 16000 = 1 second at 16kHz
+    // RECOMMENDED: 1600 (0.1s) for real-time response, 8000 (0.5s) for better accuracy
+    "min_buffer_size": 8000,
+    
+    // RMS (loudness) value below which audio is considered "silence"
+    // Range 0.001-0.01. Lower = more sensitive to quiet speech
+    // RECOMMENDED: 0.01 for normal environments, 0.005 for quiet rooms
+    "silence_threshold": 0.01,
+    
+    // How many consecutive silent buffers trigger sentence finalization
+    // With 1s buffers, 1 = 1 second pause ends sentence
+    "silence_buffers_for_pause": 1,
+    
+    "comment": "buffer_size in samples (16000 = 1s at 16kHz), threshold is RMS value"
+  },
+  
+  "behavior": {
+    // When false, only sends final transcriptions (like Web Speech API)
+    // Prevents duplicate text appearing
+    "emit_partials": false,
+    
+    // When true, clears recognizer state after each sentence
+    // Ensures clean sentence boundaries
+    "reset_on_finalization": true,
+    
+    // When false, lets Vosk naturally detect sentence boundaries (like Python)
+    // More accurate but may wait longer for pauses
+    "force_finalize_on_silence": false,
+    
+    "comment": "WebKit-like behavior: only emit finals, reset after each sentence"
+  },
+  
+  "audio_device": {
+    // When true, tries to record at 16kHz directly
+    // More efficient if your mic supports it
+    "prefer_16khz_native": true,
+    
+    // When true, converts audio from other sample rates (like 48kHz) to 16kHz automatically
+    "enable_resampling": true,
+    
+    // Downsampling ratio. 3 = 48kHz→16kHz (divide by 3)
+    // Adjust if using different mic sample rates
+    "resample_ratio": 3,
+    
+    "comment": "Tries to use 16kHz natively, resamples from 48kHz if needed (ratio 3:1)"
+  },
+  
+  "debugging": {
+    // When true, logs LED breadcrumb trail for debugging
+    // Shows exactly where processing happens
+    "enable_breadcrumbs": true,
+    
+    // Log audio levels every N buffers
+    // 10 = log every 10th buffer to avoid spam
+    "audio_level_log_frequency": 10,
+    
+    // When true, logs performance metrics like processing time and buffer sizes
+    "log_processing_stats": true,
+    
+    "comment": "LED breadcrumb system for debugging, logs every 10th audio buffer"
+  }
+}
+
+/* QUICK TUNING GUIDE:
+ * 
+ * Poor accuracy?
+ * → Ensure using large_model, increase min_buffer_size to 24000 (1.5s)
+ * 
+ * Too many partials?
+ * → Set emit_partials: false
+ * 
+ * Missing quiet speech?
+ * → Lower silence_threshold to 0.002
+ * 
+ * Sentences cut off too early?
+ * → Increase silence_buffers_for_pause to 2
+ * 
+ * Sentences never end?
+ * → Decrease silence_buffers_for_pause to 1 or lower silence_threshold
+ */
