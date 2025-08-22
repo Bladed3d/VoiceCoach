@@ -1,13 +1,20 @@
 # Command Learning Database - Windows System
 
-**Last Updated**: July 30, 2025
-**System**: Windows 11, Node.js, Next.js 14, Prisma ORM
+**Last Updated**: August 19, 2025
+**System**: Windows 11, Node.js, Next.js 14, Prisma ORM, Tauri 1.6, Rust 1.88.0
 
 ## 🟢 VERIFIED WORKING COMMANDS
 
 ### Build & Test Commands
 - `npm run build` ✅ **Always use this instead of dev**
 - `npx ts-node scripts/seed-role-models.ts` ✅ Seeds role models correctly
+
+### Tauri Desktop Development (CRITICAL SETUP REQUIRED)
+- `npm run tauri dev` ✅ **ONLY after installing MSYS2 + MinGW-w64**
+- `npm run tauri build` ✅ **For production desktop app builds**
+- `winget install MSYS2.MSYS2` ✅ **MANDATORY for Tauri on Windows**
+- `powershell -Command "& 'C:\msys64\usr\bin\bash.exe' -l -c 'pacman -S --noconfirm mingw-w64-x86_64-toolchain'"` ✅ **Install GNU tools**
+- `setx PATH "%PATH%;C:\msys64\mingw64\bin"` ✅ **Add MinGW to system PATH**
 
 ### Git Commands  
 - `git status` ✅ Always works

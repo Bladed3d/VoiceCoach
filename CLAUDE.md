@@ -1,5 +1,11 @@
 # Lightwalker Project - Master Index
 
+## 🚨 CRITICAL AGENT NAMING CLARIFICATION
+**When using Task tool with custom agents**: Use the agent's **name** field from the .md file header, NOT the filename!
+- Example: File `task-breakdown-agent.md` has `name: Task Breakdown Agent` 
+- **USE**: `subagent_type: "Task Breakdown Agent"`
+- **NOT**: `subagent_type: "task-breakdown-agent"`
+
 ## 🚨 MANDATORY SESSION START PROTOCOL
 
 **EVERY conversation MUST begin by reading these files in order:**
@@ -66,3 +72,30 @@
 ---
 
 **IMPORTANT**: This master index provides entry points to detailed information. Read the specific reference files for complete context on any topic.
+
+---
+
+## 🔴 CRITICAL QUALITY PRINCIPLE - VOICECOACH PROJECT
+
+**NEVER COMPROMISE QUALITY FOR SPEED**
+
+The user has explicitly stated:
+- "I never want to compromise quality for speed"
+- "I want a great app that's working properly" 
+- "Not at the expense of quality and proper robust design"
+- "I am tired of Claude constantly suggesting short term fixes rather than robust and proper solutions"
+
+**MANDATORY APPROACH FOR VOICECOACH:**
+1. ✅ ALWAYS implement robust, production-ready solutions
+2. ✅ ALWAYS think about error handling, edge cases, and sustainability
+3. ✅ ALWAYS consider what happens when real users use the system
+4. ✅ ALWAYS build with deployment and scale in mind
+5. ❌ NEVER take shortcuts just to get something "working" quickly
+6. ❌ NEVER implement quick fixes that will cause debugging problems later
+7. ❌ NEVER use mock data or simulated functionality when real implementation is needed
+
+**Example**: When implementing transcription:
+- ❌ WRONG: "Let's just simulate transcription to test quickly"
+- ✅ RIGHT: "Let's properly integrate a real transcription service (Whisper/AssemblyAI/Deepgram) with proper error handling, retry logic, and fallback mechanisms"
+
+**The goal is a robust, sustainable app that works reliably for actual users, not a quick demo that appears to work but fails in production.**

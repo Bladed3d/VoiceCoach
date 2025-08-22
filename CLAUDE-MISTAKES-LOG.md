@@ -4,6 +4,85 @@
 
 ---
 
+## 2025-08-20 - IPC COMMUNICATION BREAKDOWN: Electron API Not Available in Renderer
+
+**What Failed**: Desktop features (system audio capture) were unavailable because users were accessing localhost:1420 directly in browser instead of through Electron BrowserWindow
+
+**Symptoms Observed**:
+- ✅ Electron main process running correctly
+- ✅ Preload script exposing electronAPI properly  
+- ✅ IPC handlers registered successfully in main process
+- ❌ **BUT `window.electronAPI` was undefined in renderer process**
+- ❌ **TauriMock fallback operations (LEDs 903, 950, 956) instead of Electron**
+- ❌ **Desktop audio capture features completely unavailable**
+
+**Root Cause Analysis**:
+1. **User Access Pattern**: Users navigating to `http://localhost:1420` directly in browser
+2. **Missing Context**: Browser access bypasses Electron's BrowserWindow and preload script entirely
+3. **No IPC Communication**: contextBridge.exposeInMainWorld() only works within Electron renderer
+4. **Silent Fallback**: App falls back to browser mode without clear indication of missing features
+
+**What Actually Worked**:
+```javascript
+// Added prominent diagnostic banner in App.tsx
+{typeof window !== 'undefined' && !window.electronAPI && (
+  <div className="fixed top-0 left-0 right-0 z-[9999] bg-yellow-600">
+    <h3>Desktop Features Unavailable - Using Browser Mode</h3>
+    <p>You're accessing localhost:1420 directly in browser. 
+       Use the Electron window for full desktop capabilities.</p>
+    <div>Current Status: window.electronAPI = {typeof window.electronAPI}</div>
+  </div>
+)}
+
+// Added IPC status to development indicators
+<div className={`${window.electronAPI ? 'text-green-400' : 'text-red-400'}`}>
+  IPC: {window.electronAPI ? 'Connected ✓' : 'Browser Mode ✗'}
+</div>
+
+// Added LED tracking for diagnostic detection
+if (!window.electronAPI) {
+  trail.light(950, { 
+    ipc_communication_issue: 'detected',
+    running_in: 'browser_direct_access',
+    solution: 'use_electron_window_instead_of_browser'
+  });
+}
+```
+
+**Critical Fix Components**:
+1. **Immediate Visual Warning**: Yellow banner at top of app when IPC unavailable
+2. **Clear Instruction**: Directs users to look for Electron window or restart with npm run electron:dev
+3. **Status Indicators**: Real-time IPC connection status in dev mode
+4. **LED Breadcrumb Tracking**: LED 950 logs when browser access detected
+5. **Launch Helper**: Created launch-electron.bat with clear instructions
+
+**Prevention Rules (MUST follow)**:
+1. **ALWAYS provide immediate visual feedback** when critical APIs are unavailable
+2. **NEVER assume users understand difference** between browser and Electron access
+3. **ALWAYS include IPC status indicators** in development mode
+4. **ADD clear launch instructions** in README and scripts
+5. **TRACK access patterns with LEDs** to identify misuse
+6. **PROVIDE simple batch files** for correct application startup
+
+**User Education Added**:
+- Clear diagnostic explaining browser vs Electron access
+- Step-by-step instructions to access correct window
+- Visual status indicators showing current capabilities
+- Batch file with proper startup sequence
+
+**Files Fixed**:
+- `/src/App.tsx` (diagnostic banner, IPC status tracking)
+- `/launch-electron.bat` (user-friendly startup script)
+
+**Time Spent**: ~1 hour of diagnosis and implementation
+**Impact**: CRITICAL - Users can now immediately see when desktop features are unavailable and how to fix it
+
+**Key Insight**: When desktop apps have both browser and desktop modes, the entry point confusion must be immediately visible and clearly resolved, not silently handled with fallbacks.
+
+**System Context**: Electron + Vite development where same localhost:1420 serves both browser and Electron renderer, requiring clear user guidance to access correct context.
+
+---
+
 ## 🚨 2025-08-19 - CATASTROPHIC: Wrong Tech Stack for Core Requirements (8 Hours Wasted)
 
 **What Failed**: Recommended Tauri for desktop app that MUST capture system audio (YouTube/Google Meet), but Tauri has NO built-in audio capture capabilities, requiring complex Rust + Windows API implementation.
