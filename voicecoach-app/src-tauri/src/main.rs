@@ -38,6 +38,13 @@ use document_processing::{
     get_coaching_suggestions
 };
 
+// Ollama AI coaching integration
+mod ollama_integration;
+use ollama_integration::{
+    generate_ai_coaching, check_ollama_status,
+    load_knowledge_base, save_knowledge_base
+};
+
 // App state to hold preloaded Vosk model for <1s startup
 // Using Arc to share the model across threads
 pub struct VoskAppState {
@@ -392,6 +399,12 @@ fn main() {
             
             // Simple coaching suggestions
             get_coaching_suggestions,
+            
+            // Ollama AI coaching integration
+            generate_ai_coaching,
+            check_ollama_status,
+            load_knowledge_base,
+            save_knowledge_base,
             
             // Microphone test
             test_microphone_access

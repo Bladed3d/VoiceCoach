@@ -41,7 +41,7 @@ ringbuf = "0.3"
 vosk = "0.3.1"  # Latest available version for offline speech recognition
 bytemuck = "1.14"  # Required for audio format conversion to Vosk-compatible formats
 # Vosk Model Management dependencies (Task 1.2 - Model Download Integration)
-reqwest = { version = "0.11", features = ["json", "stream"] }  # HTTP client for model downloads
+reqwest = { version = "0.11", features = ["json", "stream", "blocking"] }  # HTTP client for model downloads and Ollama
 futures-util = "0.3"  # Stream utilities for download progress
 zip = "0.6"  # ZIP archive extraction for model files
 sha2 = "0.10"  # SHA256 checksum verification for model integrity
