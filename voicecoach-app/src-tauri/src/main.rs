@@ -45,6 +45,17 @@ use ollama_integration::{
     load_knowledge_base, save_knowledge_base
 };
 
+// Knowledge base management
+mod knowledge_base;
+use knowledge_base::{
+    initialize_knowledge_base as init_kb,
+    process_single_file, process_documents_batch,
+    search_knowledge, get_kb_stats, get_all_documents,
+    add_document_to_kb, remove_document_from_kb,
+    clear_knowledge_base, process_text_content,
+    select_files, select_directory
+};
+
 // App state to hold preloaded Vosk model for <1s startup
 // Using Arc to share the model across threads
 pub struct VoskAppState {
@@ -111,6 +122,18 @@ async fn initialize_app() -> Result<String, String> {
             error!("❌ Failed to initialize document processing: {}", e);
             warn!("RAG knowledge system unavailable - coaching will use basic responses");
             // Don't fail - we can still work without RAG
+        }
+    }
+    
+    // Initialize knowledge base manager
+    info!("🧠 Initializing knowledge base manager...");
+    match init_kb() {
+        Ok(_) => {
+            info!("✅ Knowledge base manager initialized successfully");
+        }
+        Err(e) => {
+            error!("❌ Failed to initialize knowledge base: {}", e);
+            // Non-critical - app can run without knowledge base
         }
     }
     
@@ -405,6 +428,19 @@ fn main() {
             check_ollama_status,
             load_knowledge_base,
             save_knowledge_base,
+            
+            // Knowledge base management
+            process_single_file,
+            process_documents_batch,
+            search_knowledge,
+            get_kb_stats,
+            get_all_documents,
+            add_document_to_kb,
+            remove_document_from_kb,
+            clear_knowledge_base,
+            process_text_content,
+            select_files,
+            select_directory,
             
             // Microphone test
             test_microphone_access
