@@ -15,7 +15,6 @@
 3. **`CLAUDE-MISTAKES-LOG.md`** ← Every past failure documented with solutions
 4. **`CLAUDE-SUCCESS-PATTERNS.md`** ← Proven approaches that work reliably
 5. **`COMMANDS-LEARNED.md`** ← System-specific command database
-6. **`CLAUDE-PROJECT-CONTEXT.md`** ← Current project status and next steps
 
 **CORE PRINCIPLE**: "Mistakes or errors never happen twice if we resolve them after happening once."
 
@@ -40,13 +39,9 @@
 
 ## 📁 DETAILED REFERENCE FILES
 
-**Project Information:**
-- **`CLAUDE-PROJECT-CONTEXT.md`** - Current development status, completed features, next priorities
-- **`LIGHTWALKER-ARCHITECTURE.md`** - File locations, deployment info, production URLs
-
-**Technical Specifications:**
-- **`LIGHTWALKER-TECHNICAL-SPECS.md`** - Stack details, database schema, working commands
-- **`LIGHTWALKER-BRANDING-RULES.md`** - Trademark requirements, interaction rules, content guidelines
+**VoiceCoach Project Information:**
+- Documentation files are located in the `docs/` folder
+- Agent specifications in `.claude/agents/` folder
 
 **Operational Files** (Read during session startup):
 - **`CLAUDE-SOP-SYSTEM.md`** - Complete procedures and protocols
@@ -99,3 +94,120 @@ The user has explicitly stated:
 - ✅ RIGHT: "Let's properly integrate a real transcription service (Whisper/AssemblyAI/Deepgram) with proper error handling, retry logic, and fallback mechanisms"
 
 **The goal is a robust, sustainable app that works reliably for actual users, not a quick demo that appears to work but fails in production.**
+
+---
+
+## 🚀 STANDARD DEVELOPMENT WORKFLOW
+
+**THREE-PHASE DEVELOPMENT PROTOCOL**
+
+### Phase 1: Implementation (Lead Programmer)
+When implementing new features or fixing bugs:
+```
+1. Deploy Lead Programmer agent for implementation
+   - subagent_type: "Lead Programmer"
+   - Task: Implement the feature/fix with production quality
+```
+
+### Phase 2: LED Integration (Breadcrumbs Agent)
+After implementation is complete:
+```
+2. Deploy Breadcrumbs Agent to add debugging infrastructure
+   - subagent_type: "Breadcrumbs Agent"  
+   - Task: Add LED breadcrumb tracking to new code
+```
+
+### Phase 3: Testing (Claude Orchestration)
+After LED integration:
+```
+3. Execute testing orchestration directly (NOT as agent)
+   - Read: docs/CLAUDE-TESTING-ORCHESTRATION-PLAYBOOK.md
+   - Follow the playbook steps using Playwright tools
+   - Validate LED chain and functionality
+```
+
+---
+
+## 🚨 MANDATORY TESTING & FIXING PROTOCOL - VOICECOACH PROJECT
+
+**NEVER DECLARE "READY" WITHOUT TESTING AND FIXING ALL ISSUES**
+
+### 🔄 Continuous Development Loop (MUST COMPLETE ALL)
+```
+1. Lead Programmer → Implements feature/fix
+2. Breadcrumbs Agent → Adds LED tracking  
+3. Claude Testing → Tests and finds issues
+4. If issues found:
+   a. Check CLAUDE-MISTAKES-LOG.md for known solutions
+   b. Check CLAUDE-SUCCESS-PATTERNS.md for proven fixes
+   c. If no solution found → Deploy Researcher agent
+   d. Send findings to Lead Programmer
+5. Lead Programmer → AUTOMATICALLY FIXES issues (no reporting without fixing!)
+6. REPEAT steps 3-5 until ALL tests pass
+7. ONLY THEN declare ready
+```
+
+### Critical Understanding for Testing
+**Before ANY testing, Claude MUST understand:**
+- VoiceCoach is transitioning from browser app to FULL TAURI DESKTOP APP
+- All functionality must work in desktop mode, NOT browser mode
+- Mock implementations are temporary and must be replaced with real Tauri APIs
+- If unclear about ANY requirement → ASK FIRST, don't assume
+
+### After ANY Code Changes
+**MUST RUN IMMEDIATELY:**
+```bash
+npm run build  # Catch syntax errors
+npm run lint   # Catch code issues  
+npm run test   # Run test suite (if exists)
+```
+
+### Testing Orchestration Protocol
+**Claude MUST:**
+1. Read PRD and understand desktop app requirements
+2. Execute testing per CLAUDE-TESTING-ORCHESTRATION-PLAYBOOK.md
+3. When issues found → Deploy Lead Programmer IMMEDIATELY to fix
+4. Re-test after each fix
+5. Continue loop until ALL tests pass
+6. Verify LED chain (480→489→500 for document processing)
+7. Quality score must be ≥85%
+
+### Testing Status Indicators
+- ✅ **Tested**: All tests passed after latest changes
+- ⚠️ **Changes Untested**: Code modified since last test run
+- ❌ **Tests Failing**: Known failures requiring fixes
+
+### Auto-Testing Triggers
+**Automatically run tests when modifying:**
+- `KnowledgeBaseManager.tsx`
+- `useCoachingOrchestrator.ts`
+- `useAudioProcessor.ts`
+- Any Tauri backend files
+- Any critical system components
+
+### Testing Failure = Auto-Fix Required
+**If ANY of these occur, AUTO-FIX PROTOCOL ACTIVATES:**
+- Syntax errors preventing compilation
+- Stage 1 not progressing to Stage 2
+- LED chain incomplete or missing events
+- "Local Analysis Fallback" appearing
+- Quality score <85%
+- Manual intervention required
+- Timeout errors (unless false positive from testing)
+
+**Auto-Fix Protocol:**
+1. Check CLAUDE-MISTAKES-LOG.md for documented solution
+2. If not found → Deploy Researcher agent for investigation
+3. Deploy Lead Programmer with findings to implement fix
+4. Re-test until issue resolved
+5. Document solution in appropriate knowledge files
+
+### Testing Documentation
+**Every test run MUST produce:**
+- Test report in `test-results/` folder
+- LED trace log
+- Quality metrics
+- Pass/fail status for each phase
+- Timestamp and duration
+
+**REMEMBER**: Having a sophisticated testing system means nothing if it's not used. The Claude Tester Agent must be invoked BEFORE declaring any system ready.

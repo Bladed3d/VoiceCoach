@@ -45,6 +45,12 @@ use ollama_integration::{
     load_knowledge_base, save_knowledge_base
 };
 
+// Claude API integration (via OpenRouter - backend only!)
+mod claude_integration;
+use claude_integration::{
+    ask_claude, test_claude_connection
+};
+
 // Knowledge base management
 mod knowledge_base;
 use knowledge_base::{
@@ -428,6 +434,10 @@ fn main() {
             check_ollama_status,
             load_knowledge_base,
             save_knowledge_base,
+            
+            // Claude API integration (backend only!)
+            ask_claude,
+            test_claude_connection,
             
             // Knowledge base management
             process_single_file,

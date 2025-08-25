@@ -15,6 +15,8 @@
 - `winget install MSYS2.MSYS2` ✅ **MANDATORY for Tauri on Windows**
 - `powershell -Command "& 'C:\msys64\usr\bin\bash.exe' -l -c 'pacman -S --noconfirm mingw-w64-x86_64-toolchain'"` ✅ **Install GNU tools**
 - `setx PATH "%PATH%;C:\msys64\mingw64\bin"` ✅ **Add MinGW to system PATH**
+- `cargo build` ✅ **Works after MinGW PATH setup - compiles with warnings only**
+- `PATH="/c/msys64/mingw64/bin:$PATH" cargo build` ✅ **Session-specific PATH for testing**
 
 ### Git Commands  
 - `git status` ✅ Always works

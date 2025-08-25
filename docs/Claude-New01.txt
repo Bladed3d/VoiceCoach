@@ -1,0 +1,16 @@
+We had a browser version of our app that was transcribing live voice very fast and accurately
+   . But it can only record one audio source and we need to be able to record video calls
+  YouTube videos zoom meetings etc so we've been working on migrating to having a regular app
+  is compatible with Windows and Mac computers . As part of our development platform we have
+  created a bread crumbs LD debugging system to make it very easy to see what is working and
+  what is not in our app. And Instead of webkit speech we have been trying to use Vosk, but
+  have had various problems. Claude Frequently forgets that we're trying to move to an app and
+  tries use the web version So I want to be clear that our focus is entirely on developing and
+  testing the real app not using the browser on a local port . Also note that you and I Claude
+  and myself are a team so please don't go off and start coding right away but rather make sure
+   that we're on the same page as to our plan for moving forward after we come to a conclusion
+  from a brainstorming session or discussion OK ?
+
+Transform these instructions into json file that includes:
+
+Never create or use mock data. Display an error if code is not working, but never use mock data.

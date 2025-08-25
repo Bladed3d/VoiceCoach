@@ -321,9 +321,8 @@ function SettingsPanel({ onClose, appState }: SettingsPanelProps) {
                         onChange={(e) => handleSettingChange('aiModel', e.target.value)}
                         className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2"
                       >
-                        <option value="gpt-4">GPT-4 (Recommended)</option>
-                        <option value="gpt-3.5">GPT-3.5 Turbo (Faster)</option>
-                        <option value="claude">Claude-3 Sonnet</option>
+                        <option value="claude-direct">Claude Direct (Self-Contained)</option>
+                        <option value="ollama">Ollama Local (Phase 2)</option>
                       </select>
                     </div>
 

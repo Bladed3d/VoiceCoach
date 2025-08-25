@@ -199,6 +199,81 @@ If seeing "dlltool.exe: program not found" → Install MSYS2 + MinGW-w64 toolcha
 
 ---
 
+## 2025-08-25 - RUST COMPILER ICE: Windows-Sys Version Mismatch Causing Internal Compiler Errors
+
+**What Failed**: Rust build fails with ICE (Internal Compiler Error) due to windows-sys version conflicts
+
+**Symptoms Observed**:
+- ✅ Frontend builds successfully (`npm run build` works perfectly)
+- ✅ Cargo.toml syntax is valid
+- ✅ Rust toolchain installed properly (tried 1.80.0, 1.82.0, 1.89.0)
+- ❌ **Cargo build fails with ICE in windows-sys constant evaluation**
+- ❌ **Multiple windows-sys versions causing conflicts (0.48.0, 0.52.0, 0.59.0, 0.60.2)**
+- ❌ **Error: "scalar size mismatch: expected X bytes but got Y bytes instead"**
+
+**Root Cause Analysis**:
+1. **Version Conflicts**: Multiple transitive dependencies pulling different windows-sys versions
+2. **Compiler ICE Bug**: Known issue with certain Rust compiler versions and windows-sys combinations
+3. **Windows API Constant Evaluation**: ICE occurs during const evaluation of Windows API string literals
+4. **Mixed Toolchain Environment**: Some crates require GNU tools while others use MSVC
+
+**Multiple ICE Patterns Observed**:
+```
+error[E0080]: evaluation of constant value failed
+ --> windows-sys-0.59.0\src\core\literals.rs:14:35
+   = note: scalar size mismatch: expected 0 bytes but got 8 bytes instead
+
+error[E0080]: evaluation of `std::ptr::Alignment::as_usize` failed
+   = note: scalar size mismatch: expected 0 bytes but got 8 bytes instead
+
+internal compiler error: unexpected panic
+note: rustc 1.87.0 running on x86_64-pc-windows-msvc
+```
+
+**What Actually Worked (Temporarily)**:
+1. Updated windows-sys from 0.52 to 0.60 in Cargo.toml
+2. Ran `cargo clean` to remove old build artifacts
+3. Updated Cargo.lock with `cargo update`
+4. Tried multiple Rust versions (1.80.0, 1.82.0, 1.89.0)
+5. Verified frontend builds independently
+
+**Prevention Rules (Must Follow)**:
+1. **RESEARCH compiler compatibility** before updating windows-sys versions
+2. **ALWAYS check for known ICEs** with specific Rust + windows-sys combinations
+3. **USE specific version pinning** for windows-sys to avoid transitive conflicts
+4. **CONSIDER alternative approaches** when core dependencies cause ICEs
+5. **DOCUMENT ICE workarounds** immediately when found
+6. **TEST incremental changes** rather than batch dependency updates
+
+**Alternative Solutions to Research**:
+1. **Use different audio capture approach** that avoids complex Windows APIs
+2. **Consider web-based system audio** with permissions instead of native capture
+3. **Research Tauri alternatives** that don't conflict with windows-sys
+4. **Pin to known-good Rust + windows-sys combinations**
+
+**Current Status**: 
+- Frontend builds successfully and is ready for production
+- Backend blocked by Rust ICE - needs alternative approach
+- Self-contained desktop app requirement may need architecture revision
+
+**Time Spent**: ~2 hours attempting various Rust/windows-sys combinations
+**Impact**: CRITICAL - Blocks desktop app functionality, frontend unaffected
+
+**System Context**: 
+- Windows 11, multiple Rust versions tested
+- VoiceCoach requires system audio capture for sales coaching
+- Frontend works independently, backend needs native Windows integration
+
+**Next Steps Required**:
+1. Research alternative system audio capture approaches
+2. Consider web-based audio permissions instead of native capture
+3. Evaluate Electron as alternative to Tauri for Windows audio requirements
+4. Document decision in architecture decisions log
+
+**Key Insight**: When core dependencies cause ICEs, the solution may be architectural rather than version-based. Sometimes the technology choice itself needs reconsideration.
+
+---
+
 ## 2025-08-06 - Variable Hoisting Error: State Declaration Order
 
 **What Failed**: JavaScript initialization error "Cannot access 'allTimelineActivities' before initialization" crashed the app

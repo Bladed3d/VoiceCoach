@@ -85,6 +85,67 @@ Is this action in SUCCESS-PATTERNS?
 
 ---
 
+## 🚀 STANDARD DEVELOPMENT WORKFLOW
+
+**COMPREHENSIVE DEVELOPMENT LOOP - CONTINUES UNTIL ALL TESTS PASS**
+
+### Phase 1: Implementation
+```
+Deploy: Lead Programmer agent
+Purpose: Implement robust, production-ready solution
+Command: Task tool with subagent_type: "Lead Programmer"
+```
+
+### Phase 2: LED Integration  
+```
+Deploy: Breadcrumbs Agent
+Purpose: Add LED debugging infrastructure to new code
+Command: Task tool with subagent_type: "Breadcrumbs Agent"
+```
+
+### Phase 3: Testing
+```
+Execute: Claude Testing Orchestration Playbook
+Purpose: Validate functionality and LED chain
+Command: Read docs/CLAUDE-TESTING-ORCHESTRATION-PLAYBOOK.md and execute steps directly
+Note: Do NOT deploy as agent - execute orchestration steps yourself
+```
+
+### Phase 4: Error Resolution (When Testing Finds Issues)
+
+#### Step 4A: Document Review
+```
+1. Check CLAUDE-MISTAKES-LOG.md for similar past issues
+2. Review CLAUDE-SUCCESS-PATTERNS.md for proven solutions
+3. If solution found → Apply fix and return to Phase 3
+```
+
+#### Step 4B: Research Agent Deployment (If No Solution Found)
+```
+Deploy: Researcher agent
+Purpose: Deep investigation of complex problems
+Command: Task tool with subagent_type: "Researcher"
+Output: Actionable findings and recommendations
+```
+
+#### Step 4C: Lead Programmer Fix Implementation
+```
+Deploy: Lead Programmer agent
+Input: Researcher findings + error context
+Purpose: Implement robust fix based on research
+Command: Task tool with subagent_type: "Lead Programmer"
+```
+
+#### Step 4D: Loop Restart
+```
+Return: To Phase 3 (Testing)
+Continue: Until ALL tests pass
+Goal: Zero manual intervention needed
+Note: The loop continues automatically - no declaring "ready" with known issues
+```
+
+---
+
 ## 🛠️ AUTOMATIC ERROR DETECTION & SELF-LEARNING PROTOCOL
 
 **When ANY tool call fails, Claude MUST automatically:**
@@ -103,7 +164,7 @@ Is this action in SUCCESS-PATTERNS?
 - **Edit Tool**: "String to replace not found" → Missing Read step
 - **Bash Tool**: Command not found/failed → Check COMMANDS-LEARNED.md
 - **File Tools**: Permission denied → Windows-specific workaround needed
-- **API Calls**: Rate limit/timeout → Document and retry with backoff
+
 
 ### Automatic Documentation Template:
 ```markdown

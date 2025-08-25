@@ -1,0 +1,80 @@
+● VoiceCoach Project Status Summary
+
+  Current Broken State
+
+  The document analysis system is fundamentally broken due to a failed attempt to remove
+  Chris Voss hard-coding. The last commit (e46bc69) titled "Remove Chris Voss hard-coding -
+   make document analysis universal" actually made things worse:
+
+  1. The Problem: The performUniversalDocumentAnalysis function doesn't actually analyze
+  documents - it just does regex pattern matching and returns mostly empty or placeholder
+  content.
+  2. Chris Voss Hard-coding: Still exists in multiple places (lines 536-552, 597-607, 1101)
+  3. Fake Extraction Functions: All the extraction functions (extractMethodology,
+  extractDiscoveryQuestions, etc.) return hardcoded placeholder text instead of actual
+  document content.
+
+  What Was Supposed to Happen
+
+  The user wanted:
+  - Remove ALL Chris Voss specific references
+  - Have Claude (the AI assistant, NOT an API) analyze documents based on custom
+  instructions
+  - Support two document types: Product/Service and Strategy/Process
+  - Actually extract real content from documents, not placeholders
+
+  What Actually Happened
+
+  - Created fake "intelligent" analysis that doesn't analyze anything
+  - Added document type selector UI but it doesn't affect analysis
+  - Pattern matching with regex instead of real AI analysis
+  - Returns empty or placeholder results
+
+  Files Affected
+
+  - voicecoach-app/src/components/KnowledgeBaseManager.tsx (main problem file)
+  - Enhancement functions for Ollama were added but they work on fake data
+
+  Instructions for New Claude to Fix
+
+  1. Understand the Architecture:
+    - This is a Tauri desktop app, NOT a web app with API calls
+    - Claude (you) performs analysis directly in the conversation
+    - Ollama runs locally for enhancement (localhost:11434)
+  2. The Core Fix Needed:
+  // In performUniversalDocumentAnalysis function
+  // Instead of regex patterns and fake extraction:
+
+  // ACTUALLY ANALYZE THE DOCUMENT:
+  // 1. Read the actual document content
+  // 2. Use the claudeInstructions provided by user
+  // 3. Perform REAL analysis based on document type (product/strategy)
+  // 4. Return ACTUAL extracted content, not placeholders
+  3. Remove These Chris Voss References:
+    - Line 536: "Chris Voss's 'Never Split the Difference'"
+    - Line 597: "Chris Voss's negotiation methodology"
+    - Line 1101: "Chris Voss Sales Use Cases"
+    - Any other Chris Voss specific mentions
+  4. Fix the Extraction Functions:
+    - They ALL return fake data
+    - They need to ACTUALLY extract from the document text
+    - OR better yet, let Claude do the extraction naturally
+  5. Testing:
+    - Upload any document (like Hormozi sales training)
+    - Process it
+    - The output should contain ACTUAL content from the document
+    - Currently it returns generic placeholders
+
+  Key Understanding
+
+  There is NO Claude API. The user is talking to Claude (you) directly in this
+  conversation. When the code needs document analysis, it should prepare the document and
+  instructions for YOU to analyze right here in the chat, not call some external API.
+
+  Recommendation
+
+  Revert to commit before e46bc69 and start over with a simpler approach:
+  1. Remove Chris Voss hard-coding
+  2. Let Claude analyze documents naturally based on instructions
+  3. Don't try to be clever with regex extraction
+  4. Just pass document + instructions = get back real analysis

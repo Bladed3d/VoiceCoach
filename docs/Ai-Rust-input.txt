@@ -1,0 +1,29 @@
+To build your Tauri app on Windows given the constraints with base64ct v1.8.0 requiring Rust edition 2024 (which needs at least Rust 1.85.0) and the compilation bug affecting windows-sys in Rust 1.89.0, you have two viable paths: Use a compatible Rust version that supports edition 2024 without the bug, or pin base64ct to a pre-1.8.0 version to avoid the edition 2024 requirement entirely.
+Option 1: Use a Rust Version Between 1.85.0 and 1.88.0
+
+Rust edition 2024 was stabilized in version 1.85.0 (released February 20, 2025), so this is the minimum compiler version that fully supports it. Versions prior to 1.85.0 (e.g., 1.84 or earlier) do not support edition 2024, confirming your assessment that 1.82 and below won't work with base64ct v1.8.0.
+The windows-sys compilation bug appears tied to broader issues in Rust 1.89.0, including bootstrap failures on x86_64 and problems building cross-target libstd, which can manifest as errors during crate compilation on Windows (potentially related to raw bindings or toolchain mismatches). These do not affect earlier versions.
+Therefore, any version from 1.85.0 to 1.88.0 should work: They support edition 2024 but predate the 1.89.0 bug. I recommend starting with 1.88.0 (the most recent in this range) for the latest fixes without the regression.
+
+Install via rustup: rustup install 1.88.0 then rustup override set 1.88.0 in your project directory.
+This keeps your dependencies (including base64ct v1.8.0) intact and avoids changes to your Cargo.lock, assuming no other crates introduce conflicts.
+
+
+
+Option 2: Pin base64ct to an Older Version (Avoid Edition 2024)
+
+base64ct v1.8.0 has a Minimum Supported Rust Version (MSRV) of 1.85.0, which aligns with its use of edition 2024 features (implied by the bump, as earlier versions do not require this). Versions before 1.8.0 do not require edition 2024:
+
+v1.6.0: MSRV 1.60.0, no edition 2024 requirement.
+v1.7.0: No explicit MSRV or edition mentioned in docs, but it predates the 1.85.0 bump and does not require edition 2024 (safe to assume MSRV ~1.60 like v1.6.0).
+
+
+To pin: Since base64ct is a transitive dependency (not direct), use cargo update to downgrade it without editing Cargo.toml:
+
+Run cargo update -p base64ct --precise 1.6.0 (or 1.7.0 if you need features from it).
+This updates your Cargo.lock to use the older version, allowing compilation on Rust 1.82 or earlier (your previous working setup).
+
+
+Verify compatibility: After pinning, check if the dependency chain (e.g., via crypto crates like those in RustCrypto) still resolves without breaking other features. If conflicts arise, trace the path with cargo tree --target base64ct and consider patching the direct dependency that pulls it in via [patch] in Cargo.toml.
+
+Either option should resolve the build without touching your ~10 lines of stream ID code, as the failure is purely dependency-related. If the windows-sys bug persists post-fix (e.g., due to Tauri-specific issues like GNU toolchain mismatches), test on Rust 1.88.0 first and report the exact error for further debugging.

@@ -399,9 +399,9 @@ export const mockInvoke = async (command: string, args?: any): Promise<any> => {
       trail.light(957, { mock_response: 'performance_metrics', metrics: mockMetrics });
       return mockMetrics;
       
-    case 'initialize_openrouter_api':
-      trail.light(958, { mock_response: 'openrouter_init_success' });
-      return "OpenRouter API initialized in mock mode";
+    case 'initialize_claude_direct':
+      trail.light(958, { mock_response: 'claude_direct_init_success' });
+      return "Claude direct processing initialized in mock mode";
       
     case 'generate_ai_coaching_prompt':
       const mockCoachingResponse = {
@@ -421,9 +421,9 @@ export const mockInvoke = async (command: string, args?: any): Promise<any> => {
       trail.light(959, { mock_response: 'coaching_prompt_generated', confidence: mockCoachingResponse.confidence_score });
       return mockCoachingResponse;
       
-    case 'test_openrouter_connection':
-      trail.light(960, { mock_response: 'openrouter_test_success' });
-      return "OpenRouter connection test successful (mock)";
+    case 'test_claude_connection':
+      trail.light(960, { mock_response: 'claude_direct_test_success' });
+      return true;
       
     case 'set_audio_mode':
       const newMode = args?.mode || 'microphone_only';
@@ -462,6 +462,59 @@ export const mockInvoke = async (command: string, args?: any): Promise<any> => {
         stream_active: !!systemAudioStream,
         recorder_active: !!systemAudioRecorder
       };
+
+    case 'ask_claude':
+      trail.light(964, { 
+        mock_response: 'claude_direct_processing',
+        content_length: args?.content?.length || 0,
+        instructions_length: args?.instructions?.length || 0,
+        document_type: args?.document_type || 'unknown'
+      });
+      
+      // Simulate processing time for realistic feel
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const mockClaudeResponse = {
+        analysis: JSON.stringify({
+          key_principles: [
+            "Core principles identified through direct Claude processing",
+            "Foundational concepts extracted from document content",
+            "Strategic principles aligned with user instructions"
+          ],
+          actionable_strategies: [
+            "Practical implementation strategies derived from content analysis",
+            "Step-by-step approaches for applying document insights",
+            "Strategic recommendations based on content patterns"
+          ],
+          critical_insights: [
+            "Essential insights extracted through Claude's direct analysis",
+            "Key success factors highlighted in document",
+            "Critical discoveries aligned with user focus areas"
+          ],
+          implementation_guidance: [
+            "Practical implementation guidance derived from document",
+            "Real-world application strategies for content insights",
+            "Implementation roadmap based on document analysis"
+          ],
+          real_examples: [
+            "Practical examples extracted from document content",
+            "Real-world scenarios identified in analysis",
+            "Case studies and examples aligned with user needs"
+          ],
+          summary: `Document analysis completed using Claude direct processing (mock). Analyzed ${args?.document_type || 'document'} focusing on user-specified areas. Analysis provides structured insights across all key dimensions.`,
+          document_type: args?.document_type || 'document',
+          analysis_method: 'claude_direct_processing_mock',
+          processing_timestamp: new Date().toISOString()
+        }),
+        confidence: 0.95,
+        processing_time_ms: 2000,
+        model_used: 'claude-direct-processing-mock',
+        success: true,
+        error: null
+      };
+      
+      console.log('🧠 Mock Claude direct processing completed:', mockClaudeResponse);
+      return mockClaudeResponse;
       
     default:
       trail.light(999, { mock_error: 'unknown_command', command });
@@ -1408,7 +1461,7 @@ PRINCIPLES: ${compressedPrinciples}
 
 STAGE GUIDANCE: ${stageGuidance}
 
-KNOWLEDGE: ${compressedKnowledge || 'Use Chris Voss negotiation techniques'}
+KNOWLEDGE: ${compressedKnowledge || 'Apply relevant techniques from knowledge base'}
 
 EXAMPLES: ${relevantExamples}
 

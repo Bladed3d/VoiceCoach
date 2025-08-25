@@ -1,0 +1,121 @@
+Step 1: Set Up Vosk in Your Tauri Project
+
+Add dependencies to your Cargo.toml (in the root or src-tauri folder):
+text[dependencies]
+vosk = "0.3.1"  # Or latest version
+cpal = "0.15.3" # For microphone capture
+tauri = { version = "1", features = ["api-all"] }  # Assuming you're on Tauri v1; adjust for v2 if needed
+serde = { version = "1", features = ["derive"] }  # For serializing payloads
+
+Download a Vosk model (small models are ~50MB for quick startup; larger for better accuracy). Get one from the official site (e.g., English small model: https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip). Unzip it to a folder in your project, like models/en-small/.
+Make the Vosk dynamic libraries discoverable (download from Vosk-API releases for your platform: https://github.com/alphacep/vosk-api/releases). Place them in a system path or use a build script in build.rs to link them:
+rust// build.rs
+fn main() {
+    println!("cargo:rustc-link-search=/path/to/vosk/lib");  // Adjust path
+    println!("cargo:rustc-link-lib=vosk");
+}
+
+
+Step 2: Implement Transcription in Rust Backend
+In your src-tauri/src/main.rs (or a separate module), set up a Tauri command to start/stop transcription. Use cpal to stream mic audio, feed it to Vosk for recognition, and emit events with partial or final text results. Here's a basic implementation (expand with error handling and threading as needed):
+rustuse tauri::{AppHandle, Manager};
+use vosk::{Model, Recognizer};
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use std::sync::{Arc, Mutex};
+use serde::Serialize;
+
+#[derive(Clone, Serialize)]
+struct TranscriptionPayload {
+    text: String,
+    is_final: bool,
+}
+
+#[tauri::command]
+fn start_transcription(app: AppHandle, model_path: String) -> Result<(), String> {
+    let model = Model::new(&model_path).map_err(|e| e.to_string())?;
+    let mut recognizer = Recognizer::new(&model, 16000.0).map_err(|e| e.to_string())?;  // 16kHz sample rate
+    recognizer.set_partial_words(true);  // Enable partial results for real-time
+
+    let host = cpal::default_host();
+    let device = host.default_input_device().ok_or("No input device")?;
+    let config = device.default_input_config().map_err(|e| e.to_string())?;
+
+    let running = Arc::new(Mutex::new(true));
+    let running_clone = running.clone();
+
+    let stream = device.build_input_stream(
+        &config.into(),
+        move |data: &[f32], _: &cpal::InputCallbackInfo| {
+            if let Ok(locked) = running_clone.lock() {
+                if !*locked { return; }
+            }
+            // Feed audio to recognizer (convert f32 to i16 if needed; Vosk expects i16 bytes)
+            let i16_data: Vec<i16> = data.iter().map(|&s| (s * i16::MAX as f32) as i16).collect();
+            let bytes = i16_data.as_slice().as_bytes();  // Unsafe cast; ensure alignment
+            if recognizer.accept_waveform_bytes(bytes) {
+                // Final result ready
+                if let Ok(result) = recognizer.final_result() {
+                    if let vosk::CompleteResult::Single(res) = result {
+                        let payload = TranscriptionPayload { text: res.text, is_final: true };
+                        app.emit_all("voiceTranscription", payload).unwrap();
+                    }
+                }
+            } else {
+                // Partial result
+                let partial = recognizer.partial_result();
+                let payload = TranscriptionPayload { text: partial.partial, is_final: false };
+                app.emit_all("voiceTranscription", payload).unwrap();
+            }
+        },
+        |err| eprintln!("Audio error: {:?}", err),
+        None,
+    ).map_err(|e| e.to_string())?;
+
+    stream.play().map_err(|e| e.to_string())?;
+
+    // Store stream and running flag in app state if needed for stopping
+    // For simplicity, spawn a thread or use async to manage
+
+    Ok(())
+}
+
+#[tauri::command]
+fn stop_transcription(/* app: AppHandle */) -> Result<(), String> {
+    // Signal to stop the stream (set running to false, pause/drop stream)
+    // Implement based on your state management
+    Ok(())
+}
+
+fn main() {
+    tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![start_transcription, stop_transcription])
+        .run(tauri::generate_context!())
+        .expect("error running Tauri");
+}
+
+Replace TODO placeholders in your Rust code with this logic.
+Start transcription by invoking the command from JS with the model path (e.g., invoke('start_transcription', { model_path: './models/en-small' })).
+This emits "voiceTranscription" events globally with a payload containing the text and whether it's final. Adjust for window-specific if needed.
+For two-way calls/video, you may need to capture system audio (not just mic) using cpal with loopback devices or additional crates like cpal extensions—test on your OS.
+
+Step 3: Update Frontend to Use Tauri Events
+In your JS frontend (e.g., in a React/Vue component), replace the DOM event listener with Tauri's event listener. Install @tauri-apps/api if not already:
+javascriptimport { listen, emit } from '@tauri-apps/api/event';  // Or use window.tauri for older setups
+import { invoke } from '@tauri-apps/api/tauri';
+
+// Start transcription (call this on button click or init)
+invoke('start_transcription', { model_path: './models/en-small' });
+
+// Listen for transcription events
+const unlisten = await listen('voiceTranscription', (event) => {
+  const { text, is_final } = event.payload;
+  console.log(`Transcription: ${text} (final: ${is_final})`);
+  // Send to Ollama for analysis, e.g., if is_final
+  if (is_final) {
+    // Your Ollama API call here, e.g., fetch to localhost:11434
+  }
+});
+
+// To stop: invoke('stop_transcription');
+// Cleanup: unlisten();
+This mirrors your original DOM event setup but uses Tauri's cross-platform events.

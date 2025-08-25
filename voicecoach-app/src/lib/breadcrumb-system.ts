@@ -38,6 +38,11 @@ declare global {
         getEnhancedAudioStats: () => any;
         getAudioModeTransitionAnalysis: () => any;
         getVideoCallCoachingMetrics: () => any;
+        // Phase 2: Document Processing Debug Commands
+        documentAnalysis: () => any;
+        analysisQuality: () => any;
+        claudePipeline: () => any;
+        ollamaEnhancement: () => any;
       }
     };
   }
@@ -364,8 +369,8 @@ export class BreadcrumbTrail {
       return ledMap[ledId] || `STATE_MANAGEMENT_${ledId}`;
     }
     
-    // UI Operations (400-499)
-    else if (ledId >= 400 && ledId <= 499) {
+    // UI Operations (400-459)
+    else if (ledId >= 400 && ledId <= 459) {
       const ledMap: Record<number, string> = {
         400: 'APP_COMPONENT_INIT',
         401: 'APP_RENDER_START',
@@ -377,6 +382,75 @@ export class BreadcrumbTrail {
         407: 'SPLIT_VIEW_RENDER'
       };
       return ledMap[ledId] || `UI_OPERATION_${ledId}`;
+    }
+    
+    // Phase 2: Document Processing Pipeline Monitoring (460-499)
+    else if (ledId >= 460 && ledId <= 499) {
+      // Quality Comparison LEDs (460-465)
+      if (ledId >= 460 && ledId <= 465) {
+        const ledMap: Record<number, string> = {
+          460: 'QUALITY_COMPARISON_STARTED',
+          461: 'BROWSER_QUALITY_MEASURED',
+          462: 'VOICECOACH_QUALITY_MEASURED',
+          463: 'QUALITY_DELTA_CALCULATED',
+          464: 'PERFORMANCE_GAPS_IDENTIFIED',
+          465: 'QUALITY_COMPARISON_COMPLETE'
+        };
+        return ledMap[ledId] || `QUALITY_COMPARISON_${ledId}`;
+      }
+      
+      // Claude Analysis Pipeline LEDs (470-479)
+      else if (ledId >= 470 && ledId <= 479) {
+        const ledMap: Record<number, string> = {
+          470: 'CLAUDE_ANALYSIS_PIPELINE_START',
+          471: 'CLAUDE_CHUNK_PROCESSING',
+          472: 'CLAUDE_RESPONSE_RECEIVED',
+          473: 'CLAUDE_ANALYSIS_PARSING',
+          474: 'CLAUDE_ERROR_ENCOUNTERED',
+          475: 'CLAUDE_ANALYSIS_COMPLETE',
+          476: 'CLAUDE_PROMPT_CONSTRUCTION',
+          477: 'CLAUDE_API_REQUEST_SENT',
+          478: 'CLAUDE_RESPONSE_VALIDATION',
+          479: 'CLAUDE_ANALYSIS_FINALIZATION'
+        };
+        return ledMap[ledId] || `CLAUDE_ANALYSIS_${ledId}`;
+      }
+      
+      // Ollama Enhancement LEDs (480-489)
+      else if (ledId >= 480 && ledId <= 489) {
+        const ledMap: Record<number, string> = {
+          480: 'OLLAMA_ENHANCEMENT_START',
+          481: 'OLLAMA_CHUNK_SEMANTIC_ANALYSIS',
+          482: 'OLLAMA_RELATIONSHIP_MAPPING',
+          483: 'OLLAMA_ENHANCEMENT_COMPLETE',
+          484: 'OLLAMA_SEMANTIC_CHUNKING',
+          485: 'OLLAMA_CONTEXT_ENRICHMENT',
+          486: 'OLLAMA_KNOWLEDGE_SYNTHESIS',
+          487: 'OLLAMA_QUALITY_VALIDATION',
+          488: 'OLLAMA_PROCESSING_OPTIMIZATION',
+          489: 'OLLAMA_ENHANCEMENT_FINALIZATION'
+        };
+        return ledMap[ledId] || `OLLAMA_ENHANCEMENT_${ledId}`;
+      }
+      
+      // Integration and Error Handling LEDs (490-499)
+      else if (ledId >= 490 && ledId <= 499) {
+        const ledMap: Record<number, string> = {
+          490: 'INTEGRATION_PIPELINE_START',
+          491: 'INTEGRATION_ERROR_HANDLING',
+          492: 'INTEGRATION_FALLBACK_TRIGGERED',
+          493: 'INTEGRATION_QUALITY_CHECK',
+          494: 'INTEGRATION_PERFORMANCE_MONITORING',
+          495: 'INTEGRATION_COMPLETION_VALIDATION',
+          496: 'INTEGRATION_METRICS_COLLECTION',
+          497: 'INTEGRATION_ERROR_RECOVERY',
+          498: 'INTEGRATION_SUCCESS_CONFIRMATION',
+          499: 'INTEGRATION_PIPELINE_COMPLETE'
+        };
+        return ledMap[ledId] || `INTEGRATION_PIPELINE_${ledId}`;
+      }
+      
+      return `DOCUMENT_PROCESSING_${ledId}`;
     }
     
     // Audio Processing (500-599)
@@ -806,6 +880,109 @@ export class BreadcrumbTrail {
               integration_success_rate: videoOps.filter(bc => bc.id === 179).length / Math.max(1, videoOps.filter(bc => bc.id === 170).length)
             }
           };
+        },
+
+        // Phase 2: Document Processing Pipeline Debug Commands
+        documentAnalysis: () => {
+          const trail = window.globalBreadcrumbTrail || [];
+          return trail.filter(bc => bc.id >= 460 && bc.id <= 499);
+        },
+
+        analysisQuality: () => {
+          const trail = window.globalBreadcrumbTrail || [];
+          return trail.filter(bc => bc.id >= 460 && bc.id <= 465);
+        },
+
+        claudePipeline: () => {
+          const trail = window.globalBreadcrumbTrail || [];
+          return trail.filter(bc => bc.id >= 470 && bc.id <= 479);
+        },
+
+        ollamaEnhancement: () => {
+          const trail = window.globalBreadcrumbTrail || [];
+          return trail.filter(bc => bc.id >= 480 && bc.id <= 489);
+        },
+
+        // Enhanced Debug Commands for Claude Conversation Bridge
+        claudeBridge: () => {
+          const trail = window.globalBreadcrumbTrail || [];
+          return trail.filter(bc => bc.id >= 470 && bc.id <= 479);
+        },
+
+        qualityCheck: () => {
+          const trail = window.globalBreadcrumbTrail || [];
+          return trail.filter(bc => [460, 461, 462, 463, 464, 465].includes(bc.id));
+        },
+
+        errorRecovery: () => {
+          const trail = window.globalBreadcrumbTrail || [];
+          return trail.filter(bc => [490, 491, 492, 493, 494, 495].includes(bc.id));
+        },
+
+        fullPipeline: () => {
+          const trail = window.globalBreadcrumbTrail || [];
+          return trail.filter(bc => bc.id >= 460 && bc.id <= 499);
+        },
+
+        conversationState: () => {
+          const trail = window.globalBreadcrumbTrail || [];
+          const claudeRequests = trail.filter(bc => 
+            bc.component === 'KnowledgeBaseManager' && 
+            (bc.name.includes('CLAUDE') || bc.data?.operation?.includes('claude') || bc.data?.operation?.includes('conversation'))
+          );
+          
+          return {
+            total_requests: claudeRequests.length,
+            successful_requests: claudeRequests.filter(bc => bc.success).length,
+            failed_requests: claudeRequests.filter(bc => !bc.success).length,
+            recent_requests: claudeRequests.slice(-5).map(bc => ({
+              timestamp: new Date(bc.timestamp).toISOString(),
+              operation: bc.data?.operation || bc.name,
+              success: bc.success,
+              request_id: bc.data?.request_id || 'unknown'
+            })),
+            pipeline_stages: {
+              initialization: claudeRequests.filter(bc => bc.id === 470).length,
+              formatting: claudeRequests.filter(bc => bc.id === 471).length,
+              transmission: claudeRequests.filter(bc => bc.id === 472).length,
+              awaiting_response: claudeRequests.filter(bc => bc.id === 473).length,
+              response_received: claudeRequests.filter(bc => bc.id === 474).length,
+              parsing: claudeRequests.filter(bc => bc.id === 475).length,
+              validation: claudeRequests.filter(bc => bc.id === 476).length,
+              ui_integration: claudeRequests.filter(bc => bc.id === 477).length,
+              storage_update: claudeRequests.filter(bc => bc.id === 478).length,
+              pipeline_complete: claudeRequests.filter(bc => bc.id === 479).length
+            }
+          };
+        },
+
+        // LED Chain Validation for Testing
+        validateLEDChain: (startLED: number = 460, endLED: number = 499) => {
+          const trail = window.globalBreadcrumbTrail || [];
+          const chainLEDs = trail.filter(bc => bc.id >= startLED && bc.id <= endLED);
+          
+          const analysis = {
+            chain_range: `${startLED}-${endLED}`,
+            total_leds_fired: chainLEDs.length,
+            success_rate: chainLEDs.filter(bc => bc.success).length / chainLEDs.length * 100,
+            led_sequence: chainLEDs.map(bc => bc.id).sort((a, b) => a - b),
+            gaps_detected: [] as number[],
+            timing_analysis: {
+              first_led: chainLEDs.length > 0 ? Math.min(...chainLEDs.map(bc => bc.timestamp)) : null,
+              last_led: chainLEDs.length > 0 ? Math.max(...chainLEDs.map(bc => bc.timestamp)) : null,
+              total_duration: chainLEDs.length > 0 ? 
+                Math.max(...chainLEDs.map(bc => bc.timestamp)) - Math.min(...chainLEDs.map(bc => bc.timestamp)) : 0
+            }
+          };
+          
+          // Check for gaps in expected sequence
+          for (let led = startLED; led <= endLED; led++) {
+            if (!chainLEDs.find(bc => bc.id === led)) {
+              analysis.gaps_detected.push(led);
+            }
+          }
+          
+          return analysis;
         }
         };
       }

@@ -1,0 +1,4 @@
+C:\Users\Administrator\AppData\Local\Programs\Python\Python311\python.exe
+C:\Users\Administrator\AppData\Local\Programs\Python\Python311\Scripts\pip3.exe
+
+vosk-transcriber -m "C:\Users\Administrator\Downloads\LLM\vosk-model-en-us-0.22-lgraph\vosk-model-en-us-0.22-lgraph" -i sales-call-sample.wav -o out.txt

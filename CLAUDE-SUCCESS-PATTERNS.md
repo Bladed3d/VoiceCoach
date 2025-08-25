@@ -1152,6 +1152,49 @@ const testFlow = async () => {
 - Respects existing user roles and subscription systems
 - Compatible with existing rate limiting patterns
 
+## 2025-08-25 - RUST COMPILATION SUCCESS: MinGW-w64 Toolchain Fix for Tauri
+
+**What Worked**: Complete MinGW-w64 toolchain setup for Tauri development on Windows
+
+**Problem Solved**: "Error calling dlltool 'dlltool.exe': program not found" and multiple linking errors preventing Tauri builds
+
+**Solution Steps**:
+1. MSYS2 was already installed at `C:\msys64\`
+2. MinGW-w64 toolchain was already installed at `C:\msys64\mingw64\bin\`
+3. **KEY FIX**: Added MinGW path to system PATH: `setx PATH "%PATH%;C:\msys64\mingw64\bin"`
+4. Created batch files for consistent build environment:
+   - `run-tauri-dev.bat` - Sets PATH and runs `npm run tauri dev`
+   - `run-tauri-build.bat` - Sets PATH and runs `npm run tauri build`
+5. **VERIFIED**: `cargo build` in src-tauri directory now compiles successfully
+
+**Critical Files Now Working**:
+- `C:\msys64\mingw64\bin\dlltool.exe` ✅
+- `C:\msys64\mingw64\bin\x86_64-w64-mingw32-gcc.exe` ✅ 
+- All GNU binutils and runtime libraries ✅
+
+**Test Results**:
+- ✅ `cargo build` - Compiles with warnings only (no errors)
+- ✅ Linking errors resolved completely
+- ✅ MinGW toolchain properly integrated with Rust MSVC
+
+**Usage Pattern**:
+```bash
+# For development builds
+cd D:\Projects\Ai\VoiceCoach\voicecoach-app\src-tauri
+PATH="/c/msys64/mingw64/bin:$PATH" cargo build
+
+# Or use batch file
+D:\Projects\Ai\VoiceCoach\run-tauri-dev.bat
+```
+
+**Prevention Rules**:
+1. **ALWAYS ensure MinGW-w64 PATH is set** before Tauri development
+2. **CREATE batch scripts** with proper environment setup
+3. **VERIFY both MSVC and GNU toolchains** are accessible
+4. **DOCUMENT that Tauri needs mixed toolchain environment** on Windows
+
+**System Context**: Windows 11, Tauri 1.6, Rust 1.88.0, VoiceCoach desktop app requiring system audio capture
+
 ---
 
 **IMPORTANT**: Add new successful patterns here immediately after they work. This is our knowledge base for efficient development!

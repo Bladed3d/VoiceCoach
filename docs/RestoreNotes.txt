@@ -1,0 +1,1 @@
+If anything breaks: git reset --hard 29cc4e1 instantly restores everything.

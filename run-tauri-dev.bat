@@ -1,0 +1,6 @@
+@echo off
+echo Setting up MinGW-w64 environment for Tauri development...
+set PATH=C:\msys64\mingw64\bin;%PATH%
+echo PATH configured. Starting Tauri development server...
+cd voicecoach-app
+npm run tauri dev

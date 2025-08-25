@@ -1,0 +1,353 @@
+# Product Requirements Document: Rust Backend Fix & System Audio Recording
+
+## Executive Summary
+This PRD outlines the required fixes for the VoiceCoach Rust backend to resolve compilation errors and implement robust system audio recording capabilities for Google Meet, Zoom, YouTube, and other applications on Windows using Tauri and cpal.
+
+## Problem Statement
+1. **Compilation Errors**: The Rust backend has 165 compilation errors preventing successful build
+2. **Type Mismatches**: Incorrect sample format handling between cpal and our audio processing
+3. **Async/Sync Issues**: Mutex guards causing Send trait violations in async Tauri commands
+4. **Missing System Audio**: Need loopback recording to capture all system audio sources
+
+## Requirements
+
+### Functional Requirements
+
+#### FR1: Core Compilation Fixes
+- **FR1.1**: Fix all 165 compilation errors in audio_processing.rs and main.rs
+- **FR1.2**: Resolve missing trait imports for cpal (DeviceTrait, HostTrait, StreamTrait)
+- **FR1.3**: Fix type mismatches in audio callbacks (f32 vs i16 sample formats)
+- **FR1.4**: Resolve async/Send issues with Mutex guards in Tauri commands
+
+#### FR2: System Audio Recording
+- **FR2.1**: Capture system audio using Windows WASAPI loopback
+- **FR2.2**: Support recording from ALL applications including:
+  - Google Meet (browser-based)
+  - Zoom (native application)
+  - YouTube videos (browser-based)
+  - Any other Windows audio source
+- **FR2.3**: Real-time audio level monitoring for visual feedback
+- **FR2.4**: Buffer management for continuous recording without gaps
+
+#### FR3: Audio Processing Pipeline
+- **FR3.1**: Convert any sample format to f32 for processing
+- **FR3.2**: Implement ring buffer for efficient audio storage
+- **FR3.3**: Support simultaneous microphone + system audio mixing
+- **FR3.4**: Chunk audio for real-time transcription (1-second segments)
+
+### Non-Functional Requirements
+
+#### NFR1: Performance
+- **NFR1.1**: < 50ms latency for audio capture
+- **NFR1.2**: < 5% CPU usage during recording
+- **NFR1.3**: Efficient memory usage with circular buffers
+
+#### NFR2: Reliability
+- **NFR2.1**: Graceful handling of device disconnections
+- **NFR2.2**: Automatic recovery from stream errors
+- **NFR2.3**: No memory leaks during long recording sessions
+
+#### NFR3: Compatibility
+- **NFR3.1**: Windows 10/11 compatibility
+- **NFR3.2**: Support for various audio hardware configurations
+- **NFR3.3**: Work with Rust 1.74+ (avoiding const eval bugs)
+
+## Technical Architecture
+
+### Component Structure
+```
+src/
+├── main.rs                 # Tauri app setup and commands
+├── audio_processing.rs     # Core audio capture logic
+├── audio/
+│   ├── capture.rs         # System audio capture implementation
+│   ├── devices.rs         # Device enumeration and selection
+│   ├── mixer.rs           # Audio mixing for dual sources
+│   └── buffer.rs          # Ring buffer implementation
+└── lib.rs                 # Module declarations
+```
+
+### Key Dependencies
+```toml
+[dependencies]
+tauri = { version = "1.8", features = ["shell-open"] }
+cpal = "0.15"              # Audio capture
+tokio = { version = "1", features = ["full"] }
+anyhow = "1.0"            # Error handling
+ringbuf = "0.3"           # Lock-free ring buffer
+parking_lot = "0.12"      # Better mutex implementation
+```
+
+## Implementation Plan
+
+### Phase 1: Fix Compilation Errors (Priority: CRITICAL)
+
+#### Step 1.1: Fix Missing Imports
+```rust
+// src/audio_processing.rs
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use std::sync::{Arc, Mutex};
+use std::thread;
+use anyhow::{anyhow, Result};
+use cpal::{Sample, SizedSample};
+
+// src/main.rs
+use tauri::{self, Manager, State};
+use std::sync::Arc;
+use parking_lot::Mutex; // Better for async contexts
+```
+
+#### Step 1.2: Fix Type Issues
+```rust
+// Generic sample handling
+pub fn build_audio_stream<T>(device: &cpal::Device, config: &cpal::StreamConfig) 
+    -> Result<cpal::Stream>
+where
+    T: Sample + SizedSample + Send + 'static,
+{
+    let err_fn = |err| eprintln!("Stream error: {}", err);
+    
+    device.build_input_stream(
+        config,
+        move |data: &[T], _: &cpal::InputCallbackInfo| {
+            // Convert to f32 for processing
+            let samples: Vec<f32> = data.iter()
+                .map(|s| s.to_f32())
+                .collect();
+            // Process samples...
+        },
+        err_fn,
+        None,
+    )
+}
+```
+
+#### Step 1.3: Fix Async/Send Issues
+```rust
+// Use parking_lot::Mutex for better async compatibility
+use parking_lot::Mutex;
+use std::sync::Arc;
+
+pub struct AudioState {
+    capture: Arc<Mutex<Option<SystemAudioCapture>>>,
+    buffer: Arc<Mutex<Vec<f32>>>,
+}
+
+#[tauri::command]
+async fn start_system_audio_capture(
+    state: State<'_, AudioState>
+) -> Result<String, String> {
+    // Clone Arc before async operations
+    let capture = state.capture.clone();
+    
+    // Use block to ensure guard is dropped before await
+    {
+        let mut guard = capture.lock();
+        if guard.is_none() {
+            *guard = Some(SystemAudioCapture::new()?);
+        }
+    } // Guard dropped here
+    
+    // Now safe to await
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+    
+    Ok("Started capture".to_string())
+}
+```
+
+### Phase 2: Implement System Audio Capture
+
+#### Step 2.1: WASAPI Loopback Setup
+```rust
+// src/audio/capture.rs
+pub struct SystemAudioCapture {
+    stream: Option<cpal::Stream>,
+    buffer: Arc<Mutex<ringbuf::HeapRb<f32>>>,
+    is_recording: Arc<AtomicBool>,
+}
+
+impl SystemAudioCapture {
+    pub fn new() -> Result<Self> {
+        let host = cpal::default_host();
+        
+        // For loopback, use default OUTPUT device as INPUT
+        let device = host.default_output_device()
+            .ok_or(anyhow!("No output device available"))?;
+        
+        // Get supported config
+        let config = device.default_input_config()?;
+        
+        // Create ring buffer (1 minute at 48kHz stereo)
+        let buffer_size = 48000 * 2 * 60;
+        let (mut producer, consumer) = ringbuf::HeapRb::new(buffer_size).split();
+        
+        let buffer = Arc::new(Mutex::new(consumer));
+        let is_recording = Arc::new(AtomicBool::new(false));
+        
+        Ok(Self {
+            stream: None,
+            buffer,
+            is_recording,
+        })
+    }
+    
+    pub async fn start_capture(&mut self) -> Result<()> {
+        // Implementation for starting capture
+        // Handle different sample formats
+        match config.sample_format() {
+            cpal::SampleFormat::F32 => self.build_stream::<f32>(&device, &config)?,
+            cpal::SampleFormat::I16 => self.build_stream::<i16>(&device, &config)?,
+            cpal::SampleFormat::U16 => self.build_stream::<u16>(&device, &config)?,
+            _ => return Err(anyhow!("Unsupported sample format")),
+        }
+        
+        self.is_recording.store(true, Ordering::SeqCst);
+        Ok(())
+    }
+}
+```
+
+#### Step 2.2: Multi-Source Support
+```rust
+// src/audio/mixer.rs
+pub struct AudioMixer {
+    microphone_stream: Option<cpal::Stream>,
+    system_stream: Option<cpal::Stream>,
+    mixed_buffer: Arc<Mutex<Vec<f32>>>,
+}
+
+impl AudioMixer {
+    pub fn mix_sources(&self, mic_data: &[f32], system_data: &[f32]) -> Vec<f32> {
+        // Mix at 70% system, 30% microphone
+        mic_data.iter()
+            .zip(system_data.iter())
+            .map(|(m, s)| m * 0.3 + s * 0.7)
+            .collect()
+    }
+}
+```
+
+### Phase 3: Integration & Testing
+
+#### Step 3.1: Tauri Command Integration
+```rust
+#[tauri::command]
+async fn get_audio_sources() -> Result<Vec<AudioDevice>, String> {
+    let host = cpal::default_host();
+    let mut devices = Vec::new();
+    
+    // Enumerate all devices
+    for device in host.input_devices().map_err(|e| e.to_string())? {
+        if let Ok(name) = device.name() {
+            devices.push(AudioDevice {
+                id: name.clone(),
+                name,
+                is_default: false,
+                device_type: "input".to_string(),
+            });
+        }
+    }
+    
+    Ok(devices)
+}
+```
+
+#### Step 3.2: Real-time Monitoring
+```rust
+#[tauri::command]
+async fn get_audio_levels(state: State<'_, AudioState>) -> Result<AudioLevels, String> {
+    let buffer = state.buffer.lock();
+    
+    // Calculate RMS for level meter
+    let rms = if !buffer.is_empty() {
+        let sum: f32 = buffer.iter().map(|s| s * s).sum();
+        (sum / buffer.len() as f32).sqrt()
+    } else {
+        0.0
+    };
+    
+    Ok(AudioLevels {
+        user: (rms * 100.0).min(100.0) as u8,
+        prospect: 0, // System audio level
+        timestamp: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64,
+    })
+}
+```
+
+## Testing Strategy
+
+### Unit Tests
+- Test sample format conversion
+- Test buffer overflow handling
+- Test device enumeration
+
+### Integration Tests
+- Test with Google Meet in Chrome
+- Test with Zoom desktop app
+- Test with YouTube playback
+- Test simultaneous mic + system audio
+
+### Performance Tests
+- Measure CPU usage during recording
+- Measure memory usage over time
+- Test latency measurements
+
+## Success Criteria
+1. **Zero compilation errors** in Rust backend
+2. **Successful recording** from all target applications
+3. **< 50ms latency** for audio capture
+4. **< 5% CPU usage** during recording
+5. **Stable operation** for 1+ hour sessions
+
+## Risk Mitigation
+
+### Risk 1: Windows Security Blocking Loopback
+**Mitigation**: Request appropriate permissions in Tauri manifest, provide clear user instructions
+
+### Risk 2: Sample Format Incompatibility
+**Mitigation**: Implement generic handlers for all common formats (f32, i16, u16)
+
+### Risk 3: Memory Leaks in Long Sessions
+**Mitigation**: Use ring buffers, implement proper cleanup in Drop traits
+
+## Timeline
+- **Day 1**: Fix compilation errors (Phase 1)
+- **Day 2**: Implement basic system audio capture (Phase 2.1)
+- **Day 3**: Add multi-source support (Phase 2.2)
+- **Day 4**: Integration and testing (Phase 3)
+- **Day 5**: Performance optimization and bug fixes
+
+## Appendix: Error Reference
+
+### Common Errors and Solutions
+
+#### Error: "trait bound `T: SizedSample` is not satisfied"
+**Solution**: Add `SizedSample` bound to generic functions
+```rust
+where T: Sample + SizedSample + Send + 'static
+```
+
+#### Error: "future cannot be sent between threads safely"
+**Solution**: Use Arc<Mutex<T>> and drop guards before await
+```rust
+{
+    let guard = mutex.lock();
+    // Use guard
+} // Drop before await
+```
+
+#### Error: "scalar size mismatch"
+**Solution**: Use Rust 1.74 with downgraded dependencies
+```bash
+rustup default 1.74.0-x86_64-pc-windows-msvc
+cargo update -p idna_adapter --precise 1.0.0
+```
+
+## References
+- [cpal Documentation](https://docs.rs/cpal)
+- [Tauri Async Commands](https://tauri.app/v1/guides/features/command/)
+- [Windows WASAPI Loopback](https://docs.microsoft.com/en-us/windows/win32/coreaudio/loopback-recording)
+- [ringbuf - Lock-free Ring Buffer](https://docs.rs/ringbuf)
