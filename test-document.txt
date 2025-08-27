@@ -1,0 +1,37 @@
+VoiceCoach Test Sales Script
+
+Product Overview:
+Our enterprise software solution helps companies streamline their workflow processes and increase productivity by 40%. Key features include automated task management, real-time collaboration tools, and advanced analytics dashboard.
+
+Customer Pain Points:
+- Manual processes taking too much time
+- Lack of visibility into project status
+- Poor team communication and coordination
+- Difficulty tracking ROI on initiatives
+
+Value Proposition:
+- Reduce manual work by 60% through intelligent automation
+- Increase team productivity with seamless collaboration
+- Get real-time insights with customizable dashboards
+- Proven ROI within 6 months for 95% of customers
+
+Competitive Advantages:
+- #1 rated user experience in industry
+- 99.9% uptime guarantee
+- Enterprise-grade security and compliance
+- 24/7 customer support with <2 hour response time
+
+Pricing Strategy:
+- Basic Plan: $50/user/month (up to 10 users)
+- Professional Plan: $100/user/month (unlimited users)
+- Enterprise Plan: Custom pricing with dedicated support
+
+Common Objections & Responses:
+Q: "This seems expensive compared to our current solution"
+A: "Let me show you the ROI calculator - most customers save $200,000+ annually through efficiency gains"
+
+Q: "How long does implementation take?"
+A: "Our typical deployment is 2-4 weeks with our white-glove onboarding service"
+
+Q: "What if the team doesn't adopt it?"
+A: "We have a 97% user adoption rate thanks to our intuitive design and comprehensive training program"

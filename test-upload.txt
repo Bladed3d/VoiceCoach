@@ -1,0 +1,19 @@
+Sales Script Test Document
+
+This is a sample sales document for testing the VoiceCoach V2 upload functionality.
+
+Key Sales Points:
+- Our solution increases productivity by 40%
+- ROI is typically achieved within 6 months
+- We have over 500 successful implementations
+- 24/7 customer support included
+
+Objection Handling:
+- Budget concerns: Focus on ROI and cost savings
+- Implementation time: Highlight our proven methodology
+- Technical complexity: Emphasize our support team
+
+Next Steps:
+- Schedule technical demo
+- Provide detailed ROI analysis
+- Connect with reference customers

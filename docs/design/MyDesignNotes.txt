@@ -1,0 +1,11 @@
+I want to create a ui for live sales coaching provided by AI using a RAG system. I want our app and UI design to look amazing but during a live call I don't want the salesman distracted yet I want to include important information that can help them close more deals. Our present design is to focus on Ollama processing and monitoring the live conversation, and based on that context, prompting the salesman what to say next based on rag documents and content. in addition to the live prompts provided by AI, I want to monitor which prompts given by AI were actually used by the salesman. I also want to monitor the points in the sales script that the salesman has presented. 
+
+
+App setup:
+Set microphone to 16kHz and test for clarity
+
+RAG document setup:
+to ensure great performance, our team must setup docs, scripts, product information
+
+Phase 1a,1b = Claude
+Phase 1c = Ollama: qwen2.5:14b-instruct-q4_K_M

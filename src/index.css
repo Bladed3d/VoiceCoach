@@ -1,0 +1,212 @@
+/* VoiceCoach V2 - TailwindCSS v4 Setup */
+@import "tailwindcss";
+
+/* VoiceCoach V1 Color Scheme */
+@theme {
+  --color-primary-50: #f0f9ff;
+  --color-primary-100: #e0f2fe;
+  --color-primary-200: #bae6fd;
+  --color-primary-300: #7dd3fc;
+  --color-primary-400: #38bdf8;
+  --color-primary-500: #0ea5e9;
+  --color-primary-600: #0284c7;
+  --color-primary-700: #0369a1;
+  --color-primary-800: #075985;
+  --color-primary-900: #0c4a6e;
+  
+  --color-success-50: #f0fdf4;
+  --color-success-100: #dcfce7;
+  --color-success-200: #bbf7d0;
+  --color-success-300: #86efac;
+  --color-success-400: #4ade80;
+  --color-success-500: #22c55e;
+  --color-success-600: #16a34a;
+  --color-success-700: #15803d;
+  --color-success-800: #166534;
+  --color-success-900: #14532d;
+  
+  --color-warning-50: #fffbeb;
+  --color-warning-100: #fef3c7;
+  --color-warning-200: #fde68a;
+  --color-warning-300: #fcd34d;
+  --color-warning-400: #fbbf24;
+  --color-warning-500: #f59e0b;
+  --color-warning-600: #d97706;
+  --color-warning-700: #b45309;
+  --color-warning-800: #92400e;
+  --color-warning-900: #78350f;
+  
+  --color-danger-50: #fef2f2;
+  --color-danger-100: #fee2e2;
+  --color-danger-200: #fecaca;
+  --color-danger-300: #fca5a5;
+  --color-danger-400: #f87171;
+  --color-danger-500: #ef4444;
+  --color-danger-600: #dc2626;
+  --color-danger-700: #b91c1c;
+  --color-danger-800: #991b1b;
+  --color-danger-900: #7f1d1d;
+}
+
+/* Global body styling */
+@layer base {
+  * {
+    @apply border-slate-700;
+  }
+  
+  body {
+    @apply bg-slate-950 text-white font-sans;
+    font-family: Inter, system-ui, -apple-system, sans-serif;
+  }
+  
+  #root {
+    @apply w-full h-screen overflow-hidden;
+  }
+  
+  /* Enhanced scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 12px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-800/50;
+    border-radius: 6px;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-600;
+    border-radius: 6px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-500;
+  }
+}
+
+/* VoiceCoach V1 Glass Panel Components */
+@layer components {
+  /* Glass panel effect from V1 */
+  .glass-panel {
+    @apply bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg;
+  }
+  
+  .glass-panel-scrollable {
+    @apply bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg;
+    min-height: 0;
+    max-height: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Full screen app layout */
+  .full-screen-app {
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Split View layout */
+  .split-container {
+    @apply flex h-full;
+  }
+  
+  .split-left {
+    @apply w-[70%] border-r border-slate-700 overflow-y-auto bg-slate-900 p-6;
+  }
+  
+  .split-right {
+    @apply w-[30%] overflow-y-auto bg-slate-800 p-6;
+  }
+
+  /* Coaching prompt cards */
+  .prompt-card {
+    @apply rounded-lg p-4 mb-3 border-l-4 bg-slate-800 border-slate-700;
+  }
+  
+  .prompt-urgent {
+    @apply border-l-red-500 bg-red-950/20;
+  }
+  
+  .prompt-helpful {
+    @apply border-l-blue-500 bg-blue-950/20;
+  }
+  
+  .prompt-background {
+    @apply border-l-slate-500 bg-slate-800/50;
+  }
+
+  /* Button components */
+  .btn-primary {
+    @apply bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white border-transparent focus-visible:ring-blue-500;
+  }
+  
+  .btn-secondary {
+    @apply bg-slate-600 hover:bg-slate-700 active:bg-slate-800 text-white border-slate-500 focus-visible:ring-slate-500;
+  }
+  
+  .btn-ghost {
+    @apply bg-transparent hover:bg-slate-700/50 active:bg-slate-700 text-slate-300 border-transparent focus-visible:ring-slate-400;
+  }
+
+  /* Upload zone */
+  .upload-zone {
+    @apply border-2 border-dashed border-slate-600 rounded-lg p-8 text-center transition-colors hover:border-slate-500 cursor-pointer;
+  }
+  
+  .upload-zone.dragover {
+    @apply border-blue-500 bg-blue-500/5;
+  }
+
+  /* Status indicators from V1 */
+  .status-active {
+    @apply bg-green-500 animate-pulse;
+  }
+  
+  .status-warning {
+    @apply bg-yellow-500 animate-bounce;
+  }
+  
+  .status-inactive {
+    @apply bg-slate-500;
+  }
+
+  /* Neon border effects */
+  .neon-border {
+    @apply border-2 border-blue-500/50 shadow-lg shadow-blue-500/20;
+  }
+  
+  .pulse-glow {
+    animation: pulse-glow 2s infinite;
+  }
+  
+  @keyframes pulse-glow {
+    0%, 100% { 
+      box-shadow: 0 0 5px rgb(59 130 246), 0 0 10px rgb(59 130 246), 0 0 15px rgb(59 130 246);
+    }
+    50% { 
+      box-shadow: 0 0 2px rgb(59 130 246), 0 0 5px rgb(59 130 246), 0 0 8px rgb(59 130 246);
+    }
+  }
+
+  .text-glow {
+    text-shadow: 0 0 10px currentColor;
+  }
+}
+
+/* Animations */
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}

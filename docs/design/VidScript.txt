@@ -1,0 +1,549 @@
+I keep tweeting about the workflow I'm about to show you, and every
+single time I do the tweet goes viral.
+Why?
+Because it unlocks the missing 90% of Claude Code's
+incredible design capabilities.
+If you are using Claude Code Cursor or any other coding
+agent for frontend development.
+You need to hear this.
+If you are anything like I used to be, you prompt for a great looking
+modern design just to end up with the same generic shad CN purple
+UI that you see all over Twitter.
+Gideon Pixel perfect refinements feels impossible, and like you're just going
+around in circles trying to convince the model to please just do what you asked it.
+I hate to break it to you, but those cookie cutter designs
+aren't the model's fault.
+It's the environment that you're placing those agents in.
+You're taking an incredible.
+PhD level intelligence and you're forcing it to design with
+essentially blindfolds on the models.
+They can't see their own designs.
+They can only see the code that they're writing, or in other words,
+they're only using the tech side of their modality, not the vision side.
+What I'm about to show you is a massive unlock.
+Our team is found.
+It's a single tool that gives the AI eyes, the c, the missing link in a workflow all
+built around the playwright MCP, allowing these agents to control the browser, take
+screenshots, iteratively self-correct on their designs, and to do so much more.
+I'll take you through my exact workflows that will give you design superpowers,
+including the setup for subagents slash commands, the playwright CP
+config details, and also how I've customized my claw.md file in addition
+to some other hard one insights.
+I'll also sneak in some of the most powerful mental models and tactics
+that we've discovered for getting the most outta cloud code along the way.
+Feel free to reference the descriptions, timestamps to skip
+around to what's most relevant to you.
+By the way, I'm Patrick, the CTO and co-founder of an AI native startup who's
+been using Cloud Code heavily since it was first released back in February.
+This workflow is the single.
+Biggest front end unlock that we found.
+We have the honor of working with the world's largest brands, including Google,
+Coca-Cola, Disney, Nike, Microsoft, and others who expect world-class designs.
+So we're constantly looking for ways to get any edge that we can, and I hope you
+can benefit from these workflows too.
+So with that, let's dive in.
+What is Playwright & The Playwright MCP?
+PLAYWRIGHT is a framework developed by Microsoft that is actually more
+for web testing and automation, allowing you to navigate around
+the browser and take screenshots and do different end-to-end tests.
+But what's really, really powerful for our purposes is the MCP that they've released.
+So I'll go ahead and show you the playwright.
+Hit Hub page.
+As you can see, we've got over almost 76,000 stars at
+the time of this recording.
+They highlight Chromium web kit and Firefox as different
+browsers that you have access to.
+But if I navigate over to the Microsoft slash playwright dash MP repository,
+we've got a bunch of read me items, including Quick Start Guide here
+for Cloud code and other agents.
+As you can see, it is really easy to add.
+Playwright to cloud code, but I will revisit this in a second to
+give you a few more configuration details that you wanna include.
+Now that you know a little bit more about playwright, I want to introduce
+Core Concept #1: The Orchestration Layer
+you to the key concept that I keep coming back to as I add new tools, and
+in this case, for a design workflow.
+And that is this orchestration layer.
+See, what we want to do is you want to put cloud code.
+In a framework to give it a foundation where it's able to have all the context
+it needs, all the tools to go out and take actions or get additional
+context and then clear validation.
+State examples of good and bad outcomes, dial guides or anything else that
+can give it a definitive example of what is needed in terms of output.
+So if you have the validation such as a UI mock or a style guide, you
+have the tools such as of course, playwright in this case, and you have
+the context, well written prompts and documentation, you will get so
+much more success out of Claude Code than it comes just out of the box.
+So in this case, we are focusing mostly on the playwright tool and also
+the validation step, which is baked into some of my sub-agent workflows.
+The second key insight that really brings the 10 x and the 10 x design flow is
+this idea of an iterative agentic loop.
+Core Concept #2: The Iterative Agentic Loop
+Imagine as we get more and more capable models, what we want to do is you want to
+give them access to more and more of our workflow so that they can not just run
+for five minutes, but they could run for.
+Half an hour or an hour, or even longer than that.
+The huge unlocks that we get in productivity come from this iteration
+loop that allow these agents to not just run for longer, as I mentioned,
+but also to come to much better outputs.
+We need a fixed.
+Spec or validator in order to iterate against so that we can compare the
+output that Claude code gets again and again until we get exactly
+the output that we're expecting.
+In this case, you can imagine Claude Code first looks at a spec, so style
+guide, a UI, mock, whatever you're providing, and the prompt and some
+of these other bits of context, and then you allow it to go ahead and.
+Tool check or look at the playwright screenshot in our case and compare
+that iteratively to what it's building and back to the spec.
+So if it's able to go out.
+Make some changes, take a screenshot, look at that, and
+then identify, oh shoot, this.
+SVG is nowhere close to what the user asked me, and then go back again.
+That iterative loop is what really gets us to these full agentic workflows
+and saves us a ton of time because we can kick off a process, go work on
+something else, and not have to babysit it and prompt five different times
+in order to get to the end result.
+You have that context built in.
+Core Concept #3: Tapping Into the Model's Visual Intelligence
+And the final big conceptual piece here is thinking about the training
+data that is under Claude Code, specifically Opus 4.1 and sonnet four.
+What do they have in their neural nets, or what circuits do they have in their minds?
+When it comes to good design, if you think about it, this is just an estimation
+here, but the common crawl and text makes up the majority of the training data.
+So this is books, just general stuff on the internet, but we also have
+code that these foundation labs are training more and more on, and then we
+have images and the multimodal models.
+Multimodal meaning, of course, you're bringing in all kinds of
+different modalities, including images and texts in this case.
+The thing is though, when we're typically using Claude code, we're not tapping
+into the images side or the visual modality within Claude Code indirectly,
+we get a little bit of that benefit, but we're really just looking at code best
+practices and other design principles, but we're not allowing the model to use its
+intellect when it comes to understanding and looking at visual design.
+So we're missing out.
+On all that intelligence in the model.
+All those neurons, if you will, or circuits that help
+the model parse visual bits.
+And that's where being able to provide a screenshot via the playwright MCP
+Key Playwright MCP Capabilities
+unlocks all of that potential, which as you can imagine when you're looking
+at designs, that is a huge, huge help.
+Versus not being able to think about things from a visual perspective,
+but more from an abstract or coding best practices perspective.
+So the playwright MCP.
+Getting all that additional visual context.
+Unlocks a lot of intelligence as well from cloud code.
+So if I go back here, we can scroll down to a few of the playwright
+capacities that are most helpful.
+The first is being able to automatically capture screenshots.
+So you can imagine allowing Claude code to open up pages that you're
+working on, or to automatically trigger that through a Claw MD configuration.
+Subagent or a slash command that you can run, which I'll show you in a second here.
+This is the most powerful piece because it unlocks the vision modality within cloud
+code and allows you to enhance its ability to think critically through designs, and
+also to see pixel perfect captures of different UI elements that need to change.
+The second one is being able to read browser console logs, so having
+access to both the browser console logs and the network logs in order to
+basically view them and automatically read and make changes as needed.
+We can also emulate different devices in various browser sizes.
+So you're essentially setting the chrome or whatever browser
+window when it launches.
+And you can also emulate, for example, an iOS device.
+You can navigate around the browser.
+So you can click around.
+Interfor field data in cloud code can automatically look at
+7 Powerful Workflows Unlocked by Playwright
+context and make the next step.
+Okay, so that's awesome, but what does it actually get us?
+In terms of workflows?
+These are the best workflows that I've found.
+The first, that is mostly the theme of this video, is being able to genetically
+iterate on the front end using the screenshots and the logs that it, it
+gathers, and this is the key to really producing much better looking UIs.
+The second is automatically being able to fix any obvious UI errors
+or errors that are in the console.
+Then you have the ability, and this is really cool to navigate the browser.
+You can imagine if you have a user spec of I do X, Y, Z, and I get an error, or
+there's a visual error when this state happens, you can ask CLA code to navigate
+in that same method, click buttons, enter form field data, and navigate
+around in order to reproduce a certain state and then grab the console logs.
+Or any other context that's needed in order to help solve your issue.
+Another cool workflow is being able to visually render and screenshot
+or scrape different reference URLs.
+So you can imagine if you put in a URL or a couple of them that reference
+a beautiful design or a website that you would like some inspiration from,
+you can include that in your prompt or spec, and then let playwright go
+out, navigate that locally on your browser and take a screenshot of
+those pages or get any other context.
+And then you have the original intent of playwright, which is the automated
+end-to-end testing or any accessibility audits, being able to ask it to go
+and look for any accessibility issues.
+We have mobile responsive testing, which is really helpful, even if you just do a
+quick tablet, desktop and mobile view port size, or of course, emulating like an iOS
+device to just get a quick gut check on if there are any mobile responsive issues.
+One kind of cool use case that I actually had cloud code come up with on
+its own is being able to scrape data.
+I was using Fire Crawl to gather some data, which is another MCP from a few
+websites, and it got a 4 0 3 IE. It was blocked on a couple of them, so it went
+ahead and spun up a new playwright browser in order to load that same webpage and
+then gather all the data on its own, which I thought was pretty clever and just
+cool to see these emergent properties.
+And on that note, what's so cool is that these CPS can allow Claude
+code to do so much more than just.
+In the coding modality or in how we typically think
+of, for example, playwright.
+It really gives it full access to your browser to be a full browser based agent,
+and you can imagine from the data scraping idea to automatically logging in and
+submitting data or getting to a certain insight in your app, or just navigating
+Deep Dive: Playwright MCP Installation & Configuration
+a website to do almost anything.
+This is a really powerful unlock for Clyde code.
+Alright, I'm gonna show you a couple key installation details that you
+may want to consider when configuring playwright, in addition to my subagents
+Pod MD file customizations slash commands and a few other details that
+have been a huge game changer for me.
+So with that, you can see we're able to configure different browsers.
+This is done at the MCP config level.
+So with some MTCE configurations, you'll define it in a JSO blob like this, and
+you can see, you can apply different arguments, but that could alternatively
+be the browser that you want.
+So, two I wanna call out are the browser that you're using.
+Also a device if you want to emulate, for example, in the iPhone 15.
+And then another one that's really interesting is being able to
+run in headless or headed mode.
+I usually run it just in the default, which is headed, so I can see it up and,
+and, uh, navigating the browser, you can easily grab in the installation section
+for Claude Code, just this one line here.
+In order to install the MCP, I can just run this sample and command.
+Uh, in this case, I've already got playwright installed of course, so
+I'll go ahead and fire up Claude.
+And now if I type forward slash cp, you can see that I've got it installed
+here along with a couple other cps.
+This is just my personal website, uh, for demonstration purposes, so I don't have.
+I just have a, a couple MCP options here.
+Here you can see exactly what configuration it's using and arguments
+that it's applying, and you can also view the tools, which show the many different
+tools that it gives cloud code access to.
+There is a vision mode for playwright, which allows it to use coordinate based
+operations instead of the default, which is the accessibility map, which
+is basically just a way to navigate the different elements within a website, which
+is a lot faster and easier, but for some.
+Applications, it can be better to use vision mode.
+So that's another argument you might want to consider using.
+Supercharging Your Workflow: The CLAUDE.md File Explained
+I know these config files like a Cursor Rules or Clot MD can sound pretty boring
+when you first think about it, but in this case, if you watch philanthropics.
+Different YouTube videos or if you read through all their documentation
+and guides, they really think about these Cloud MD files as
+being memory for the agents.
+So everything you write here is basically put right after the system prompt when
+you start up any cloud code session.
+So any details that you want to be brought in to every single session that
+you're using, shortcuts that prevent Claude code from having to go grip
+around and grab a bunch of context or any best practice or rules that you want
+it to follow, like a style guide or get.
+Styles.
+Uh, so like how do you want commits and branches and PR structured all
+that should live in something like this so that it's pulled in automatically.
+And what that means is just one less thing.
+It's essentially an automation, one less thing that you have to worry about
+every time you're using cloud code.
+That just abstracts it away from your mind.
+And it's also portable so other people on your team can take that exact same
+Claude config file and move it around.
+So with that, one of the biggest lifts when it comes to playwright
+My CLAUDE.md Setup for Agentic Design Loops
+in terms of getting that age agentic loop that keeps moving.
+Is to add a configuration down here that speaks to that.
+So I've got this visual development section and in there I've got
+a design principles spot here.
+This basically just points Claude to a few different documents that
+I provided in this context folder.
+I'm a big fan of doing this where I'll just drop a bunch
+of context in this folder.
+So in my case, it's.
+Like, uh, for a personal website summary of my LinkedIn, uh, kind of my
+life story listed out a bit, but also design principles and a style guide
+that I want Claude code to follow.
+So if I open up the design principles file, you can see this is just a long
+list of a bunch of different principles.
+I want Claude code to follow.
+In this case, I actually used Gemini Deep Research on all the best
+design principles for a specific aesthetic that I like a lot.
+I had it make that into a much more concise markdown file, went through,
+edited a few things, and then I used that as my design principles MD file.
+I do find that doing the deep research approach for SEO best
+practices or design best practices or backend architectural principles.
+Is an amazing way to kickstart what you're working on, especially if it's a little
+bit out of your domain of expertise.
+Incredible way to use just this massive amount of knowledge
+and to make it actionable.
+Going from collecting that knowledge in a deep research platform into an
+actionable thing that an agent like Claude Code can take and run with.
+And then if I go down here, this is where I lay out specifically how I want Claude
+Code to use the playwright browser on a kind of a normal day-to-day level.
+Whenever you're.
+Doing anything that involves the front end, I want it to go ahead and navigate
+to the pages that were impacted by those front end changes, and then
+reference this verification step of the, uh, orchestration framework
+by using these markdown documents.
+And then look for any of that acceptance criteria that may
+have been laid out in the prompt.
+I had written, so Claude Code can look and see what exactly I supplied.
+So again, this could be a UI mockup, this could be just some text and other
+instructions that I give it a Figma MCP.
+There's all kinds of acceptance criteria that could have
+been brought into the prompt.
+And then I wanted to just pull up the.
+Normal browser size that I've got here for the desktop viewport.
+You could also have this be a mobile or tablet size or include all three of 'em.
+But just for the sake of time, I just want to quickly open
+up the window and, and look.
+And then of course I also want to check for any console errors,
+'cause that's a huge time saver.
+In addition to that, I want it to sometimes go into a
+comprehensive design review.
+So this is where it will use the subagent that I created that
+I'll mention in a second here.
+In order to go ahead and do a much deeper dive than just this
+quick test that I showed above.
+If I'm creating a pr, I want it to go ahead and do that, or any very
+significant ui, ux, refactors, and a few other key details that I want it
+to remember, just to make sure that it doesn't try to bring in any new
+frameworks or libraries or anything.
+Pro Tip: Learning from Anthropic's Official Examples
+One powerful trick I want to call out here.
+This is a huge tip and I've learned so much by doing this.
+Is being able to go reference the examples that Anthropic gives when it comes to
+how to configure any sort of document, but especially things like subagents,
+the Cloud MD file slash commands and actions that run in GitHub, for example.
+So the first thing I just wanna point out is their GitHub.
+They've got a lot of great stuff in here, some actual courses.
+Uh, the cookbook, which is a lot of different examples of interesting
+ways to use Claude, and then also the Claude Code Security Review Repo.
+It's a slash command.
+So just as a reminder, whenever you type forward slash it's,
+it's these commands that come up.
+And I've got a few custom ones that I built in accordance with this
+convention where you have a dot Claude folder, and then in the there you've
+got a commands folder, and then you can create these marked on files.
+So what I'll do is I'll just look at.
+What is Anthropic doing?
+Like how are they structuring these commands or these subagents?
+And there's a lot of cool stuff in here.
+For example, in this case, this ability to basically just take
+your working or work in progress files that are not in a PR yet.
+So this was a great little workflow I borrowed and just looking at how
+they structure things, how they use capital, all caps in certain cases.
+Overall, it's, it's great to learn from exactly how they're building things.
+Another guide I would highly recommend, I've recommended this to so many
+people is the Claude Code Best Practices for Agentic Coding Guide.
+This is, does a great job, especially for things like CLO md, uh, breaking
+out exactly how to structure things in the methodology behind it all.
+Creating a Custom 'Design Reviewer' Sub-Agent
+And then I would also recommend the documentation.
+It's very well put together a lot of great examples
+specifically for Claude Code here.
+Alright, so with that I'll go ahead and show you my dot claw directory.
+Then we've got an agent's directory and a commands directory.
+So in agents you can see I've got the design reviewer.
+Just as a quick example, in order to invoke this, I'll just do at agent design
+review and I could give it like a PR or more instructions, like, please review
+the last three commits that I've made, and that's gonna go ahead and kick off.
+Agent design reviewer.
+You can see here it's pretty intelligent.
+It's going ahead and using get to just grab the last three commits and
+it's gonna go ahead and launch the agent in order to follow the exact
+workflow that I laid out there.
+So while it's running, I'm gonna go ahead and show you that workflow.
+So I've got a name description of what it's doing.
+You can see it's a design review agent that is able to look at pull
+requests or general UI changes.
+And then I give it specific access to different tools.
+Uh, so I'm able to explicitly ask it to use just basically playwright context
+seven, which is for documentation, a really great MCP as well.
+And then also the built-in, uh, tools that you typically give an agent.
+I'm having it used sonnet for this kind of work.
+I feel like I haven't noticed a huge difference, bet or any
+difference between sonnet and opus and of course sonnets way cheaper.
+And then I just give it this description of what I'm asking it to do.
+So in this case, I am channeling trying to get to the areas within its
+its circuits or it's it's neural net that are to do with design reviews
+and, uh, principle level designers.
+So I'll usually give it persona to try to channel that.
+And then a few examples.
+So Stripe, Airbnb, linear being, uh, some, some cliche classics in Silicon Valley.
+And then I give it a core methodology and mission to go on here for reviewing.
+And then I give it a step-by-step guide of, uh, exactly how to go
+about doing a robust design review, including looking for accessibility,
+code, health, or robustness.
+So you can see.
+It goes through each of these steps.
+And then I also give it a format for how exactly I want the report to look and then
+just ask it not to do much more than that.
+So you can see, um, the structure here and then also the exact, uh, process
+for navigating, like which tools to use and when in order to come up with this.
+I actually used another deep research report.
+I had it go out and basically collect the best.
+Design review practices from essentially all of the internet and had it all
+How to Create New Agents with Claude Code
+filtered through Claude Opus, in this case to shape it up using the
+agent creation tool in Claude Code.
+In addition to referencing different examples that Anthropic
+has put in their GitHub repos.
+So just to show that you can go and open up by typing in agents and that will open
+this new window that allows you to edit different agents or create a new one.
+So I'll start off by just creating a new agent.
+I usually just do the current project.
+I will almost always do the generate with Claude.
+I took the deep research summary, I fed all that into here along with like a
+paragraph descriptor of exactly what I want the agent to do, and then I let.
+Claude's, um, built-in process here.
+Go ahead and create the initial draft of the agent.
+And then I took that draft, which was just a markdown file
+in the Claude Agent's directory.
+But then what I did is I asked Claude code to go ahead and take
+the documentation from Anthropics website into review and edit.
+The agent markdown file in accordance to what the best practices, layout,
+and those examples of other ones that I had to work with in order to really
+get a concise, great looking document.
+So I did that exact flow for the slash commands, the agent, as I just
+mentioned, and my uh, Claude MD file.
+And I feel like that really helps you get concise, actionable workflows.
+By the way, if you are finding value in this YouTube video, it means a
+ton If you would give it a like and subscribe if you're interested in
+LIVE DEMO: Running the Design Reviewer Sub-Agent
+learning these new AI native workflows.
+And as a thank you, I will include in the description links to all of these
+files so that you can download them and reference them and use them as you wish.
+Alright, so let's go ahead and look at our subagent.
+Could you please look at the homepage on my website, the main page, and
+give me a detailed review as outlined in the agent review configuration.
+So as you can see, that wasn't the best articulated prompt, but
+it's enough to get the agent to go ahead and proactively work.
+I've got here a window that was opened up, so it's identifying
+that we have the port and use.
+Okay, great.
+So it went ahead and loaded my personal website.
+Here it is justing the screen size and it's grabbing screenshots in order to
+collect some UI context that it can bring back to see what it needs to fix.
+It's pretty surreal watching these work and your mind just starts to go.
+A little while thinking of all the applications that you
+could use for this to automate different parts of your workflow.
+I'm just thinking of all the time I spend doing mobile responsive
+testing and also the times I forget to do it in, uh, that ends up in a
+bug where this can just solve that.
+'cause cloud can come back to us with a fully baked version.
+So in this case, it's asking if it wants to go ahead and try submitting the.
+Email signup form that I have on my website.
+So I'll go ahead and say, yeah, you can see it when typed in, uh, and subscribed
+to my newsletter just to get a sense of, uh, the context there for what it
+looks like, which is just fantastic.
+Also, every time I click yes and don't ask me again, it will, uh, save that into
+my local file so that co code knows it can just go ahead and do these things.
+Another cool element with these is you can have the subagents call other subagents,
+which is really helpful when it comes to.
+Creating a network of almost like conditional logic.
+So you could have one design reviewer invoke like a mobile designer, for
+example, and, uh, other reviewers.
+And then in aggregate, all of these have their own context and
+they use their own, uh, models.
+You can specify if it's sonnet or opus or, or whatever model you want to use.
+And because of that, you don't cloud the main context of your, your main thread.
+In cloud code.
+So you can have a bunch of subagents, go do a bunch of work and summarize
+The Final Report: Actionable Design Feedback from the Agent
+and bring back the executive report.
+For example, a list of to-dos that need to be changed or in
+this case a design review report.
+If you look over here, we've got the official report back from the
+design review agent, and it's got some, uh, some constructive feedback.
+An A minus I'll, uh, I'll take it.
+Uh, I don't claim to be an amazing designer.
+It's got here a few strengths that it lists out.
+Some high priority issues to work on.
+Multiple image preload warnings affecting performance.
+Okay, that's helpful to know.
+Third party script error from PTX cloud.net and misconfigured.
+Metatag.
+More subjective things too, like newsletter iframe needs a
+better integration is a great example of where it's using the
+vision side of its neural net.
+Now, of course, this is a really basic example.
+Typically, we're using this on much more.
+Meaningful or like new development.
+You can imagine how getting this feedback and then having the model actually
+address the feedback, creating that iterative loop is really powerful.
+Automatically addressing any errors or issues is helpful.
+But in this case, what I would typically do is I would just invoke
+it, uh, saying like, Hey, could you.
+Address the above issues, the, you know, everything within high priority
+or maybe I'd outline, you know, just a couple specifics that I want here, but
+you can also chain these in different.
+Loops, as I mentioned before, with the sub-agent that can call each
+Bonus Tip: Parallel Development with Git Worktrees
+other very powerful way to iterate ally and automatically to a much
+better end result than what you get on just a first poll of cloud code.
+One extra bonus I'll throw in for you is this idea of get work trees.
+So a big concept within using cloud code that I found to be an extremely big unlock
+is doing multiple things in parallel.
+You can work on different projects that don't interact with each other.
+That's nice.
+But I think another strategy that has been really helpful is trying
+to change my perspective to have much more of an abundance mindset.
+Not feeling like I'm wasting Claudes outputs by scrapping what
+it comes up with because these models are stochastic in nature.
+You get varied outputs upon each poll or each time you prompt it,
+that can be an issue or you can use that in your favor by running
+multiple of these at the same time.
+In order to do that, what I typically will do is I will use get work trees, so in
+this case, I've got another repository.
+If I go back here to Patrick to the root.
+I've got a second one, which is two, and that is using a GI work tree,
+which is a way to very easily set up essentially a copy of your repository
+so you can create multiple work trees.
+And it's almost like you have three separate versions of your repository, but
+it's all within one GI folder in your main repo, and each one has its own branch.
+So my case, I've got Patrick Ellis, IO two, I could kick off a Claude code
+in both of them and have them both iterate on some front end changes.
+Look at the two to kind of ab contrast, which one I think
+looks the best and go from there.
+Typically, I'll do this with like three different prompts if I want to,
+or the same prompts, but kicked off in three different work trees in order
+to help get a variety of outputs.
+One of my friends took this to another level.
+It'll actually kick off three different processes running in GitHub workers using
+headless cloud codes that will come up with three different outputs, and then
+he'll use another model, another opus to judge which of the three is the best.
+Packaging & Scaling Expertise Across Your Team
+Another thing that I find is really powerful with these workflows
+is the ability to package.
+These processes that our team members use.
+So maybe we've got an excellent designer or an excellent engineering manager
+who's really good at code review or backend architect, or anything else.
+What's really neat is being able to package up their expertise into something
+like a subagent or a slash command or even an MCP and distribute that
+across the team so that you can benefit without even knowing the nuances of
+the workflow from an expert designer.
+When it comes to providing the model's context in a prompt, I would highly
+recommend also including as many visual design elements as you can,
+Best Practices for Prompting with Visual Context
+as screenshots, so dragging in things like even a low fidelity sketch,
+kind of a UX wire frame that you want, or references to other designs.
+Obviously a style guide if you have it, or a collection of different.
+Inspiration or kind of design board elements that you wanna bring in.
+Anything that you can use to channel the visual modality of the model's
+intellectual capacity in addition to all the coding details, such as being able
+to specify front end frameworks or best practices, things like hex codes for
+colors and typography and everything else.
+Those two combined are very powerful.
+At the end of the day, the performance of these models comes down to context.
+Tools and validation steps.
+So I hope that this overview of the tools and the validation side has been
+really helpful and actionable for you.
+Thank you so much for watching and stay tuned for more videos like this.
+In the meantime, if you enjoyed this video, I think you'll really enjoy my
+recent deep dive with my friends a Anand and Galen at a Seattle Founders Group on
+all of our best practices for Claude Code.
+At least all that we could fit into our presentation.
+You can find that video above, along with my most recent video

@@ -1,0 +1,35 @@
+SAMPLE SALES DOCUMENT - Objection Handling Techniques
+
+This is a sample sales document for testing the VoiceCoach V2 application.
+
+KEY TECHNIQUES:
+
+1. The Feel, Felt, Found Method
+When a prospect expresses concern, respond with:
+"I understand how you feel. Many of our clients felt the same way initially. However, what they found was that this solution actually saved them money in the long run."
+
+2. Price Anchoring
+Instead of dropping price immediately, redirect to value:
+"I understand budget is important. Let me ask - if this solution could increase your revenue by 25%, what would that be worth to your business?"
+
+3. The Assumptive Close
+"Based on everything we've discussed, it sounds like this addresses your main challenges. When would you like to get started?"
+
+4. Building Urgency
+"This pricing is only available through the end of the month. After that, we'll need to move to our standard pricing structure."
+
+5. Social Proof
+"Companies similar to yours, like [specific example], saw a 40% improvement in their metrics within the first quarter."
+
+OBJECTION RESPONSES:
+
+"It's too expensive"
+→ "I understand cost is a concern. Can you help me understand what specifically feels expensive about it? Is it the total investment or the monthly payment?"
+
+"We need to think about it"
+→ "I completely understand. Thinking it through is important. What specific aspects would you like to discuss further?"
+
+"We're not ready right now"
+→ "That makes sense. When you say 'not ready,' what would need to change for this to be a priority?"
+
+Remember: Always listen first, acknowledge their concern, then provide a thoughtful response that moves the conversation forward.
