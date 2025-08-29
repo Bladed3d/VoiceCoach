@@ -5,6 +5,8 @@
 import React from 'react';
 import { Brain } from 'lucide-react';
 import { CoachingPrompt } from '../../types/coaching';
+import { SimpleLiquidGrid } from '../common/SimpleLiquidGrid';
+import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
 
 interface CoachingPanelProps {
   coachingPrompts: CoachingPrompt[];
@@ -17,8 +19,25 @@ export const CoachingPanel: React.FC<CoachingPanelProps> = ({
   isRecording,
   onClearHistory
 }) => {
+  const trail = new BreadcrumbTrail('CoachingPanel');
+  
+  // Debug logging for animation state
+  React.useEffect(() => {
+    trail.light(7197, {
+      event: 'COACHING_PANEL_MOUNT',
+      isRecording,
+      shouldShowAnimation: !isRecording,
+      coachingPromptsCount: coachingPrompts.length
+    });
+    console.log('CoachingPanel - isRecording:', isRecording, 'should show animation:', !isRecording);
+  }, [isRecording, coachingPrompts.length]);
+  
+  const handleAnimationClick = () => {
+    trail.light(7196, { event: 'ANIMATION_CLICK_IN_PANEL' });
+    console.log('Animation clicked in CoachingPanel');
+  };
   return (
-    <div className="flex-[2] glass-panel p-6 flex flex-col min-h-0">
+    <div className="h-full glass-panel p-6 flex flex-col min-h-0">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold">AI Coaching Assistant</h2>
         <button 
@@ -31,14 +50,12 @@ export const CoachingPanel: React.FC<CoachingPanelProps> = ({
       
       <div className="flex-1 space-y-4 overflow-y-auto">
         {!isRecording ? (
-          <div className="text-center py-12">
-            <Brain className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-400 mb-2">
-              Start coaching session for AI insights
-            </h3>
-            <p className="text-sm text-slate-500">
-              Get real-time suggestions from knowledge base
-            </p>
+          <div className="relative h-full">
+            {/* LIQUID GRID ANIMATION */}
+            <SimpleLiquidGrid 
+              className="absolute inset-0" 
+              isActive={!isRecording}
+            />
           </div>
         ) : (
           <>

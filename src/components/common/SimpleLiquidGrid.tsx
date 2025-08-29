@@ -1,0 +1,259 @@
+/**
+ * VoiceCoach V2 - Simplified Liquid Grid Animation
+ * Rebuilt for reliability with pure CSS and minimal JavaScript
+ */
+import React, { useEffect, useRef } from 'react';
+
+interface SimpleLiquidGridProps {
+  className?: string;
+  isActive?: boolean;
+}
+
+export const SimpleLiquidGrid: React.FC<SimpleLiquidGridProps> = ({ 
+  className = '', 
+  isActive = true 
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current || !isActive) return;
+
+    console.log('SimpleLiquidGrid: Starting animation');
+    
+    // Simple grid creation
+    const container = containerRef.current;
+    const gridSize = 30;
+    const cols = Math.floor(container.clientWidth / gridSize);
+    const rows = Math.floor(container.clientHeight / gridSize);
+    
+    console.log(`Creating ${cols}x${rows} grid`);
+    
+    // Create 3x more squares - much denser grid
+    const spacing = gridSize + 5; // Less spacing for more squares
+    const actualCols = Math.floor(container.clientWidth / spacing);
+    const actualRows = Math.floor(container.clientHeight / spacing);
+    const colors = [
+      'rgba(14, 165, 233, 0.8)', // primary blue
+      'rgba(34, 197, 94, 0.8)',  // success green  
+      'rgba(245, 158, 11, 0.8)', // warning orange
+      'rgba(239, 68, 68, 0.8)',  // danger red
+      'rgba(168, 85, 247, 0.8)', // purple
+      'rgba(236, 72, 153, 0.8)'  // pink
+    ];
+    
+    const activeSquares = [];
+    
+    // Create grid squares
+    for (let row = 0; row < actualRows; row++) {
+      for (let col = 0; col < actualCols; col++) {
+        const square = document.createElement('div');
+        square.style.cssText = `
+          position: absolute;
+          left: ${col * spacing}px;
+          top: ${row * spacing}px;
+          width: ${gridSize}px;
+          height: ${gridSize}px;
+          border: 1px solid rgba(148, 163, 184, 0.1);
+          overflow: hidden;
+          background: rgba(0, 0, 0, 0.2);
+        `;
+        
+        const fill = document.createElement('div');
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        fill.style.cssText = `
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 0%;
+          background: linear-gradient(to top, ${color}, ${color.replace('0.8', '0.4')});
+          transition: height 0.8s ease;
+          box-shadow: 0 0 15px ${color};
+        `;
+        
+        square.appendChild(fill);
+        container.appendChild(square);
+        activeSquares.push({ square, fill, color });
+      }
+    }
+    
+    // Create streaking pin lights that follow grid lines
+    const createPinLight = () => {
+      const pinLight = document.createElement('div');
+      // Calculate exact grid line positions
+      const gridLineOptions = [];
+      
+      // Add positions at left edge of each column and between columns
+      for (let col = 0; col <= actualCols; col++) {
+        if (col === 0) {
+          gridLineOptions.push(0); // Left edge
+        } else {
+          gridLineOptions.push(col * spacing - (spacing - gridSize) / 2); // Between columns
+        }
+      }
+      
+      const xPos = gridLineOptions[Math.floor(Math.random() * gridLineOptions.length)];
+      pinLight.style.cssText = `
+        position: absolute;
+        left: ${xPos}px;
+        bottom: -200px;
+        width: 2px;
+        height: 150px;
+        background: linear-gradient(to top, 
+          transparent, 
+          rgba(255, 255, 255, 0.2),
+          rgba(14, 165, 233, 0.8),
+          #00D4FF);
+        animation: pinStreak 2s linear forwards;
+        pointer-events: none;
+        z-index: 20;
+      `;
+      
+      // Add glowing dot at top
+      const dot = document.createElement('div');
+      dot.style.cssText = `
+        position: absolute;
+        top: -3px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 4px;
+        height: 4px;
+        background: #00D4FF;
+        border-radius: 50%;
+        box-shadow: 0 0 8px #00D4FF;
+      `;
+      pinLight.appendChild(dot);
+      
+      container.appendChild(pinLight);
+      
+      setTimeout(() => {
+        if (pinLight.parentNode) pinLight.remove();
+      }, 2000);
+    };
+    
+    // Track currently visible boxes
+    let currentlyVisible = 0;
+    const minBoxes = 6;
+    const maxBoxes = 50;
+    
+    // Enhanced animation with min/max constraints
+    const animateRandomSquares = () => {
+      // Calculate how many boxes to show based on current count
+      let targetVisible;
+      if (currentlyVisible < minBoxes) {
+        // Force minimum boxes
+        targetVisible = minBoxes + Math.floor(Math.random() * 10);
+      } else if (currentlyVisible > maxBoxes) {
+        // Don't add more, let some drain
+        targetVisible = Math.max(minBoxes, currentlyVisible - Math.floor(Math.random() * 20));
+      } else {
+        // Normal operation - random between 6-50
+        targetVisible = Math.min(maxBoxes, Math.max(minBoxes, 
+          currentlyVisible + Math.floor(Math.random() * 20) - 10));
+      }
+      
+      const numToActivate = Math.max(0, targetVisible - currentlyVisible);
+      const selectedSquares = [];
+      
+      // Activate new squares
+      for (let i = 0; i < numToActivate; i++) {
+        const availableSquares = activeSquares.filter(sq => sq.fill.style.height === '0%' || !sq.fill.style.height);
+        if (availableSquares.length === 0) break;
+        
+        const randomSquare = availableSquares[Math.floor(Math.random() * availableSquares.length)];
+        if (!selectedSquares.includes(randomSquare)) {
+          selectedSquares.push(randomSquare);
+          
+          // Add individual random delay for each square
+          setTimeout(() => {
+            randomSquare.fill.style.height = '100%';
+            currentlyVisible++;
+            
+            // Random duration visible (3-8 seconds)
+            setTimeout(() => {
+              randomSquare.fill.style.height = '0%';
+              currentlyVisible--;
+            }, 3000 + Math.random() * 5000);
+          }, Math.random() * 2000); // Random delay up to 2 seconds
+        }
+      }
+      
+      // Schedule next animation cycle
+      setTimeout(animateRandomSquares, 1000 + Math.random() * 2000);
+    };
+    
+    // Start animations
+    setTimeout(animateRandomSquares, 2000);
+    
+    // Create pin lights more frequently - 2x as many streaks
+    const pinLightInterval = setInterval(() => {
+      // Higher probability and more frequent spawning
+      if (Math.random() < 0.8) createPinLight();
+      // Sometimes spawn two at once
+      if (Math.random() < 0.3) {
+        setTimeout(() => createPinLight(), 200 + Math.random() * 400);
+      }
+    }, 800 + Math.random() * 1000); // Faster interval
+    
+    // Store interval for cleanup
+    (container as any).pinLightInterval = pinLightInterval;
+
+    console.log('SimpleLiquidGrid: Grid created');
+
+    // Add CSS animation for pin lights
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes pinStreak {
+        0% { transform: translateY(0); opacity: 0; }
+        10% { opacity: 1; }
+        90% { opacity: 1; }
+        100% { transform: translateY(-${container.clientHeight + 300}px); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Cleanup
+    return () => {
+      if (container) {
+        container.innerHTML = '';
+        if ((container as any).pinLightInterval) {
+          clearInterval((container as any).pinLightInterval);
+        }
+      }
+      if (style.parentNode) {
+        style.remove();
+      }
+    };
+  }, [isActive]);
+
+  if (!isActive) return null;
+
+  return (
+    <div className={`relative w-full h-full ${className}`}>
+      {/* Grid Container */}
+      <div 
+        ref={containerRef}
+        className="absolute inset-0 overflow-hidden"
+        style={{
+          background: 'rgba(15, 23, 42, 0.8)',
+          borderRadius: '0.5rem'
+        }}
+      />
+      
+      {/* Overlay */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-primary-600 rounded-lg flex items-center justify-center mb-4 mx-auto">
+            <span className="text-white font-bold text-xl">VC</span>
+          </div>
+          <h2 className="text-2xl font-light text-white mb-2 tracking-wide">
+            AI Coaching Assistant
+          </h2>
+          <p className="text-slate-400 text-sm opacity-70">
+            Start recording to receive real-time coaching insights
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};

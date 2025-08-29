@@ -20,31 +20,122 @@ import {
   Database,
   MessageSquare,
   BarChart3,
-  TrendingUp
+  TrendingUp,
+  FileText
 } from 'lucide-react';
 
 // Modular imports
 import { useCoachingSession } from '../hooks/useCoachingSession';
+import { useResizablePanels } from '../hooks/useResizablePanels';
+import { useSalesScript } from '../hooks/useSalesScript';
 import { VolumeIndicator } from './common/VolumeIndicator';
 import { CoachingPanel } from './coaching/CoachingPanel';
+import { SalesScriptPanel } from './coaching/SalesScriptPanel';
 import { TranscriptionPanel } from './coaching/TranscriptionPanel';
-import { KnowledgeBaseModal } from './modals/KnowledgeBaseModal';
-import { QuestionnaireAnswers } from '../types/questionnaire';
+import { CollapsedPanel } from './common/CollapsedPanel';
+import { KnowledgeBaseHub } from './KnowledgeBaseHub';
+import SettingsModal from './modals/SettingsModal';
+import { BreadcrumbTrail } from '../lib/breadcrumb-system';
 
 interface SplitViewCoachingProps {
   onNewDocument?: () => void;
+  insights?: any;
 }
 
 const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
+  const trail = new BreadcrumbTrail('SplitViewCoaching');
+  
   // Modular session management
   const { sessionState, isInitialized, startSession, stopSession, clearTranscriptions, clearCoachingPrompts } = useCoachingSession();
   
+  // Resizable panels management
+  const {
+    scriptPanel,
+    transcriptionPanel,
+    isDragging,
+    toggleScriptPanel,
+    toggleTranscriptionPanel,
+    toggleScriptVisibility,
+    toggleTranscriptionVisibility,
+    startResize,
+    getScriptWidth,
+    getTranscriptionWidth
+  } = useResizablePanels();
+  
+  // Sales script management
+  const { scriptItems, markItemUsed, clearUsedItems } = useSalesScript();
+  
   // Local UI state only
-  const [showKnowledgeBaseManager, setShowKnowledgeBaseManager] = useState(false);
+  const [showKnowledgeBaseHub, setShowKnowledgeBaseHub] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [currentView, setCurrentView] = useState('Split View');
   const [selectedMicrophone, setSelectedMicrophone] = useState('System Default');
   const [showViewDropdown, setShowViewDropdown] = useState(false);
   const [showMicrophoneDropdown, setShowMicrophoneDropdown] = useState(false);
+  
+  // Component lifecycle and microphone change event tracking
+  React.useEffect(() => {
+    trail.light(7107, {
+      component_mount: 'SplitViewCoaching',
+      initial_state: {
+        view: currentView,
+        microphone: selectedMicrophone,
+        modals_closed: true
+      }
+    });
+    
+    // Enhanced microphone change event listener
+    const handleMicrophoneChange = (event: CustomEvent) => {
+      const { deviceId, label } = event.detail;
+      trail.light(7108, {
+        microphone_event: 'external_change_detected',
+        from_device: selectedMicrophone,
+        to_device: label,
+        device_id: deviceId,
+        source: 'settings_modal'
+      });
+      
+      setSelectedMicrophone(label);
+      
+      trail.light(7109, {
+        microphone_update: 'ui_synchronized',
+        new_display_name: label,
+        device_id: deviceId
+      });
+    };
+    
+    window.addEventListener('microphoneChanged', handleMicrophoneChange as EventListener);
+    
+    return () => {
+      trail.light(7110, { component_unmount: 'SplitViewCoaching' });
+      window.removeEventListener('microphoneChanged', handleMicrophoneChange as EventListener);
+    };
+  }, []);
+  
+  // Settings modal state tracking
+  React.useEffect(() => {
+    if (showSettingsModal) {
+      trail.light(7111, {
+        modal_state: 'settings_opened',
+        trigger: 'user_interaction',
+        app_state: {
+          recording: sessionState?.isRecording || false,
+          connected: sessionState?.wsStatus === 'Connected'
+        }
+      });
+    } else {
+      trail.light(7112, { modal_state: 'settings_closed' });
+    }
+  }, [showSettingsModal]);
+  
+  // Knowledge Base Hub state tracking  
+  React.useEffect(() => {
+    if (showKnowledgeBaseHub) {
+      trail.light(7113, { modal_state: 'knowledge_base_opened' });
+    } else {
+      trail.light(7114, { modal_state: 'knowledge_base_closed' });
+    }
+  }, [showKnowledgeBaseHub]);
 
   // Early return if not initialized
   if (!isInitialized || !sessionState) {
@@ -66,10 +157,6 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
     return minutes > 0 ? `${minutes}m ${seconds % 60}s` : `${seconds}s`;
   };
 
-  const handleKnowledgeBaseComplete = async (answers: QuestionnaireAnswers, files: string[]) => {
-    console.log('✅ Knowledge base setup completed:', { answers, files });
-    // TODO: Process knowledge base setup
-  };
 
   const viewOptions = ['Split View', 'Coaching Dashboard', 'Live Transcription', 'AI Coaching', 'Call Insights'];
   const microphoneOptions = ['System Default', 'Microphone (CURRENT)', 'Video Call Audio', 'Complete Audio Mix'];
@@ -150,18 +237,42 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
           {/* Right Side - Controls */}
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-1">
-              <button className="p-1 hover:bg-slate-700 rounded"><MessageSquare className="w-4 h-4" /></button>
               <button className="p-1 hover:bg-slate-700 rounded"><Users className="w-4 h-4" /></button>
               <button className="p-1 hover:bg-slate-700 rounded"><BarChart3 className="w-4 h-4" /></button>
               <button className="p-1 hover:bg-slate-700 rounded"><TrendingUp className="w-4 h-4" /></button>
               <button 
                 className="p-1 hover:bg-slate-700 rounded"
-                onClick={() => setShowKnowledgeBaseManager(true)}
+                onClick={() => {
+                  trail.light(7115, {
+                    user_interaction: 'knowledge_base_button_clicked',
+                    current_state: 'closed',
+                    action: 'open_hub'
+                  });
+                  setShowKnowledgeBaseHub(true);
+                }}
                 title="Knowledge Base Manager"
               >
                 <Database className="w-4 h-4" />
               </button>
-              <button className="p-1 hover:bg-slate-700 rounded"><Settings className="w-4 h-4" /></button>
+              <button 
+                className="p-1 hover:bg-slate-700 rounded"
+                onClick={() => {
+                  trail.light(7116, {
+                    user_interaction: 'settings_button_clicked',
+                    current_state: 'closed',
+                    app_context: {
+                      recording: sessionState?.isRecording || false,
+                      ws_status: sessionState?.wsStatus || 'Unknown',
+                      current_microphone: selectedMicrophone
+                    },
+                    action: 'open_settings'
+                  });
+                  setShowSettingsModal(true);
+                }}
+                title="Settings"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
             </div>
             
             <div className="flex items-center space-x-3">
@@ -182,8 +293,18 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
                       <button
                         key={option}
                         onClick={() => {
+                          trail.light(7117, {
+                            microphone_selection: 'dropdown_change',
+                            from_option: selectedMicrophone,
+                            to_option: option,
+                            interaction_type: 'dropdown_menu'
+                          });
                           setSelectedMicrophone(option);
                           setShowMicrophoneDropdown(false);
+                          trail.light(7118, {
+                            microphone_change: 'completed_via_dropdown',
+                            new_selection: option
+                          });
                         }}
                         className={`block w-full text-left px-4 py-2 text-sm hover:bg-slate-700 ${
                           option === selectedMicrophone ? 'bg-primary-600 text-white' : 'text-slate-300'
@@ -244,7 +365,7 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
 
       {/* Metrics Dashboard */}
       <div className="bg-slate-900 px-6 pb-4">
-        <div className="grid grid-cols-6 gap-4">
+        <div className="metrics-grid">
           <div className="glass-panel p-3">
             <div className="flex items-center space-x-2">
               <Clock className="w-4 h-4 text-primary-400" />
@@ -300,21 +421,109 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
             </div>
           </div>
         </div>
+        
+        {/* Panel Control Buttons */}
+        <div className="mt-4 flex justify-center">
+          <div className="panel-controls">
+            <span className="text-xs text-slate-400">View Panels:</span>
+            <button 
+              className={`p-2 rounded transition-colors ${
+                scriptPanel.isHidden 
+                  ? 'hover:bg-slate-700 text-slate-500 bg-slate-800' 
+                  : 'bg-primary-600 text-white hover:bg-primary-700'
+              }`}
+              onClick={toggleScriptVisibility}
+              title={scriptPanel.isHidden ? 'Show Sales Script Panel' : 'Hide Sales Script Panel'}
+            >
+              <FileText className="w-4 h-4" />
+            </button>
+            <button 
+              className={`p-2 rounded transition-colors ${
+                transcriptionPanel.isHidden 
+                  ? 'hover:bg-slate-700 text-slate-500 bg-slate-800' 
+                  : 'bg-primary-600 text-white hover:bg-primary-700'
+              }`}
+              onClick={toggleTranscriptionVisibility}
+              title={transcriptionPanel.isHidden ? 'Show Transcription Panel' : 'Hide Transcription Panel'}
+            >
+              <MessageSquare className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Split View Content - Modular Components */}
-      <div className="flex-1 flex gap-6 px-6 min-h-0">
-        <CoachingPanel 
-          coachingPrompts={coachingPrompts}
-          isRecording={isRecording}
-          onClearHistory={clearCoachingPrompts}
-        />
-        <TranscriptionPanel 
-          transcriptions={transcriptions}
-          liveTranscript={liveTranscript}
-          isRecording={isRecording}
-          onClear={clearTranscriptions}
-        />
+      {/* Adaptive 3-Panel Split View Content */}
+      <div className="flex-1 flex px-6 min-h-0 gap-0 three-panel-layout">
+        {/* Left Panel: AI Coaching Assistant (Auto-width) */}
+        <div 
+          className="flex-1 mr-3 h-full panel-responsive"
+          style={{ minWidth: '300px' }}
+        >
+          <CoachingPanel 
+            coachingPrompts={coachingPrompts}
+            isRecording={isRecording}
+            onClearHistory={clearCoachingPrompts}
+          />
+        </div>
+        
+        {/* Middle Panel: Sales Script (Hidden/Collapsible/Expanded) */}
+        {!scriptPanel.isHidden && (
+          scriptPanel.isCollapsed ? (
+            <CollapsedPanel 
+              type="script"
+              onClick={toggleScriptPanel}
+              className="mr-3"
+            />
+          ) : (
+            <div 
+              className="mr-3 relative group h-full"
+              style={{ width: `${getScriptWidth()}px` }}
+            >
+              {/* Invisible resize handle on left edge */}
+              <div 
+                className="absolute top-0 left-0 w-2 h-full cursor-col-resize bg-transparent hover:bg-primary-500/20 transition-colors z-10"
+                onMouseDown={(e) => startResize('script', e.clientX)}
+                title="Drag to resize panel"
+              />
+              <SalesScriptPanel 
+                scriptItems={scriptItems}
+                isRecording={isRecording}
+                onMarkUsed={markItemUsed}
+                onClearUsed={clearUsedItems}
+                onCollapse={toggleScriptPanel}
+              />
+            </div>
+          )
+        )}
+        
+        {/* Right Panel: Live Transcription (Hidden/Collapsible/Expanded) */}
+        {!transcriptionPanel.isHidden && (
+          transcriptionPanel.isCollapsed ? (
+            <CollapsedPanel 
+              type="transcription"
+              onClick={toggleTranscriptionPanel}
+            />
+          ) : (
+            <div 
+              className="relative group h-full"
+              style={{ width: `${getTranscriptionWidth()}px` }}
+            >
+              {/* Invisible resize handle on left edge */}
+              <div 
+                className="absolute top-0 left-0 w-2 h-full cursor-col-resize bg-transparent hover:bg-primary-500/20 transition-colors z-10"
+                onMouseDown={(e) => startResize('transcription', e.clientX)}
+                title="Drag to resize panel"
+              />
+              <TranscriptionPanel 
+                transcriptions={transcriptions}
+                liveTranscript={liveTranscript}
+                isRecording={isRecording}
+                onClear={clearTranscriptions}
+                onCollapse={toggleTranscriptionPanel}
+              />
+            </div>
+          )
+        )}
       </div>
 
       {/* Dropdown Close Handlers */}
@@ -331,11 +540,29 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
         />
       )}
 
-      {/* Knowledge Base Modal */}
-      <KnowledgeBaseModal
-        isOpen={showKnowledgeBaseManager}
-        onClose={() => setShowKnowledgeBaseManager(false)}
-        onComplete={handleKnowledgeBaseComplete}
+      {/* Knowledge Base Hub */}
+      <KnowledgeBaseHub
+        isOpen={showKnowledgeBaseHub}
+        onClose={() => setShowKnowledgeBaseHub(false)}
+      />
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => {
+          trail.light(7119, {
+            settings_modal: 'close_requested',
+            close_method: 'parent_close_handler',
+            final_microphone: selectedMicrophone
+          });
+          setShowSettingsModal(false);
+        }}
+        appState={{
+          isRecording,
+          isConnected: wsStatus === 'Connected',
+          currentCall: null,
+          audioLevels: volumeState
+        }}
       />
     </div>
   );
