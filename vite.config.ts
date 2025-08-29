@@ -17,7 +17,10 @@ export default defineConfig(async () => {
     server: {
       port: 5175,
       host: 'localhost',
-      strictPort: true
+      strictPort: true,
+      watch: {
+        ignored: ['**/rag/**']
+      }
     }
   }
 })
