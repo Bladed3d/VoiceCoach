@@ -1,0 +1,70 @@
+/**
+ * VoiceCoach V2 - Coaching Session Hook
+ * React hook for managing coaching session state
+ */
+import { useState, useEffect, useRef } from 'react';
+import { SessionManagerService } from '../services/coaching/SessionManagerService';
+import { SessionState } from '../types/coaching';
+
+export const useCoachingSession = () => {
+  const [sessionState, setSessionState] = useState<SessionState | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const sessionManager = useRef<SessionManagerService | null>(null);
+
+  // Initialize session manager
+  useEffect(() => {
+    sessionManager.current = new SessionManagerService();
+    
+    // Subscribe to state changes
+    sessionManager.current.onStateChange((state: SessionState) => {
+      setSessionState(state);
+    });
+
+    // Set initial state
+    setSessionState(sessionManager.current.getState());
+    setIsInitialized(true);
+
+    // Cleanup on unmount
+    return () => {
+      if (sessionManager.current) {
+        sessionManager.current.stopSession();
+      }
+    };
+  }, []);
+
+  const startSession = async (): Promise<boolean> => {
+    if (!sessionManager.current) return false;
+    return await sessionManager.current.startSession();
+  };
+
+  const stopSession = async (): Promise<boolean> => {
+    if (!sessionManager.current) return false;
+    return await sessionManager.current.stopSession();
+  };
+
+  const getWebSocketClient = () => {
+    return sessionManager.current?.getWebSocketClient() || null;
+  };
+
+  const clearTranscriptions = () => {
+    if (sessionManager.current) {
+      sessionManager.current.clearTranscriptions();
+    }
+  };
+
+  const clearCoachingPrompts = () => {
+    if (sessionManager.current) {
+      sessionManager.current.clearCoachingPrompts();
+    }
+  };
+
+  return {
+    sessionState,
+    isInitialized,
+    startSession,
+    stopSession,
+    getWebSocketClient,
+    clearTranscriptions,
+    clearCoachingPrompts
+  };
+};
