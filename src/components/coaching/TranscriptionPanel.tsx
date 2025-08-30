@@ -3,7 +3,7 @@
  * Displays live transcriptions and conversation history
  */
 import React from 'react';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, X } from 'lucide-react';
 import { TranscriptionItem } from '../../types/coaching';
 
 interface TranscriptionPanelProps {
@@ -11,28 +11,46 @@ interface TranscriptionPanelProps {
   liveTranscript: string;
   isRecording: boolean;
   onClear?: () => void;
+  onCollapse?: () => void;
 }
 
 export const TranscriptionPanel: React.FC<TranscriptionPanelProps> = ({
   transcriptions,
   liveTranscript,
   isRecording,
-  onClear
+  onClear,
+  onCollapse
 }) => {
   return (
-    <div className="flex-1 glass-panel p-6 flex flex-col min-h-0">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-2">
-          <MessageSquare className="w-4 h-4 text-primary-400" />
-          <h2 className="text-lg font-semibold">Live Transcription</h2>
-          <span className="text-xs text-slate-400">({transcriptions.length} messages)</span>
+    <div className="h-full glass-panel p-6 flex flex-col min-h-0 max-w-full">
+      <div className="mb-4">
+        <div className="flex items-center space-x-2 mb-2">
+          <MessageSquare className="w-4 h-4 text-primary-400 flex-shrink-0" />
+          <div className="min-w-0 flex-1">
+            <h2 className="text-sm font-semibold leading-tight">
+              <span className="block">Live</span>
+              <span className="block">Transcript</span>
+            </h2>
+          </div>
         </div>
-        <button 
-          className="text-sm text-slate-400 hover:text-white"
-          onClick={onClear}
-        >
-          Clear
-        </button>
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-slate-400">({transcriptions.length} messages)</span>
+          <div className="flex items-center space-x-2">
+            <button 
+              className="text-sm text-slate-400 hover:text-white"
+              onClick={onClear}
+            >
+              Clear
+            </button>
+            <button 
+              className="text-slate-400 hover:text-red-400 p-1 rounded"
+              onClick={onCollapse}
+              title="Collapse panel"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
       
       <div className="flex-1 space-y-3 overflow-y-auto">

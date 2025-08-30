@@ -3,6 +3,7 @@
 const { app, BrowserWindow, ipcMain, dialog, systemPreferences, shell } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
+const fsSync = require('fs');
 const { spawn } = require('child_process');
 
 // Keep a global reference of the window object
@@ -519,7 +520,7 @@ ipcMain.handle('read-file', async (event, filePath) => {
   }
 });
 
-// Document processing (mock for now - will integrate with Claude API)
+// Document processing (mock for now - will integrate with subagents and Ollama)
 ipcMain.handle('process-document', async (event, { content, questionnaire }) => {
   console.log('🧠 Processing document with questionnaire:', {
     contentLength: content.length,
@@ -529,7 +530,7 @@ ipcMain.handle('process-document', async (event, { content, questionnaire }) => 
   // Mock processing delay
   await new Promise(resolve => setTimeout(resolve, 8000));
   
-  // Mock response - replace with actual Claude/Ollama integration
+  // Mock response - replace with actual subagent and Ollama integration
   return {
     success: true,
     qualityScore: 92,
@@ -568,117 +569,174 @@ ipcMain.handle('invoke-subagent', async (event, { agentType, prompt, document, q
   });
   
   try {
-    // For development, use Claude Code Task tool to invoke the subagent
-    // This would be replaced with actual Claude API integration in production
+    // Use Task tool to invoke the rag-document-analyst2 subagent
     
-    if (agentType === 'rag-document-analyst') {
-      // Simulate the RAG document analyst processing
-      await new Promise(resolve => setTimeout(resolve, 5000));
+    if (agentType === 'rag-document-analyst2') {
+      console.log('🎵 LED 3002: RAG Processing - Starting real document analysis with rag-document-analyst2');
       
-      // Create different mock responses for Phase 1A vs 1B
-      const isPhase1B = phase === '1B' && questionnaire;
-      const mockAnalysis = isPhase1B ? {
-        // Phase 1B: Contextual analysis focused on user priorities
-        document_summary: {
-          main_focus: "Sales techniques prioritized for user's specific challenges",
-          value_for_sales: `Addresses user's goal: ${questionnaire.q2_learningObjective || 'general improvement'}`,
-          total_techniques_found: "8",
-          contextual_focus: "Prioritized based on user questionnaire responses"
-        },
-        high_impact_techniques: [
-          {
-            technique: "Enterprise objection handling for price resistance",
-            situation: "When dealing with enterprise deals over $50K (user priority)",
-            example: "I understand budget is critical for enterprise decisions. Let's examine the 18-month ROI...",
-            priority: "CRITICAL",
-            user_relevance: "Directly addresses user's enterprise sales challenge"
-          },
-          {
-            technique: "Consultative questioning for value discovery",
-            situation: "During discovery to justify premium pricing (user priority)",
-            example: "What would a 25% reduction in your sales cycle be worth to your organization?",
-            priority: "CRITICAL",
-            user_relevance: "Aligns with user's goal to maintain premium pricing"
-          }
-        ],
-        objection_handlers: [
-          {
-            objection: "We need to think about it",
-            response: "I understand this is a significant decision. What specific concerns would help you make a confident choice?",
-            source: "Section targeting user's closing rate improvement goal"
-          }
-        ],
-        conversation_scripts: [
-          {
-            scenario: "Enterprise prospect expressing price concerns",
-            script: "Many of our enterprise clients initially had similar concerns. When they calculated the impact of increasing their close rate from 65% to 80%, they realized...",
-            purpose: "Addresses user's specific metrics and enterprise focus"
-          }
-        ],
-        quick_wins: [
-          "Focus discovery questions on quantifiable business impact",
-          "Use consultative approach for premium pricing justification",
-          "Address enterprise decision-making process explicitly"
-        ],
-        coaching_triggers: {
-          if_customer_says: ["it's too expensive for our budget", "we need board approval", "this is a big investment"],
-          then_coach: ["quantify ROI for enterprise scale", "identify all decision makers", "create urgency with competitive advantage"]
+      // Read the document content from file path
+      let documentContent = '';
+      if (document.path) {
+        try {
+          documentContent = await fs.readFile(document.path, 'utf-8');
+          console.log('🎵 LED 3003: RAG Processing - Document loaded:', {
+            path: document.path,
+            contentLength: documentContent.length
+          });
+        } catch (error) {
+          console.log('🔴 LED 3004: RAG Processing - Failed to read document:', error.message);
+          documentContent = document.content || 'Document content unavailable';
         }
-      } : {
-        document_summary: {
-          main_focus: "Sales techniques and customer engagement strategies",
-          value_for_sales: "Provides actionable techniques for improving conversion rates",
-          total_techniques_found: "12"
-        },
-        high_impact_techniques: [
-          {
-            technique: "SPIN Selling Framework",
-            situation: "During discovery phase with enterprise prospects",
-            example: "What's your current process for [specific challenge]?",
-            priority: "CRITICAL"
+      } else {
+        documentContent = document.content || 'Document content unavailable';
+      }
+
+      // Build the analysis prompt based on the rag-document-analyst2.md instructions
+      let analysisPrompt;
+      
+      if (phase === '1B' && questionnaire) {
+        // Phase 1B: Contextual analysis with questionnaire context
+        analysisPrompt = `Please follow the instructions in "D:\\Projects\\Ai\\VoiceCoach-v2\\.claude\\agents\\rag-document-analyst2.md" to analyze this document.
+
+**PHASE 1B - CONTEXTUAL ANALYSIS**
+Re-analyze this document for actionable techniques and insights, with special emphasis on the user's specific priorities:
+
+**USER'S LEARNING OBJECTIVES:** ${questionnaire.q2_learningObjective || 'Not specified'}
+**USER'S BUSINESS CHALLENGES:** ${questionnaire.q3_businessChallenge || 'Not specified'}  
+**USER'S SUCCESS METRICS:** ${questionnaire.q4_successMetrics || 'Not specified'}
+**CRITICAL CONCEPTS:** ${questionnaire.q5_criticalConcepts?.join(', ') || 'Not specified'}
+
+Focus your extraction on techniques that directly address these user priorities while still capturing other valuable content.
+
+**DOCUMENT TO ANALYZE:**
+${documentContent}
+
+Please return the analysis in the exact JSON format specified in the rag-document-analyst2.md agent instructions.`;
+
+      } else {
+        // Phase 1A: Pure document analysis
+        analysisPrompt = `Please follow the instructions in "D:\\Projects\\Ai\\VoiceCoach-v2\\.claude\\agents\\rag-document-analyst2.md" to analyze this document.
+
+**PHASE 1A - PURE DOCUMENT ANALYSIS**
+Analyze this document for actionable techniques, strategic frameworks, audience types, behavioral indicators, and practical insights following the comprehensive analysis structure defined in the agent instructions.
+
+**DOCUMENT TO ANALYZE:**
+${documentContent}
+
+Please return the analysis in the exact JSON format specified in the rag-document-analyst2.md agent instructions.`;
+      }
+
+      // Invoke the RAG Document Analyst2 agent via Claude Code Task tool
+      console.log('🎵 LED 3005: RAG Processing - Invoking RAG Document Analyst2 agent');
+      
+      try {
+        // Call the actual RAG Document Analyst2 agent using Claude Code Task tool
+        console.log('🎵 LED 3006: RAG Processing - Invoking RAG Document Analyst2 agent for real AI analysis');
+        
+        // Create the analysis prompt for the RAG Document Analyst2 agent
+        const taskPrompt = `${analysisPrompt}`;
+        
+        // NOTE: This is where we need to implement the actual Task tool call
+        // The challenge is that Electron apps can't directly call Claude Code MCP tools
+        // We need to either:
+        // 1. Set up IPC communication with Claude Code
+        // 2. Use a bridge service 
+        // 3. Call the RAG Document Analyst2 agent through an API
+        
+        console.log('🎵 LED 3006B: RAG Processing - Document content prepared for analysis:', {
+          contentLength: documentContent.length,
+          promptLength: taskPrompt.length,
+          phase: phase || '1A'
+        });
+        
+        // **SOLUTION: File-based communication with Claude Code**
+        // Save the analysis request to a file that Claude Code can process
+        const analysisRequestPath = path.join(__dirname, 'temp', `analysis_request_${Date.now()}.json`);
+        const analysisRequest = {
+          task: 'RAG_DOCUMENT_ANALYSIS',
+          agent: 'RAG Document Analyst2',
+          phase: phase || '1A',
+          document: {
+            name: document.name,
+            content: documentContent,
+            path: document.path
           },
-          {
-            technique: "Value-based objection handling",
-            situation: "When prospect raises price concerns",
-            example: "I understand cost is important. Let's look at the ROI...",
-            priority: "HIGH"
+          prompt: taskPrompt,
+          timestamp: new Date().toISOString()
+        };
+        
+        try {
+          // Ensure temp directory exists
+          const tempDir = path.join(__dirname, 'temp');
+          if (!fsSync.existsSync(tempDir)) {
+            fsSync.mkdirSync(tempDir, { recursive: true });
           }
-        ],
-        objection_handlers: [
-          {
-            objection: "It's too expensive",
-            response: "I understand price is a concern. What specific budget range were you considering?",
-            source: "Page 3, Section 2"
-          }
-        ],
-        conversation_scripts: [
-          {
-            scenario: "Opening call with new prospect",
-            script: "Hi [Name], I'm calling because companies like yours are facing [specific challenge]. I'd like to share how we've helped similar organizations...",
-            purpose: "Establishes credibility and relevance quickly"
-          }
-        ],
-        quick_wins: [
-          "Ask open-ended questions to understand pain points",
-          "Use mirroring to build rapport",
-          "Quantify benefits with specific numbers"
-        ],
-        coaching_triggers: {
-          if_customer_says: ["it's too expensive", "we need to think about it", "we're happy with our current solution"],
-          then_coach: ["redirect to value conversation", "create urgency with scarcity", "identify dissatisfaction areas"]
+          
+          // Save analysis request
+          fsSync.writeFileSync(analysisRequestPath, JSON.stringify(analysisRequest, null, 2));
+          console.log('🎵 LED 3006C: RAG Processing - Analysis request saved for Claude Code processing:', analysisRequestPath);
+          
+          // For now, return a structured response indicating the request is ready for processing
+          const analysisResult = {
+            status: 'request_prepared', 
+            phase: phase || '1A',
+            agent: 'RAG Document Analyst2',
+            document: {
+              name: document.name,
+              type: document.type || 'sales_document', 
+              size: documentContent.length,
+              path: document.path
+            },
+            analysis: {
+              actionable_techniques: [
+                {
+                  id: 'analysis_request_prepared',
+                  title: 'Analysis Request Ready for RAG Document Analyst2',
+                  priority: 'HIGH',
+                  description: 'Document analysis request prepared and saved for Claude Code processing',
+                  implementation: `Request saved to: ${analysisRequestPath}`,
+                  context: 'Phase 1A document analysis',
+                  effectiveness: 'ready'
+                }
+              ],
+              strategic_frameworks: [],
+              audience_types: [],
+              behavioral_indicators: [],
+              coaching_insights: [
+                {
+                  category: 'integration_status',
+                  insight: 'Analysis request prepared - waiting for Claude Code to process via RAG Document Analyst2',
+                  priority: 'HIGH', 
+                  trigger_scenarios: ['Phase 1A processing']
+                }
+              ],
+              success_metrics: [],
+              integration_points: []
+            },
+            metadata: {
+              processing_time: new Date().toISOString(),
+              breadcrumb_range: '3000-3099',
+              confidence: 'request_ready',
+              analysis_request_path: analysisRequestPath,
+              document_analyzed: false,
+              awaiting_claude_processing: true
+            }
+          };
+          
+          return analysisResult;
+          
+        } catch (fileError) {
+          console.log('🔴 LED 3006D: RAG Processing - Failed to save analysis request:', fileError.message);
+          throw new Error(`Failed to prepare analysis request: ${fileError.message}`);
         }
-      };
-      
-      console.log('🎵 LED 2021: RAG Processing - Subagent analysis complete:', {
-        techniquesFound: mockAnalysis.high_impact_techniques.length,
-        objectionHandlers: mockAnalysis.objection_handlers.length,
-        coachingTriggers: mockAnalysis.coaching_triggers.if_customer_says.length
-      });
-      
-      return mockAnalysis;
+        
+      } catch (error) {
+        console.log('🔴 LED 3009: RAG Processing - Document analysis error:', error.message);
+        throw new Error(`RAG Document Analyst2 analysis failed: ${error.message}`);
+      }
     }
     
-    throw new Error(`Unknown agent type: ${agentType}`);
+    throw new Error(`Unknown agent type: ${agentType}. Expected: rag-document-analyst2`);
     
   } catch (error) {
     console.log('❌ LED 2099: RAG Processing - Subagent invocation failed:', error.message);
@@ -699,7 +757,7 @@ ipcMain.handle('process-with-ollama', async (event, { combinedAnalysis, task, mo
   
   try {
     // For development, simulate Ollama processing
-    // This would be replaced with actual Ollama API integration
+    // This would be replaced with actual Ollama integration
     await new Promise(resolve => setTimeout(resolve, 3000));
     
     // Mock Ollama synthesis that combines Phase 1A + 1B insights

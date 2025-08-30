@@ -26,6 +26,21 @@ export interface ElectronAPI {
       closing: string[];
     };
   }>;
+  
+  // Subagent invocation
+  invokeSubagent: (data: {
+    agentType: string;
+    prompt: string;
+    document: any;
+    questionnaire?: any;
+    phase?: string;
+  }) => Promise<any>;
+  
+  // Ollama processing
+  processWithOllama: (data: {
+    phase1AResults: any;
+    phase1BResults: any;
+  }) => Promise<any>;
 
   // Storage operations
   saveInsights: (insights: any) => Promise<{ success: boolean }>;

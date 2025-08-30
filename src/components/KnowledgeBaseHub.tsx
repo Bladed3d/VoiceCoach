@@ -9,10 +9,7 @@ import {
   FileText, 
   Download, 
   Trash2, 
-  Eye, 
   Plus, 
-  CheckCircle2, 
-  Clock, 
   AlertCircle,
   RefreshCw,
   X,
@@ -22,7 +19,7 @@ import {
 } from 'lucide-react';
 import { BreadcrumbTrail } from '../lib/breadcrumb-system';
 import { KnowledgeBaseModal } from './modals/KnowledgeBaseModal';
-import { PhaseDetailsModal } from './modals/PhaseDetailsModal';
+// import { PhaseDetailsModal } from './modals/PhaseDetailsModal';
 import ProcessingStatus from './ProcessingStatus';
 import { QuestionnaireAnswers } from '../types/questionnaire';
 

@@ -3,6 +3,21 @@
 ## Project Mission
 Build a clean, modern desktop sales coaching application that provides real-time AI guidance during sales calls.
 
+## CRITICAL PROCESS MANAGEMENT RULES
+
+❌ **ABSOLUTELY FORBIDDEN COMMANDS - NEVER USE:**
+- `taskkill //F //IM node.exe` - WILL CRASH DEVELOPMENT WORK
+- `taskkill //F //IM electron.exe` - WILL CRASH APPLICATION
+- `taskkill` with ANY node or electron processes
+- **THIS APPLIES TO ALL COMMANDS** - including compound commands with `&&` or `;`
+- **NO EXCEPTIONS** - These commands destroy active development sessions
+
+✅ **SAFE PROCESS MANAGEMENT:**
+- Use `Get-Process` first to identify exact PIDs
+- Use `taskkill //F //PID [specific_number]` with exact PID only
+- Ask user for specific PID numbers if needed
+- Always target specific PIDs, never process names
+
 ## Technical Standards
 - **React 18** + TypeScript for type safety
 - **Electron only** - No browser compatibility needed
@@ -25,10 +40,45 @@ This project uses Memory Keeper MCP for session continuity. See `.claude/memory-
 
 ## Available Agents
 - **rag-analyst**: Processes documents using 3-phase approach
+- **"RAG Document Analyst2"**: Advanced document analyst extracting actionable sales techniques and frameworks
 - **lead-developer**: Implements features with LED instrumentation  
 - **ui-designer**: Creates world-class interfaces with Playwright validation
 - **breadcrumbs-agent**: Adds LED infrastructure to functional code
 - **tester**: Validates functionality and quality
+
+## Modular Architecture Standards
+**CRITICAL: All code must follow strict modularization to prevent bloat**
+
+**File Size Limits (STRICTLY ENFORCED):**
+- Components: < 400 lines maximum
+- Services: < 300 lines maximum  
+- Main app files: < 200 lines (orchestration only)
+- Utilities: < 150 lines maximum
+
+**Directory Structure:**
+```
+src/
+├── components/
+│   ├── common/           # Reusable UI < 100 lines
+│   ├── coaching/         # Coaching UI < 400 lines  
+│   └── modals/          # Modal components < 200 lines
+├── services/
+│   ├── audio/           # Audio capture, volume monitoring
+│   ├── coaching/        # Session management, suggestions
+│   ├── websocket/       # WebSocket client
+│   └── storage/         # Data persistence
+├── hooks/               # Custom React hooks < 100 lines
+├── types/               # TypeScript definitions
+└── lib/                 # Utilities and breadcrumb system
+```
+
+**Separation Rules:**
+1. ONE RESPONSIBILITY per file
+2. NO business logic in UI components  
+3. Services handle data/state management
+4. Components only handle presentation
+5. Hooks bridge services and components
+6. Communication: Service → Hook → Component
 
 ## Development Rules
 ✅ **Always do:**
@@ -36,12 +86,17 @@ This project uses Memory Keeper MCP for session continuity. See `.claude/memory-
 - Use TypeScript for type safety
 - Test thoroughly before claiming complete
 - Build for maintainability
+- **Follow modular architecture strictly**
+- **Create separate services for each concern**
 
 ❌ **Never do:**
 - Create components over 400 lines
 - Skip error handling
 - Compromise quality for speed
 - Add legacy compatibility layers
+- **Put business logic in UI components**
+- **Create monolithic files**
+- **Hard-code fake/mock data directly into application code**
 
 ## LED Breadcrumb Ranges
 - 1000-1099: Application startup and initialization
@@ -77,8 +132,26 @@ Invoke `@agent ui-designer` for thorough design validation when:
 - Before finalizing PRs with visual changes
 - Needing comprehensive accessibility and desktop UX testing
 
+## Data Policy
+**CRITICAL: NO FAKE DATA IN APPLICATION CODE**
+
+✅ **Acceptable for testing/development:**
+- External test data files in `tests/fixtures/` or `docs/test-data/`
+- Separate mock data services that can be easily disabled/removed
+- User-supplied test data during development sessions
+- Environment-based data loading (development vs production)
+
+❌ **NEVER acceptable:**
+- Hard-coded mock data directly in components or services
+- Fake user data embedded in application logic
+- Sample data that ships with production code
+- Demo content that cannot be easily removed
+
+**Rationale:** Hard-coded fake data creates maintenance debt, confuses users, and can accidentally ship to production. Always keep test data separate from application code.
+
 ## Success Criteria
 - Upload document → Answer questions → Get coaching insights in <30 seconds
 - Clean, maintainable codebase that any developer can understand
 - Comprehensive LED breadcrumb coverage for debugging
 - Production-ready with robust error handling
+- Zero hard-coded fake data in production code

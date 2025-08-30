@@ -4,7 +4,8 @@
   "description": "Modern desktop sales coaching application with AI-powered document analysis",
   "main": "main.cjs",
   "scripts": {
-    "dev": "concurrently \"npm run dev:vite\" \"npm run electron:dev\"",
+    "dev": "node pre-startup-cleanup.js && concurrently \"npm run dev:vite\" \"npm run electron:dev\"",
+    "dev:direct": "concurrently \"npm run dev:vite\" \"npm run electron:dev\"",
     "dev:vite": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",

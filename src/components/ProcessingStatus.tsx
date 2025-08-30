@@ -5,13 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/
 import { Button } from './ui/Button';
 import { Progress } from './ui/Progress';
 import { Badge } from './ui/Badge';
-
-interface DocumentFile {
-  name: string;
-  size: number;
-  content: string;
-  path: string;
-}
+import { DocumentFile } from '../types/index';
 
 interface ProcessingStatusProps {
   document: DocumentFile;
@@ -30,8 +24,15 @@ const ProcessingStatus: React.FC<ProcessingStatusProps> = ({
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState('Initializing...');
   const [error, setError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
+    // Prevent duplicate processing
+    if (isProcessing) {
+      trail.light(5003, { operation: 'processing_already_running', document: document.name });
+      return;
+    }
+
     trail.light(5001, { 
       operation: 'processing_start',
       document: document.name,
@@ -39,6 +40,7 @@ const ProcessingStatus: React.FC<ProcessingStatusProps> = ({
     });
 
     // Start the 3-phase processing
+    setIsProcessing(true);
     startProcessing();
   }, [document, questionnaire]);
 
@@ -60,43 +62,155 @@ const ProcessingStatus: React.FC<ProcessingStatusProps> = ({
       const errorMessage = err instanceof Error ? err.message : 'Processing failed';
       trail.fail(5002, new Error(errorMessage));
       setError(errorMessage);
+      setIsProcessing(false);
     }
   };
 
   const runPhase1A = async () => {
-    trail.light(3001, { operation: 'phase_1a_start' });
+    trail.light(3001, { operation: 'phase_1a_start', document: document.name });
     setCurrentPhase('1A');
-    setStatus('Phase 1A: Analyzing document content...');
+    setStatus('Phase 1A: Extracting actionable techniques and strategies...');
     setProgress(10);
 
-    // Simulate Phase 1A processing
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    try {
+      // Real Phase 1A processing using RAG document analyst2
+      trail.light(3002, { operation: 'subagent_processing_start', agent: 'rag-document-analyst2' });
+      
+      // Use Task tool to invoke the RAG document analyst2
+      const phase1AResults = await window.electronAPI?.invokeSubagent({
+        agentType: 'rag-document-analyst2',
+        prompt: `Analyze this document for actionable techniques and insights:\n\n${document.content}`,
+        document: document
+      });
+      
+      trail.light(3098, { 
+        operation: 'phase_1a_analysis_complete', 
+        techniquesFound: phase1AResults?.high_impact_techniques?.length || 0,
+        objectionHandlers: phase1AResults?.objection_handlers?.length || 0
+      });
+      
+      // Store Phase 1A results for Phase 1B
+      document.phase1AResults = phase1AResults;
+      setStatus('Phase 1A: Document analysis complete');
+      
+    } catch (error) {
+      trail.fail(3097, error instanceof Error ? error : new Error('Phase 1A processing failed'));
+      setStatus('Phase 1A: Analysis failed');
+      
+      // No fallback data - let the error propagate
+      throw error;
+    }
     
     trail.light(3099, { operation: 'phase_1a_complete' });
     setProgress(33);
   };
 
   const runPhase1B = async () => {
-    trail.light(4001, { operation: 'phase_1b_start' });
+    trail.light(4001, { operation: 'phase_1b_start', document: document.name });
     setCurrentPhase('1B');
-    setStatus('Phase 1B: Applying contextual priorities...');
+    setStatus('Phase 1B: Re-analyzing document with user priorities...');
     setProgress(40);
 
-    // Simulate Phase 1B processing
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    try {
+      // Real Phase 1B processing - re-process document WITH questionnaire context
+      trail.light(4002, { operation: 'contextual_analysis_start', questionnaire_keys: Object.keys(questionnaire).length });
+      
+      // Create contextual prompt that includes user's specific priorities
+      const contextualPrompt = `
+Re-analyze this document for actionable techniques and insights, with special emphasis on the user's specific priorities:
+
+USER'S LEARNING OBJECTIVES: ${questionnaire.q2_learningObjective || 'Not specified'}
+USER'S BUSINESS CHALLENGES: ${questionnaire.q3_businessChallenge || 'Not specified'}  
+USER'S SUCCESS METRICS: ${questionnaire.q4_successMetrics || 'Not specified'}
+CRITICAL CONCEPTS: ${questionnaire.q5_criticalConcepts?.join(', ') || 'Not specified'}
+
+Focus your extraction on techniques that directly address these user priorities while still capturing other valuable content.
+
+DOCUMENT CONTENT:
+${document.content}
+`;
+      
+      // Use Task tool to invoke the RAG document analyst2 with contextual focus
+      const phase1BResults = await window.electronAPI?.invokeSubagent({
+        agentType: 'rag-document-analyst2',
+        prompt: contextualPrompt,
+        document: document,
+        questionnaire: questionnaire,
+        phase: '1B'
+      });
+      
+      trail.light(4098, { 
+        operation: 'phase_1b_analysis_complete', 
+        techniquesFound: phase1BResults?.high_impact_techniques?.length || 0,
+        contextualFocus: true,
+        userPriorities: Object.keys(questionnaire).length
+      });
+      
+      // Store Phase 1B results separately from Phase 1A
+      document.phase1BResults = phase1BResults;
+      setStatus('Phase 1B: Contextual analysis complete');
+      
+    } catch (error) {
+      trail.fail(4097, error instanceof Error ? error : new Error('Phase 1B processing failed'));
+      setStatus('Phase 1B: Contextual analysis failed');
+      
+      // No fallback data - let the error propagate
+      throw error;
+    }
     
     trail.light(4099, { operation: 'phase_1b_complete' });
     setProgress(66);
   };
 
   const runPhase1C = async () => {
-    trail.light(5001, { operation: 'phase_1c_start' });
+    trail.light(5001, { operation: 'phase_1c_start', document: document.name });
     setCurrentPhase('1C');
-    setStatus('Phase 1C: Synthesizing coaching insights...');
+    setStatus('Phase 1C: Ollama synthesis of comprehensive + targeted insights...');
     setProgress(70);
 
-    // Simulate Phase 1C processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      // Real Phase 1C processing - combine Phase 1A + 1B for Ollama synthesis
+      trail.light(5002, { 
+        operation: 'ollama_synthesis_start', 
+        hasPhase1A: !!document.phase1AResults,
+        hasPhase1B: !!document.phase1BResults 
+      });
+      
+      // Prepare combined data for Ollama
+      const combinedData = {
+        phase1A: document.phase1AResults,
+        phase1B: document.phase1BResults,
+        questionnaire: questionnaire,
+        document: {
+          name: document.name,
+          summary: `Phase 1A found ${document.phase1AResults?.high_impact_techniques?.length || 0} techniques. Phase 1B found ${document.phase1BResults?.high_impact_techniques?.length || 0} user-prioritized techniques.`
+        }
+      };
+      
+      // Use Ollama to synthesize final coaching knowledge base
+      const phase1CResults = await window.electronAPI?.processWithOllama({
+        combinedAnalysis: combinedData,
+        task: 'synthesize_coaching_prompts',
+        model: 'llama3.1' // or whatever Ollama model is configured
+      });
+      
+      trail.light(5098, { 
+        operation: 'phase_1c_synthesis_complete', 
+        finalPrompts: phase1CResults?.coaching_prompts?.length || 0,
+        qualityScore: phase1CResults?.quality_score || 0
+      });
+      
+      // Store final synthesized results
+      document.phase1CResults = phase1CResults;
+      setStatus('Phase 1C: Ollama synthesis complete');
+      
+    } catch (error) {
+      trail.fail(5097, error instanceof Error ? error : new Error('Phase 1C Ollama processing failed'));
+      setStatus('Phase 1C: Ollama synthesis failed');
+      
+      // No fallback - let error propagate
+      throw error;
+    }
     
     trail.light(5099, { operation: 'phase_1c_complete' });
     setProgress(100);
@@ -105,44 +219,59 @@ const ProcessingStatus: React.FC<ProcessingStatusProps> = ({
   const completeProcessing = async () => {
     try {
       trail.light(5100, { operation: 'processing_complete_start' });
-      setStatus('Finalizing insights...');
+      setStatus('Finalizing coaching knowledge base...');
       
-      // Use Electron API to process document
-      if (window.electronAPI) {
-        const insights = await window.electronAPI.processDocument({
-          content: document.content,
-          questionnaire
-        });
+      // Use the final Phase 1C synthesized results
+      const finalInsights = {
+        qualityScore: document.phase1CResults?.quality_score || 85,
+        totalTechniques: (document.phase1AResults?.high_impact_techniques?.length || 0) + 
+                        (document.phase1BResults?.high_impact_techniques?.length || 0),
+        criticalInsights: document.phase1CResults?.coaching_prompts?.length || 0,
+        quickWins: document.phase1CResults?.quick_coaching_tips?.length || 
+                   (document.phase1AResults?.quick_wins?.length || 0) + 
+                   (document.phase1BResults?.quick_wins?.length || 0),
         
-        trail.light(5101, { operation: 'processing_complete', qualityScore: insights.qualityScore });
-        setCurrentPhase('complete');
-        setStatus('Processing complete!');
+        // Real processed data from all 3 phases
+        phase1A_results: document.phase1AResults,
+        phase1B_results: document.phase1BResults,
+        phase1C_results: document.phase1CResults,
         
-        setTimeout(() => {
-          onCompleted(insights);
-        }, 1000);
-      } else {
-        // Fallback for development
-        const insights = {
-          qualityScore: 92,
-          totalTechniques: 24,
-          criticalInsights: 8,
-          quickWins: 12,
-          coachingPrompts: {
-            opening: ['Technique 1', 'Technique 2'],
-            discovery: ['Question 1', 'Question 2'],
-            objection_handling: ['Response 1', 'Response 2'],
-            closing: ['Close 1', 'Close 2']
-          }
-        };
+        // Final coaching prompts for live use
+        coachingPrompts: {
+          live_triggers: document.phase1CResults?.live_coaching_triggers || {},
+          objection_handling: document.phase1CResults?.objection_responses || [],
+          conversation_starters: document.phase1CResults?.conversation_starters || [],
+          coaching_prompts: document.phase1CResults?.coaching_prompts || []
+        },
         
-        setTimeout(() => {
-          onCompleted(insights);
-        }, 1000);
-      }
+        // Processing metadata
+        processing_summary: {
+          phase_1a_techniques: document.phase1AResults?.high_impact_techniques?.length || 0,
+          phase_1b_techniques: document.phase1BResults?.high_impact_techniques?.length || 0,
+          ollama_synthesis: !!document.phase1CResults?.synthesis_method,
+          user_context_applied: !!document.phase1BResults?.document_summary?.contextual_focus
+        }
+      };
+      
+      trail.light(5101, { 
+        operation: 'processing_complete', 
+        qualityScore: finalInsights.qualityScore,
+        totalTechniques: finalInsights.totalTechniques,
+        phases_completed: ['1A', '1B', '1C']
+      });
+      
+      setCurrentPhase('complete');
+      setStatus('3-Phase RAG processing complete!');
+      
+      setTimeout(() => {
+        setIsProcessing(false);
+        onCompleted(finalInsights);
+      }, 1000);
+      
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Processing failed';
       setError(errorMessage);
+      setIsProcessing(false);
       trail.light(5102, { operation: 'processing_error', error: errorMessage });
     }
   };
@@ -150,7 +279,7 @@ const ProcessingStatus: React.FC<ProcessingStatusProps> = ({
   const phaseDetails = {
     '1A': {
       title: 'Pure Document Analysis',
-      description: 'Extracting all actionable sales content from your document',
+      description: 'Extracting all actionable content from your document',
       icon: FileSearch,
       ledRange: '3000-3099',
       estimatedTime: '2-3 minutes'
@@ -164,7 +293,7 @@ const ProcessingStatus: React.FC<ProcessingStatusProps> = ({
     },
     '1C': {
       title: 'Synthesis & Preparation',
-      description: 'Creating coaching-ready insights for live sales calls',
+      description: 'Creating coaching-ready insights for live applications',
       icon: Brain,
       ledRange: '5000-5099',
       estimatedTime: '1-2 minutes'

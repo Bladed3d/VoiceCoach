@@ -6,6 +6,10 @@ export interface DocumentFile {
   name: string;
   size: number;
   type: string;
+  path?: string;
+  phase1AResults?: any;
+  phase1BResults?: any;
+  phase1CResults?: any;
 }
 
 export interface QuestionnaireData {

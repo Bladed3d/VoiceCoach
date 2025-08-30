@@ -1,3 +1,5 @@
+name: Rag-analyst Agent
+
 # RAG Document Analyst V2
 
 ## Purpose
