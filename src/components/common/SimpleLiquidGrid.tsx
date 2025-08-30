@@ -2,7 +2,7 @@
  * VoiceCoach V2 - Simplified Liquid Grid Animation
  * Rebuilt for reliability with pure CSS and minimal JavaScript
  */
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 
 interface SimpleLiquidGridProps {
   className?: string;
@@ -14,19 +14,30 @@ export const SimpleLiquidGrid: React.FC<SimpleLiquidGridProps> = ({
   isActive = true 
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const animationFrameRef = useRef<number>();
+  const intervalsRef = useRef<NodeJS.Timeout[]>([]);
 
-  useEffect(() => {
-    if (!containerRef.current || !isActive) return;
+  // Grid generation function that can be called on resize
+  const createGrid = useCallback(() => {
+    if (!containerRef.current || !isActive) return { activeSquares: [], cleanup: () => {} };
 
-    console.log('SimpleLiquidGrid: Starting animation');
+    const container = containerRef.current;
+    
+    // Clear existing content
+    container.innerHTML = '';
+    
+    // Clear existing intervals
+    intervalsRef.current.forEach(interval => clearInterval(interval));
+    intervalsRef.current = [];
+
+    console.log('SimpleLiquidGrid: Creating responsive grid');
     
     // Simple grid creation
-    const container = containerRef.current;
     const gridSize = 30;
     const cols = Math.floor(container.clientWidth / gridSize);
     const rows = Math.floor(container.clientHeight / gridSize);
     
-    console.log(`Creating ${cols}x${rows} grid`);
+    console.log(`Creating ${cols}x${rows} grid for ${container.clientWidth}x${container.clientHeight}`);
     
     // Create 3x more squares - much denser grid
     const spacing = gridSize + 5; // Less spacing for more squares
@@ -131,13 +142,57 @@ export const SimpleLiquidGrid: React.FC<SimpleLiquidGridProps> = ({
       }, 2000);
     };
     
-    // Track currently visible boxes
+    // Create pin lights more frequently - 2x as many streaks
+    const pinLightInterval = setInterval(() => {
+      // Higher probability and more frequent spawning
+      if (Math.random() < 0.8) createPinLight();
+      // Sometimes spawn two at once
+      if (Math.random() < 0.3) {
+        setTimeout(() => createPinLight(), 200 + Math.random() * 400);
+      }
+    }, 800 + Math.random() * 1000); // Faster interval
+    
+    // Store interval for cleanup
+    intervalsRef.current.push(pinLightInterval);
+
+    // Add CSS animation for pin lights
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes pinStreak {
+        0% { transform: translateY(0); opacity: 0; }
+        10% { opacity: 1; }
+        90% { opacity: 1; }
+        100% { transform: translateY(-${container.clientHeight + 300}px); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Return grid data and cleanup function
+    return {
+      activeSquares,
+      cleanup: () => {
+        intervalsRef.current.forEach(interval => clearInterval(interval));
+        intervalsRef.current = [];
+        if (style.parentNode) {
+          style.remove();
+        }
+      }
+    };
+  }, [isActive]);
+
+  // Main effect that handles grid creation and resize listening
+  useEffect(() => {
+    if (!containerRef.current || !isActive) return;
+
+    let gridData = createGrid();
     let currentlyVisible = 0;
     const minBoxes = 6;
     const maxBoxes = 50;
-    
+
     // Enhanced animation with min/max constraints
     const animateRandomSquares = () => {
+      if (!gridData.activeSquares.length) return;
+      
       // Calculate how many boxes to show based on current count
       let targetVisible;
       if (currentlyVisible < minBoxes) {
@@ -157,7 +212,7 @@ export const SimpleLiquidGrid: React.FC<SimpleLiquidGridProps> = ({
       
       // Activate new squares
       for (let i = 0; i < numToActivate; i++) {
-        const availableSquares = activeSquares.filter(sq => sq.fill.style.height === '0%' || !sq.fill.style.height);
+        const availableSquares = gridData.activeSquares.filter(sq => sq.fill.style.height === '0%' || !sq.fill.style.height);
         if (availableSquares.length === 0) break;
         
         const randomSquare = availableSquares[Math.floor(Math.random() * availableSquares.length)];
@@ -179,52 +234,48 @@ export const SimpleLiquidGrid: React.FC<SimpleLiquidGridProps> = ({
       }
       
       // Schedule next animation cycle
-      setTimeout(animateRandomSquares, 1000 + Math.random() * 2000);
+      const timeoutId = setTimeout(animateRandomSquares, 1000 + Math.random() * 2000);
+      intervalsRef.current.push(timeoutId as any);
     };
-    
-    // Start animations
-    setTimeout(animateRandomSquares, 2000);
-    
-    // Create pin lights more frequently - 2x as many streaks
-    const pinLightInterval = setInterval(() => {
-      // Higher probability and more frequent spawning
-      if (Math.random() < 0.8) createPinLight();
-      // Sometimes spawn two at once
-      if (Math.random() < 0.3) {
-        setTimeout(() => createPinLight(), 200 + Math.random() * 400);
-      }
-    }, 800 + Math.random() * 1000); // Faster interval
-    
-    // Store interval for cleanup
-    (container as any).pinLightInterval = pinLightInterval;
 
-    console.log('SimpleLiquidGrid: Grid created');
+    // Start animations after a delay
+    const startTimeout = setTimeout(animateRandomSquares, 2000);
+    intervalsRef.current.push(startTimeout as any);
 
-    // Add CSS animation for pin lights
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes pinStreak {
-        0% { transform: translateY(0); opacity: 0; }
-        10% { opacity: 1; }
-        90% { opacity: 1; }
-        100% { transform: translateY(-${container.clientHeight + 300}px); opacity: 0; }
-      }
-    `;
-    document.head.appendChild(style);
-
-    // Cleanup
-    return () => {
-      if (container) {
-        container.innerHTML = '';
-        if ((container as any).pinLightInterval) {
-          clearInterval((container as any).pinLightInterval);
+    // Resize handler that debounces grid recreation
+    let resizeTimeout: NodeJS.Timeout;
+    const handleResize = () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        if (containerRef.current && isActive) {
+          // Clean up current grid
+          gridData.cleanup();
+          currentlyVisible = 0;
+          
+          // Recreate grid with new dimensions
+          gridData = createGrid();
+          
+          // Restart animation cycle
+          const restartTimeout = setTimeout(animateRandomSquares, 500);
+          intervalsRef.current.push(restartTimeout as any);
+          
+          console.log('SimpleLiquidGrid: Grid recreated on resize');
         }
-      }
-      if (style.parentNode) {
-        style.remove();
+      }, 150); // 150ms debounce
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    // Cleanup function
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(resizeTimeout);
+      gridData.cleanup();
+      if (containerRef.current) {
+        containerRef.current.innerHTML = '';
       }
     };
-  }, [isActive]);
+  }, [isActive, createGrid]);
 
   if (!isActive) return null;
 

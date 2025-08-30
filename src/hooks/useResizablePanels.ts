@@ -13,13 +13,11 @@ interface ResizablePanelsConfig {
   };
   script: {
     minWidth: number;
-    maxWidth: number;
     defaultWidth: number;
     collapsedWidth: number;
   };
   transcription: {
     minWidth: number;
-    maxWidth: number;
     defaultWidth: number;
     collapsedWidth: number;
   };
@@ -33,13 +31,11 @@ const SMALL_SCREEN_CONFIG: ResizablePanelsConfig = {
   },
   script: {
     minWidth: 180,
-    maxWidth: 350,
     defaultWidth: 220,
     collapsedWidth: 40,
   },
   transcription: {
     minWidth: 150,
-    maxWidth: 280,
     defaultWidth: 200,
     collapsedWidth: 40,
   },
@@ -52,13 +48,11 @@ const MEDIUM_SCREEN_CONFIG: ResizablePanelsConfig = {
   },
   script: {
     minWidth: 220,
-    maxWidth: 400,
     defaultWidth: 260,
     collapsedWidth: 44,
   },
   transcription: {
     minWidth: 180,
-    maxWidth: 340,
     defaultWidth: 240,
     collapsedWidth: 44,
   },
@@ -71,13 +65,11 @@ const DEFAULT_CONFIG: ResizablePanelsConfig = {
   },
   script: {
     minWidth: 250,
-    maxWidth: 500,
     defaultWidth: 300,
     collapsedWidth: 48,
   },
   transcription: {
     minWidth: 200,
-    maxWidth: 400,
     defaultWidth: 280,
     collapsedWidth: 48,
   },
@@ -111,7 +103,7 @@ export const useResizablePanels = (initialConfig?: ResizablePanelsConfig) => {
     isHidden: false, // Visible but collapsed
     width: config.script.defaultWidth,
     minWidth: config.script.minWidth,
-    maxWidth: config.script.maxWidth,
+    maxWidth: Infinity, // No maximum width limit - user has full control
   });
   
   const [transcriptionPanel, setTranscriptionPanel] = useState<PanelState>({
@@ -119,7 +111,7 @@ export const useResizablePanels = (initialConfig?: ResizablePanelsConfig) => {
     isHidden: false, // Visible and expanded
     width: config.transcription.defaultWidth,
     minWidth: config.transcription.minWidth,
-    maxWidth: config.transcription.maxWidth,
+    maxWidth: Infinity, // No maximum width limit - user has full control
   });
   
   // Drag state
@@ -218,12 +210,12 @@ export const useResizablePanels = (initialConfig?: ResizablePanelsConfig) => {
     // REVERSED: Drag left to make larger, drag right to make smaller
     let newWidth = dragStartWidth - deltaX;
     
-    // Apply constraints based on panel type
+    // Apply only minimum width constraint - no maximum limit for full flexibility
     if (isDragging === 'script') {
-      newWidth = Math.max(config.script.minWidth, Math.min(config.script.maxWidth, newWidth));
+      newWidth = Math.max(config.script.minWidth, newWidth);
       setScriptPanel(prev => ({ ...prev, width: newWidth }));
     } else if (isDragging === 'transcription') {
-      newWidth = Math.max(config.transcription.minWidth, Math.min(config.transcription.maxWidth, newWidth));
+      newWidth = Math.max(config.transcription.minWidth, newWidth);
       setTranscriptionPanel(prev => ({ ...prev, width: newWidth }));
     }
   }, [isDragging, dragStartX, dragStartWidth, config]);
