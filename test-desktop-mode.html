@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VoiceCoach V2 Desktop Mode Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .pass { background: #d4edda; }
+        .fail { background: #f8d7da; }
+    </style>
+</head>
+<body>
+    <h1>VoiceCoach V2 Desktop Mode Validation</h1>
+    <div id="results"></div>
+
+    <script>
+        function runTests() {
+            const results = document.getElementById('results');
+            const tests = [];
+            
+            // Test 1: Electron API availability
+            const electronAPI = window.electronAPI;
+            tests.push({
+                name: 'Electron API Available',
+                result: !!electronAPI,
+                details: electronAPI ? 'Desktop mode: electronAPI detected' : 'Browser mode: No electronAPI'
+            });
+            
+            // Test 2: isElectron flag
+            tests.push({
+                name: 'isElectron Flag',
+                result: !!window.isElectron,
+                details: window.isElectron ? 'Desktop mode confirmed' : 'Browser mode detected'
+            });
+            
+            // Test 3: Desktop file operations
+            if (electronAPI) {
+                tests.push({
+                    name: 'Desktop File Operations',
+                    result: typeof electronAPI.selectFile === 'function',
+                    details: 'selectFile, readFile, and file dialogs available'
+                });
+                
+                tests.push({
+                    name: 'VoiceCoach Transcription API',
+                    result: typeof electronAPI.startTranscription === 'function',
+                    details: 'startTranscription and WebSocket server control available'
+                });
+                
+                tests.push({
+                    name: 'Desktop Audio Permissions',
+                    result: typeof electronAPI.requestMicrophoneAccess === 'function',
+                    details: 'Desktop-level microphone access control available'
+                });
+            } else {
+                tests.push({
+                    name: 'Browser Limitations',
+                    result: false,
+                    details: 'No desktop file system access, limited audio permissions'
+                });
+            }
+            
+            // Test 4: User agent detection
+            const isElectronUserAgent = navigator.userAgent.includes('Electron');
+            tests.push({
+                name: 'User Agent Check',
+                result: isElectronUserAgent,
+                details: `User Agent: ${navigator.userAgent.substring(0, 100)}...`
+            });
+            
+            // Test 5: Window location
+            tests.push({
+                name: 'Window Location',
+                result: true, // Always show
+                details: `Location: ${window.location.href}`
+            });
+            
+            // Render results
+            results.innerHTML = tests.map(test => 
+                `<div class="test ${test.result ? 'pass' : 'fail'}">
+                    <strong>${test.name}</strong>: ${test.result ? 'PASS' : 'FAIL'}<br>
+                    <small>${test.details}</small>
+                </div>`
+            ).join('');
+            
+            // Summary
+            const totalTests = tests.length;
+            const passedTests = tests.filter(t => t.result).length;
+            const isDesktopMode = electronAPI && window.isElectron;
+            
+            results.innerHTML += `
+                <div class="test ${isDesktopMode ? 'pass' : 'fail'}">
+                    <h3>SUMMARY</h3>
+                    <strong>Mode: ${isDesktopMode ? 'DESKTOP ELECTRON APP' : 'BROWSER WINDOW'}</strong><br>
+                    Tests Passed: ${passedTests}/${totalTests}<br>
+                    ${isDesktopMode ? 
+                        '✅ This is running as a proper desktop application with full permissions.' : 
+                        '❌ This is running as a browser window with limited capabilities.'
+                    }
+                </div>
+            `;
+        }
+        
+        // Run tests when page loads
+        window.addEventListener('load', runTests);
+    </script>
+</body>
+</html>

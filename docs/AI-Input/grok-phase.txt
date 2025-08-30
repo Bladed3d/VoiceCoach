@@ -1,0 +1,157 @@
+To structure your Electron app's code for cleanliness, efficiency, and speed—especially given the phased AI workflow you described—I'll outline a recommended approach based on established best practices for Node.js/Electron applications. This draws from principles like modularity, separation of concerns, configurability, and parallelism, which are key for maintainable and performant apps. Since your workflow involves AI subagents (likely integrating with services like OpenAI, Anthropic, or local models via APIs), parallel processing, and document generation/combination, the structure should prioritize ease of adjustment (e.g., via config files) and performance optimizations for live coaching scenarios (low latency, non-blocking operations).
+I'll explain the rationale, proposed structure, how to handle parallelism, configurability, and speed optimizations. I performed a targeted web search using the available tools to confirm and incorporate best practices from sources like Electron's official docs, Node.js guides, and performance-focused articles (e.g., from Smashing Magazine, LogRocket, and GitHub repos for high-perf Electron apps). No deep research was needed beyond that, as the principles are well-established, but I'll cite key insights.
+Rationale for the Structure
+
+Cleanliness: Use modular files (one per phase or utility) to avoid a monolithic "main" file. This follows the Single Responsibility Principle—each module handles one thing, making it easier to read, test, and debug.
+Efficiency: Leverage Node.js's async nature for non-blocking I/O (e.g., AI API calls). Config files allow quick adjustments without redeploying code.
+Speed: Electron apps can be slow if not optimized (e.g., due to heavy main-thread work). Use worker threads or child processes for CPU-intensive tasks (like AI processing or document merging). Parallelize 1A and 1B with Promise.all. For live coaching, minimize latency with caching, batching, and offloading to background processes.
+Adjustability: Store directives/instructions in JSON/YAML configs. Phases as separate modules mean you can tweak one without touching others.
+Parallelism: Phases 1A and 1B can run concurrently using async promises, reducing total execution time.
+Research Insights:
+
+Electron docs emphasize using ipcMain/ipcRenderer for main/renderer separation and BrowserWindow for isolated processes.
+Node.js worker threads (via worker_threads module) are recommended for parallel CPU-bound tasks to avoid blocking the event loop (sources: Node.js docs, LogRocket article on Electron performance).
+For speed in real-time apps (like coaching), use caching (e.g., Redis or in-memory), prefetching, and minimize synchronous operations (Smashing Magazine: "Optimizing Electron Apps for Speed").
+Popular Electron apps (e.g., VS Code, Slack) structure code into core modules, plugins/extensions, and configs for scalability.
+
+
+
+No need for further research unless your AI integrations involve specific libraries (e.g., LangChain for subagents)—we can iterate if needed.
+Proposed Code Structure
+Organize your project like this (assuming a standard Electron setup with electron-forge or electron-builder for packaging):
+textyour-electron-app/
+├── src/                  # All source code
+│   ├── main/             # Main process (background logic, non-UI)
+│   │   ├── index.js      # Entry point: Orchestrates phases, handles IPC from renderer
+│   │   ├── phases/       # Modular phases as individual files
+│   │   │   ├── phase1A.js
+│   │   │   ├── phase1B.js
+│   │   │   ├── phase1C.js
+│   │   │   └── phaseRAGPrep.js  # Handles passing 1C to the different AI for RAG
+│   │   ├── utils/        # Shared utilities (e.g., document merging, AI API wrappers)
+│   │   │   ├── aiSubagent.js  # Wrapper for the common subagent (reusable for 1A/1B)
+│   │   │   ├── documentMerger.js  # Logic to combine 1A + 1B docs
+│   │   │   └── errorHandler.js    # Centralized error logging/handling
+│   │   └── workers/      # For parallel/heavy tasks (if needed)
+│   │       └── aiWorker.js  # Worker thread for AI calls to avoid blocking
+│   ├── renderer/         # Renderer process (UI-related)
+│   │   ├── index.js      # UI entry: Buttons/triggers for starting workflow, displaying results
+│   │   └── uiComponents/ # React/Vue components if using a framework (optional for complex UI)
+├── config/               # Configurable files (easy to edit without code changes)
+│   ├── phase1A.json      # Directives for 1A
+│   ├── phase1B.json      # Directives for 1B (slightly different)
+│   └── appConfig.json    # Global settings (e.g., AI API keys, RAG endpoints)
+├── package.json          # Dependencies (e.g., "worker_threads", "axios" for APIs)
+├── electron-builder.yml  # Build config for packaging
+└── README.md             # Docs on how to adjust phases/configs
+
+Why individual files for phases? Yes, this is best. Calling them from main/index.js keeps the orchestrator simple. Each phase file exports a function (e.g., async function runPhase1A(input) { ... }). This makes testing isolated (e.g., via Jest) and adjustments localized—edit phase1A.js without touching others.
+No monolithic file: Avoid putting everything in one "main" script; it's harder to maintain as your app grows.
+
+Example Code Snippets
+Here's how this wires together (using Node.js/ES modules; assume you're using async/await).
+
+Main Orchestrator (src/main/index.js):
+jsconst { app, BrowserWindow, ipcMain } = require('electron');
+const path = require('path');
+const { runPhase1A } = require('./phases/phase1A');
+const { runPhase1B } = require('./phases/phase1B');
+const { runPhase1C } = require('./phases/phase1C');
+const { runRAGPrep } = require('./phases/phaseRAGPrep');
+const { handleError } = require('./utils/errorHandler');
+
+// Load configs (easy to adjust)
+const phase1AConfig = require('../../config/phase1A.json');
+const phase1BConfig = require('../../config/phase1B.json');
+
+app.whenReady().then(() => {
+  const win = new BrowserWindow({ /* options */ });
+  win.loadFile('renderer/index.html');  // Your UI
+
+  // Listen for UI trigger (e.g., "start workflow")
+  ipcMain.handle('startWorkflow', async (event, initialInput) => {
+    try {
+      // Run 1A and 1B in parallel
+      const [doc1A, doc1B] = await Promise.all([
+        runPhase1A(initialInput, phase1AConfig),
+        runPhase1B(initialInput, phase1BConfig)
+      ]);
+
+      // Combine to 1C
+      const doc1C = await runPhase1C(doc1A, doc1B);
+
+      // Prep for RAG
+      const ragReadyDoc = await runRAGPrep(doc1C);
+
+      return { success: true, result: ragReadyDoc };  // Send back to UI
+    } catch (error) {
+      handleError(error);
+      return { success: false, error: error.message };
+    }
+  });
+});
+
+Phase Files (e.g., src/main/phases/phase1A.js):
+jsconst { callAISubagent } = require('../utils/aiSubagent');
+
+async function runPhase1A(input, config) {
+  // Use config.directives for instructions
+  const response = await callAISubagent(input, config.directives);
+  // Process/generate unique document
+  const doc = { content: response, metadata: { phase: '1A' } };
+  return doc;
+}
+
+module.exports = { runPhase1A };
+
+phase1B.js is similar but uses its own config.
+phase1C.js: Imports documentMerger.js to combine docs.
+
+
+Shared AI Wrapper (src/main/utils/aiSubagent.js):
+jsconst axios = require('axios');  // Or your AI lib
+
+async function callAISubagent(input, directives) {
+  // API call to AI (e.g., OpenAI)
+  const response = await axios.post('https://api.ai.com/generate', {
+    prompt: `${directives.prompt}\n\nInput: ${input}`,
+    model: directives.model
+  });
+  return response.data.text;
+}
+
+module.exports = { callAISubagent };
+
+Config Example (config/phase1A.json):
+json{
+  "directives": {
+    "prompt": "Process this input as per Phase 1A: [detailed instructions here]",
+    "model": "gpt-4o",
+    "temperature": 0.7
+  }
+}
+
+Edit this file to tweak instructions without code changes. Reload app or watch for file changes in dev mode.
+
+
+Renderer/UI (src/renderer/index.js): Use ipcRenderer to trigger workflow from buttons, display progress/results.
+
+Handling Parallelism and Speed
+
+Parallel 1A/1B: Promise.all runs them concurrently, halving time if they're I/O-bound (AI APIs). For CPU-bound tasks, offload to workers:
+jsconst { Worker } = require('worker_threads');
+// In phase1A.js: Use a worker for heavy processing
+
+Optimizations for Live Coaching:
+
+Non-blocking: All AI calls are async; use timeouts to prevent hangs.
+Caching: Add Redis or node-cache for repeated subagent calls (e.g., cache docs by input hash).
+Workers/Processes: For speed, spawn workers in workers/aiWorker.js for parallel AI tasks (Electron supports this via fork or threads).
+Batching: If coaching involves multiple users, batch API calls.
+Profiling: Use Electron's DevTools or clinic.js to measure perf; aim for <100ms UI latency.
+Hardware: Leverage GPU for local AI (if using something like Ollama) via Electron's WebGL.
+Testing: Your tests (Phase 1A/B working well) fit here—unit test each phase file.
+
+
+
+This structure scales well: Add phases easily, adjust configs on-the-fly, and maintain speed. If your app integrates Python (from the docs you provided), use child_process to spawn Python scripts for transcription.

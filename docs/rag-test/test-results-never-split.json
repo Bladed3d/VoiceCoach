@@ -1,0 +1,147 @@
+{
+  "document_summary": {
+    "main_focus": "FBI hostage negotiation techniques adapted for everyday negotiations and sales situations, emphasizing emotion-driven decision making over rational approaches",
+    "value_for_sales": "Provides tactical empathy techniques, question frameworks, and psychological strategies to build rapport, uncover hidden motivations, and guide prospects to desired outcomes while making them feel in control",
+    "total_techniques_found": "47"
+  },
+  
+  "high_impact_techniques": [
+    {
+      "technique": "Tactical Empathy - Understanding and articulating the other's emotions to influence outcomes",
+      "situation": "When prospect seems resistant, frustrated, or emotionally charged",
+      "example": "It sounds like you're concerned about the budget implications of this decision",
+      "priority": "CRITICAL"
+    },
+    {
+      "technique": "Mirroring - Repeat the last 1-3 words to build rapport and encourage elaboration",
+      "situation": "When you need more information or want to show you're listening",
+      "example": "Prospect: 'The price is too high.' You: 'Too high?'",
+      "priority": "CRITICAL"
+    },
+    {
+      "technique": "Labeling - Name emotions to diffuse tension and build connection",
+      "situation": "When prospect shows emotional distress, frustration, or hesitation",
+      "example": "It seems like you're frustrated with the current solution",
+      "priority": "CRITICAL"
+    },
+    {
+      "technique": "Calibrated Questions - Open-ended 'how' and 'what' questions that put prospect in driver's seat",
+      "situation": "When facing objections or needing to guide prospect to solutions",
+      "example": "How can we move forward on this? What would make this work for you?",
+      "priority": "CRITICAL"
+    },
+    {
+      "technique": "Accusation Audit - Address objections upfront before they're raised",
+      "situation": "At the beginning of calls when you anticipate resistance",
+      "example": "You probably think I'm just another salesperson trying to sell you something you don't need",
+      "priority": "HIGH"
+    },
+    {
+      "technique": "Dynamic Silence - Use strategic pauses to encourage prospect to talk",
+      "situation": "After asking important questions or making key points",
+      "example": "Ask a calibrated question then remain completely silent until they respond",
+      "priority": "HIGH"
+    },
+    {
+      "technique": "Getting to 'That's Right' - Summarize their position until they confirm you understand",
+      "situation": "When building agreement and commitment",
+      "example": "So what I'm hearing is... [summarize their concerns and position]",
+      "priority": "CRITICAL"
+    },
+    {
+      "technique": "Loss Aversion Framing - Frame offers to prevent losses rather than gain benefits",
+      "situation": "When presenting solutions or creating urgency",
+      "example": "Without this system, you'll continue losing qualified leads every day",
+      "priority": "HIGH"
+    }
+  ],
+  
+  "objection_handlers": [
+    {
+      "objection": "The price is too high",
+      "response": "Use calibrated question: 'How can I make this work within your budget?' Then pivot to value and loss aversion",
+      "source": "Chapter on bargaining and framing"
+    },
+    {
+      "objection": "I need to think about it",
+      "response": "Label the hesitation: 'It sounds like there's something about this that doesn't feel right to you. What is it?'",
+      "source": "Labeling technique chapter"
+    },
+    {
+      "objection": "We're happy with our current solution",
+      "response": "Use mirroring: 'Happy with your current solution?' Then explore with 'What would have to happen for you to consider a change?'",
+      "source": "Mirroring and calibrated questions"
+    },
+    {
+      "objection": "I don't have the budget",
+      "response": "Reframe with loss aversion: 'What's the cost of not solving this problem?' Focus on ROI and missed opportunities",
+      "source": "Loss aversion and framing effects"
+    },
+    {
+      "objection": "I need approval from my boss",
+      "response": "Use calibrated questions: 'How does your boss typically evaluate decisions like this? What would make them say yes?'",
+      "source": "Implementation and decision-making authority"
+    }
+  ],
+  
+  "conversation_scripts": [
+    {
+      "scenario": "Opening a cold call",
+      "script": "Hi [Name], I know you probably think I'm just another salesperson calling to waste your time with something you don't need. You're probably busy and the last thing you want is another sales pitch. That said, I have something that might actually help with [specific pain point]. Do you have 30 seconds for me to explain why I called?",
+      "purpose": "Uses accusation audit to disarm resistance and tactical empathy to show understanding"
+    },
+    {
+      "scenario": "Handling price objections",
+      "script": "I understand price is a concern. It sounds like you want to make sure you're getting real value for your investment. What would need to be true about this solution for the price to feel right to you?",
+      "purpose": "Acknowledges concern, labels emotion, uses calibrated question to shift focus to value"
+    },
+    {
+      "scenario": "Discovery/needs analysis",
+      "script": "It seems like the current situation is causing some challenges for your team. What's the biggest impact this is having on your business? How is this affecting your customers?",
+      "purpose": "Labels the situation and uses calibrated questions to uncover pain points"
+    },
+    {
+      "scenario": "Closing/commitment",
+      "script": "Based on everything we've discussed, it sounds like this solution addresses your main concerns about [summarize key issues]. You want [summarize their desired outcome]. Is that right? How do we move forward?",
+      "purpose": "Summarizes to get 'that's right' confirmation then uses calibrated question for next steps"
+    }
+  ],
+  
+  "quick_wins": [
+    "Use downward inflection and speak slowly to project confidence and control",
+    "Always let them speak first after asking a question - embrace the awkward silence",
+    "Say 'That's right' instead of 'yes' when confirming understanding",
+    "Use precise numbers ($47,340) instead of round numbers ($50,000) for credibility",
+    "Start sentences with 'It seems like...' or 'It sounds like...' when labeling emotions",
+    "Ask 'How' and 'What' questions instead of 'Why' questions to avoid defensiveness",
+    "Address their biggest concern first before they bring it up (accusation audit)",
+    "Mirror their communication style - match their pace, tone, and terminology"
+  ],
+  
+  "coaching_triggers": {
+    "if_customer_says": [
+      "I need to think about it",
+      "The price is too high",
+      "I'm not interested",
+      "Send me information",
+      "I need to talk to my team",
+      "We're happy with what we have",
+      "I don't have time",
+      "I need approval",
+      "Maybe next quarter",
+      "It's not in the budget"
+    ],
+    "then_coach": [
+      "Use labeling: 'It sounds like something doesn't feel right about this'",
+      "Try calibrated question: 'How can we make this work for you?'",
+      "Mirror their words to get more information",
+      "Use loss aversion: 'What's the cost of not solving this?'",
+      "Ask: 'What would need to change for this to be a priority?'",
+      "Explore with: 'What would it take to improve your current situation?'",
+      "Respond: 'It seems like timing is a concern. What would need to happen first?'",
+      "Ask: 'How does the approval process typically work?'",
+      "Use: 'What would have to be different for this to be urgent?'",
+      "Frame loss: 'What opportunities are you missing while this problem persists?'"
+    ]
+  }
+}

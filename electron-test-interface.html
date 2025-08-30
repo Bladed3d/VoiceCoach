@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VoiceCoach V2 - Test Interface Access</title>
+    <style>
+        body { 
+            background: #1e293b; 
+            color: white; 
+            font-family: Arial, sans-serif; 
+            padding: 20px;
+        }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #22c55e; }
+        .error { background: #ef4444; }
+        .info { background: #3b82f6; }
+        iframe { 
+            width: 100%; 
+            height: 600px; 
+            border: 2px solid #374151; 
+            border-radius: 8px;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎤 VoiceCoach V2 Electron App Test Interface</h1>
+    
+    <div class="status info">
+        <strong>Test Status:</strong> Attempting to access Electron renderer at localhost:5175
+    </div>
+    
+    <div class="status success" id="connection-status">
+        <strong>Connection:</strong> Testing...
+    </div>
+    
+    <h3>📱 Electron App Interface (if accessible):</h3>
+    <iframe 
+        src="http://localhost:5175" 
+        onload="document.getElementById('connection-status').innerHTML='<strong>Connection:</strong> Successfully loaded Electron renderer'"
+        onerror="document.getElementById('connection-status').innerHTML='<strong>Connection:</strong> Failed to load Electron renderer'; document.getElementById('connection-status').className='status error'">
+    </iframe>
+    
+    <div class="status info">
+        <strong>Expected:</strong> VoiceCoach V2 interface with "Start Coaching Session" button
+    </div>
+    
+    <div class="status error">
+        <strong>Known Issue:</strong> Protocol mismatch prevents WebSocket functionality
+    </div>
+    
+    <h3>🔧 Manual Testing Instructions:</h3>
+    <ol>
+        <li>Look for the green "Start Coaching Session" button in the interface above</li>
+        <li>If you can see the button, try clicking it</li>
+        <li>Expected result: Connection will fail due to WebSocket/Socket.IO protocol mismatch</li>
+        <li>Check browser DevTools Console for LED breadcrumb messages</li>
+        <li>Look for LED 7010, 7011, then LED 8011 (connection error)</li>
+    </ol>
+    
+    <h3>📊 Test Validation Checklist:</h3>
+    <ul>
+        <li>✅ Electron app is running (confirmed via tasklist)</li>
+        <li>✅ Python WebSocket server is running on port 5000</li>  
+        <li>✅ Vite dev server is running on port 5175</li>
+        <li>✅ LED breadcrumb system is operational</li>
+        <li>❌ WebSocket/Socket.IO protocol mismatch prevents functionality</li>
+        <li>❌ Start Coaching Session button will not work</li>
+    </ul>
+    
+    <script>
+        // Test connectivity
+        fetch('http://localhost:5175')
+            .then(response => {
+                if (response.ok) {
+                    document.getElementById('connection-status').innerHTML = '<strong>Connection:</strong> ✅ Electron renderer accessible';
+                    document.getElementById('connection-status').className = 'status success';
+                } else {
+                    throw new Error('HTTP ' + response.status);
+                }
+            })
+            .catch(error => {
+                document.getElementById('connection-status').innerHTML = '<strong>Connection:</strong> ❌ Cannot access Electron renderer - ' + error.message;
+                document.getElementById('connection-status').className = 'status error';
+            });
+    </script>
+</body>
+</html>

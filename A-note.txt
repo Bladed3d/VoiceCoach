@@ -1,0 +1,3 @@
+start app: npm run dev
+
+Change Claude statusline: npx ccstatusline@latest

@@ -1,0 +1,252 @@
+#!/usr/bin/env python3
+"""
+VoiceCoach V2 - Native WebSocket Vosk Server (Working Version)
+Receives audio data from client and returns transcription - FIXED asyncio threading issues
+"""
+import asyncio
+import json
+import websockets
+import sys
+from datetime import datetime
+from vosk import Model, KaldiRecognizer
+
+# Fix Windows encoding
+if sys.platform == 'win32':
+    import codecs
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.detach())
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.detach())
+
+class VoskNativeWebSocketServer:
+    def __init__(self, model_path=None, host='127.0.0.1', port=5000):
+        self.host = host
+        self.port = port
+        self.connected_clients = set()
+        
+        # Load Vosk model
+        if model_path is None:
+            model_path = r"C:\Users\Administrator\Downloads\LLM\vosk-model-en-us-0.22-lgraph\vosk-model-en-us-0.22-lgraph"
+        
+        print(f"[6000] VoiceCoach V2 Native WebSocket Transcription Server starting at {datetime.now()}")
+        print(f"[6002] Loading Vosk model from: {model_path}")
+        self.model = Model(model_path)
+        print(f"[6002.1] Vosk model loaded successfully")
+        
+        # Create recognizer for 16kHz audio (matches client AudioWorklet)
+        self.recognizer = KaldiRecognizer(self.model, 16000)
+        print(f"[6002.2] Recognizer initialized for 16kHz audio")
+
+    async def handle_client(self, websocket, path):
+        """Handle client connection and messages"""
+        client_addr = websocket.remote_address
+        print(f"[6010] Client connected from {client_addr}")
+        
+        self.connected_clients.add(websocket)
+        print(f"[6010.1] Total connected clients: {len(self.connected_clients)}")
+        
+        try:
+            # Send welcome message
+            welcome = {
+                "type": "server_ready",
+                "message": "VoiceCoach V2 native WebSocket server connected",
+                "timestamp": datetime.now().isoformat(),
+                "model": "vosk-en-us-0.22-lgraph",
+                "sample_rate": 16000
+            }
+            await websocket.send(json.dumps(welcome))
+            print(f"[6010.2] Welcome message sent to client")
+            
+            # Handle messages
+            async for message in websocket:
+                await self.process_message(websocket, message)
+                
+        except websockets.exceptions.ConnectionClosed:
+            print(f"[6011] Client disconnected from {client_addr}")
+            print(f"[6011.1] Remaining connected clients: {len(self.connected_clients) - 1}")
+        except Exception as e:
+            print(f"[8011] WebSocket connection error: {e}")
+        finally:
+            self.connected_clients.discard(websocket)
+
+    async def process_message(self, websocket, message):
+        """Process incoming message from client"""
+        try:
+            # Check if binary audio data
+            if isinstance(message, bytes):
+                print(f"[6021] Received binary audio data: {len(message)} bytes")
+                await self.process_audio(message)
+                return
+            
+            # Try JSON message
+            try:
+                data = json.loads(message)
+                msg_type = data.get('type', 'unknown')
+                print(f"[6020] Received message type: {msg_type}")
+                
+                if msg_type == 'start_transcription':
+                    await self.start_transcription(websocket)
+                elif msg_type == 'stop_transcription':
+                    await self.stop_transcription(websocket)
+                else:
+                    print(f"[6020.1] Unknown message type: {msg_type}")
+                    
+            except json.JSONDecodeError:
+                print(f"[8020.1] Failed to parse message as JSON: {message[:100]}")
+                
+        except Exception as e:
+            print(f"[8020] Error handling client message: {e}")
+            error_response = {
+                "type": "error", 
+                "message": f"Failed to process message: {str(e)}",
+                "timestamp": datetime.now().isoformat()
+            }
+            await websocket.send(json.dumps(error_response))
+
+    async def process_audio(self, audio_bytes):
+        """Process incoming audio data from client"""
+        try:
+            # Reset recognizer for new audio stream if needed
+            if not hasattr(self, '_last_reset') or (datetime.now() - self._last_reset).seconds > 30:
+                self.recognizer = KaldiRecognizer(self.model, 16000)
+                self._last_reset = datetime.now()
+            
+            print(f"[6022] Processing {len(audio_bytes)} bytes of audio data")
+            
+            # Process with Vosk (audio is already in 16-bit PCM format from client)
+            if self.recognizer.AcceptWaveform(audio_bytes):
+                # Final result
+                result = json.loads(self.recognizer.Result())
+                if result.get('text', '').strip():
+                    print(f"[6022.1] Final transcript: '{result['text']}'")
+                    await self.broadcast_transcript('final', result['text'])
+            else:
+                # Partial result
+                partial = json.loads(self.recognizer.PartialResult())
+                if partial.get('partial', '').strip():
+                    print(f"[6022.2] Partial transcript: '{partial['partial']}'")
+                    await self.broadcast_transcript('partial', partial['partial'])
+                    
+        except Exception as e:
+            print(f"[8022] Error processing audio data: {e}")
+
+    async def start_transcription(self, websocket):
+        """Start transcription for a client"""
+        try:
+            print(f"[6030] Starting transcription for client {websocket.remote_address}")
+            
+            response = {
+                "type": "transcription_started",
+                "message": "Ready to receive audio data",
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            print(f"[6030.1] Transcription started for client")
+            await websocket.send(json.dumps(response))
+            
+        except Exception as e:
+            print(f"[8030] Error starting transcription: {e}")
+            error_response = {
+                "type": "error",
+                "message": f"Failed to start transcription: {str(e)}",
+                "timestamp": datetime.now().isoformat()
+            }
+            await websocket.send(json.dumps(error_response))
+
+    async def stop_transcription(self, websocket):
+        """Stop transcription for a client"""
+        try:
+            print(f"[6031] Stopping transcription for client {websocket.remote_address}")
+            
+            response = {
+                "type": "transcription_stopped",
+                "message": "Transcription stopped",
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            await websocket.send(json.dumps(response))
+            print(f"[6031.1] Transcription stopped for client")
+            
+        except Exception as e:
+            print(f"[8031] Error stopping transcription: {e}")
+            error_response = {
+                "type": "error",
+                "message": f"Failed to stop transcription: {str(e)}",
+                "timestamp": datetime.now().isoformat()
+            }
+            await websocket.send(json.dumps(error_response))
+
+    async def broadcast_transcript(self, transcript_type, text):
+        """Send transcript to all clients"""
+        message = {
+            "type": f"{transcript_type}_transcript",
+            "text": text,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Broadcast to all clients
+        if self.connected_clients:
+            await asyncio.gather(
+                *[client.send(json.dumps(message)) for client in self.connected_clients],
+                return_exceptions=True
+            )
+            
+        # Trigger coaching analysis for final transcripts
+        if transcript_type == 'final':
+            await self.analyze_for_coaching(text)
+
+    async def analyze_for_coaching(self, transcript):
+        """Analyze transcript for coaching opportunities"""
+        try:
+            print(f"[6050] Analyzing transcript for coaching: '{transcript[:50]}...'")
+            
+            # Simple keyword-based coaching triggers
+            coaching_triggers = {
+                "price": "That's a valid concern. Let's discuss the value this brings...",
+                "budget": "I understand budget is important. What budget range were you thinking?",
+                "expensive": "I hear your concern about cost. Let me show you the ROI...",
+                "timing": "When would be a better time to revisit this?",
+                "think about it": "What specific concerns do you have that we should address?",
+                "challenge": "Tell me more about that challenge...",
+                "goal": "What would success look like for you?",
+                "problem": "How is this problem impacting your business?",
+                "decision": "Who else is involved in this decision?"
+            }
+            
+            transcript_lower = transcript.lower()
+            for trigger, suggestion in coaching_triggers.items():
+                if trigger in transcript_lower:
+                    coaching_message = {
+                        "type": "coaching_suggestion",
+                        "suggestion": suggestion,
+                        "trigger": trigger,
+                        "priority": "HIGH",
+                        "category": "objection_handling",
+                        "context": transcript,
+                        "timestamp": datetime.now().isoformat()
+                    }
+                    
+                    # Send coaching suggestion to all clients
+                    if self.connected_clients:
+                        await asyncio.gather(
+                            *[client.send(json.dumps(coaching_message)) for client in self.connected_clients],
+                            return_exceptions=True
+                        )
+                    
+                    print(f"[6051] Coaching suggestion sent: {trigger} -> {suggestion[:30]}...")
+                    break
+                    
+        except Exception as e:
+            print(f"[8050] Error analyzing transcript for coaching: {e}")
+
+    async def start_server(self):
+        """Start the WebSocket server"""
+        print(f"[6099] Starting VoiceCoach V2 Native WebSocket Server")
+        print(f"[6099.1] Server address: ws://{self.host}:{self.port}")
+        print(f"[6099.4] Native WebSocket server started successfully")
+        print(f"[6099.5] Waiting for client connections...")
+        
+        async with websockets.serve(self.handle_client, self.host, self.port):
+            await asyncio.Future()  # Run forever
+
+if __name__ == "__main__":
+    server = VoskNativeWebSocketServer()
+    asyncio.run(server.start_server())

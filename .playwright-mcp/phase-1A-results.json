@@ -1,0 +1,38 @@
+{
+  "high_impact_techniques": [
+    {
+      "technique": "Consultative Selling",
+      "impact_score": 8.5,
+      "context": "Focus on understanding client needs before presenting solutions",
+      "examples": [
+        "Ask open-ended questions about pain points",
+        "Listen actively to client responses"
+      ]
+    },
+    {
+      "technique": "Value-Based Positioning",
+      "impact_score": 9.2,
+      "context": "Position products based on business value rather than features",
+      "examples": [
+        "Calculate ROI for client",
+        "Show impact on business metrics"
+      ]
+    }
+  ],
+  "document_summary": {
+    "key_themes": [
+      "consultative approach",
+      "value selling",
+      "relationship building"
+    ],
+    "priority_insights": [
+      "Focus on business outcomes",
+      "Build trust through expertise"
+    ]
+  },
+  "metadata": {
+    "processing_time_ms": 2340,
+    "confidence_score": 0.89,
+    "techniques_found": 15
+  }
+}

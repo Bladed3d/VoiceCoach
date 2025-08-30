@@ -1,0 +1,27 @@
+Prompt Context (Responsive <-----> Thorough)
+Prompt Speed (Slower <-----> Faster)
+Prompt focus (product: 1-9, communication: 1-9, Value: 1-9)
+
+Automated:
+Stage: Intro - Prospect Issues - Solutions - Eval (mental, emotional, financial, fear) - Close
+Tone: relaxed, agreeable, concerns, data, financial/value, fear/conflict, objections
+
+
+
+📄 The Complete Flow:
+
+  1. Upload Document → Saved to /rag/document_timestamp_original.pdf
+  2. Process Document → Creates /rag/document_timestamp_phase1A.json
+  3. Load for Coaching → Document insights loaded into memory
+  4. Start Recording → Real-time transcription begins
+  5. Live Coaching → Every 3 seconds, Ollama analyzes conversation using document insights
+  6. Display Suggestions → Coaching appears in right panel
+
+  Your VoiceCoach V2 now has complete Ollama integration for live call testing with document
+   analysis! 🎯
+
+  The app can now:
+  - Process any sales document and extract actionable insights
+  - Provide real-time coaching during live calls using those insights
+  - Generate contextual objection handling and discovery questions
+  - All powered by your local Ollama installation!

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VoiceCoach V2 WebSocket Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #cce7ff; color: #004085; }
+        #messages { height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 VoiceCoach V2 Native WebSocket Test</h1>
+    
+    <div id="connectionStatus" class="status info">
+        🔌 Ready to test connection...
+    </div>
+    
+    <button onclick="testConnection()">Test Connection</button>
+    <button onclick="clearMessages()">Clear Messages</button>
+    
+    <h2>📝 Messages</h2>
+    <div id="messages"></div>
+    
+    <script>
+        let ws = null;
+        
+        function log(message, type = 'info') {
+            const messagesDiv = document.getElementById('messages');
+            const timestamp = new Date().toLocaleTimeString();
+            messagesDiv.innerHTML += `<div class="${type}">[${timestamp}] ${message}</div>`;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('connectionStatus');
+            statusDiv.className = `status ${type}`;
+            statusDiv.innerHTML = message;
+        }
+        
+        function testConnection() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                log('❌ Connection already active. Close first.', 'error');
+                return;
+            }
+            
+            log('🚀 Starting WebSocket connection test...', 'info');
+            updateStatus('🔄 Connecting to ws://127.0.0.1:5000...', 'info');
+            
+            try {
+                ws = new WebSocket('ws://127.0.0.1:5000');
+                
+                ws.onopen = function() {
+                    log('✅ WebSocket connected successfully!', 'success');
+                    updateStatus('✅ Connected to WebSocket server!', 'success');
+                    
+                    // Test sending a message
+                    const testMessage = { type: 'start_transcription' };
+                    ws.send(JSON.stringify(testMessage));
+                    log('📤 Sent: ' + JSON.stringify(testMessage), 'info');
+                };
+                
+                ws.onmessage = function(event) {
+                    try {
+                        const message = JSON.parse(event.data);
+                        log('📥 Received: ' + JSON.stringify(message, null, 2), 'success');
+                        
+                        // Check if server is ready
+                        if (message.type === 'status' && message.server_ready) {
+                            log('🎉 SUCCESS: Server is ready and responding!', 'success');
+                            updateStatus('🎉 Connection test PASSED!', 'success');
+                        }
+                    } catch (e) {
+                        log('📥 Received (raw): ' + event.data, 'info');
+                    }
+                };
+                
+                ws.onerror = function(error) {
+                    log('❌ WebSocket error: ' + error.message, 'error');
+                    updateStatus('❌ Connection failed!', 'error');
+                };
+                
+                ws.onclose = function(event) {
+                    log(`🔌 Connection closed: Code ${event.code}, Reason: ${event.reason}`, 'info');
+                    updateStatus('🔌 Connection closed', 'info');
+                };
+                
+            } catch (error) {
+                log('❌ Failed to create WebSocket: ' + error.message, 'error');
+                updateStatus('❌ Connection failed!', 'error');
+            }
+        }
+        
+        function clearMessages() {
+            document.getElementById('messages').innerHTML = '';
+        }
+        
+        // Auto-test on page load
+        window.onload = function() {
+            setTimeout(testConnection, 1000);
+        };
+    </script>
+</body>
+</html>

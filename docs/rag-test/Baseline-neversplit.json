@@ -1,0 +1,259 @@
+{
+  "document_summary": {
+    "main_focus": "FBI hostage negotiation techniques adapted for business and sales negotiations",
+    "value_for_sales": "Provides emotion-based negotiation tactics that work by making prospects feel secure, understood, and in control while guiding them to desired outcomes",
+    "total_techniques_found": "47"
+  },
+  
+  "high_impact_techniques": [
+    {
+      "technique": "Mirroring - Repeat the last 1-3 words to build rapport",
+      "situation": "When customer makes statements or objections",
+      "example": "Customer: 'The price is too high.' Salesperson: 'Too high?'",
+      "priority": "CRITICAL"
+    },
+    {
+      "technique": "Tactical Empathy - Understand and articulate the other's emotions to influence outcomes",
+      "situation": "When customer shows emotional resistance or stress",
+      "example": "It sounds like you're frustrated with the current solution you're using",
+      "priority": "CRITICAL"
+    },
+    {
+      "technique": "Labeling - Name emotions to diffuse tension",
+      "situation": "When detecting customer anxiety, fear, or frustration",
+      "example": "It seems like you're concerned about making the wrong decision",
+      "priority": "CRITICAL"
+    },
+    {
+      "technique": "Calibrated Questions - Ask open-ended 'how' or 'what' questions to shift control",
+      "situation": "When facing objections or need to guide conversation",
+      "example": "How can we move forward on this? What would need to happen for this to work?",
+      "priority": "CRITICAL"
+    },
+    {
+      "technique": "Accusation Audit - Address objections upfront",
+      "situation": "At beginning of sales conversations or when sensing resistance",
+      "example": "You probably think I'm just another salesperson trying to push a product you don't need",
+      "priority": "CRITICAL"
+    },
+    {
+      "technique": "Dynamic Silence - Use pauses to encourage the other to talk",
+      "situation": "After asking questions or making statements",
+      "example": "Ask calibrated question, then remain silent for 5-7 seconds",
+      "priority": "HIGH"
+    },
+    {
+      "technique": "Getting to 'That's Right' - Confirmation of understanding",
+      "situation": "After summarizing customer's position or concerns",
+      "example": "So what I'm hearing is... [summary]. Customer: 'That's right!'",
+      "priority": "CRITICAL"
+    },
+    {
+      "technique": "Avoiding 'Yes' - Don't settle for false agreement",
+      "situation": "When customer gives quick agreement without substance",
+      "example": "Instead of 'Do you agree?' ask 'How does this sound to you?'",
+      "priority": "HIGH"
+    },
+    {
+      "technique": "Getting to 'No' - Make customers feel in control by letting them say no",
+      "situation": "When needing to break through resistance",
+      "example": "Is it ridiculous to think that we could solve this problem?",
+      "priority": "HIGH"
+    },
+    {
+      "technique": "Loss Aversion Framing - Frame offers as preventing loss rather than gaining",
+      "situation": "When presenting solutions or creating urgency",
+      "example": "Without this system, you'll continue losing $X per month in inefficiencies",
+      "priority": "HIGH"
+    },
+    {
+      "technique": "Deadline Pressure Reversal - Use their deadlines against them",
+      "situation": "When customer mentions time constraints",
+      "example": "You mentioned you need this by month-end. How does that timeline affect your decision process?",
+      "priority": "HIGH"
+    },
+    {
+      "technique": "Precise Numbers - Use specific figures instead of round numbers",
+      "situation": "When giving prices or statistics",
+      "example": "This will save you $37,847 annually instead of 'about $38,000'",
+      "priority": "STANDARD"
+    }
+  ],
+  
+  "objection_handlers": [
+    {
+      "objection": "Price is too high",
+      "response": "How am I supposed to do that? [pause] What about this doesn't work for you?",
+      "source": "Chapter on Calibrated Questions"
+    },
+    {
+      "objection": "We need to think about it",
+      "response": "It seems like there's something holding you back. What would need to happen for this to feel right?",
+      "source": "Chapter on Labeling and Open-ended Questions"
+    },
+    {
+      "objection": "We're happy with current solution",
+      "response": "That's great that you're satisfied. What would have to change for you to consider an alternative?",
+      "source": "Chapter on Getting to No"
+    },
+    {
+      "objection": "Not authorized to make decisions",
+      "response": "How does your boss typically feel about initiatives like this? How do you think your team will react?",
+      "source": "Chapter on Implementation - Pronoun Usage"
+    },
+    {
+      "objection": "Too complicated/complex",
+      "response": "It sounds like simplicity is really important to you. What would simple look like?",
+      "source": "Chapter on Labeling"
+    },
+    {
+      "objection": "Need more time",
+      "response": "I understand timing is crucial. What's driving the timeline on your end?",
+      "source": "Chapter on Deadlines"
+    }
+  ],
+  
+  "conversation_scripts": [
+    {
+      "scenario": "Opening a cold call",
+      "script": "Hi [Name], I know you probably think this is just another sales call trying to waste your time. You're probably wondering why you should even listen to me. What I'd like to share might help with [specific pain point]. How does that sound?",
+      "purpose": "Uses accusation audit to disarm resistance and calibrated questions to engage"
+    },
+    {
+      "scenario": "Handling price objections",
+      "script": "I hear that price is a concern. It sounds like you want to make sure you're getting good value. What would good value look like to you? How can we structure this so it works within your budget?",
+      "purpose": "Labels emotion, avoids defensiveness, uses calibrated questions to find solutions"
+    },
+    {
+      "scenario": "Discovery/needs analysis",
+      "script": "It seems like your current situation isn't ideal. What's the biggest challenge you're facing? How is that affecting your team? What would need to change for this to feel resolved?",
+      "purpose": "Labels situation, uses open-ended questions to uncover pain and desired outcomes"
+    },
+    {
+      "scenario": "Closing conversation",
+      "script": "So if I understand correctly, you want [summarize needs]. You're concerned about [summarize concerns]. And success would look like [summarize outcomes]. Is that right? What would need to happen next to move forward?",
+      "purpose": "Comprehensive summary to get 'that's right' confirmation, followed by implementation question"
+    },
+    {
+      "scenario": "Following up on proposal",
+      "script": "I sent over the proposal we discussed. It sounds like you've had a chance to review it. What questions came up? How does your team feel about the approach?",
+      "purpose": "Avoids yes/no questions, uses calibrated questions to understand internal dynamics"
+    }
+  ],
+  
+  "quick_wins": [
+    "Start every conversation by acknowledging what the prospect might be thinking negatively about you",
+    "Replace 'yes' questions with 'how' and 'what' questions",
+    "Use the prospect's exact words when summarizing their position",
+    "Pause for 5-7 seconds after asking questions to let them fill the silence",
+    "Label emotions before addressing logical concerns",
+    "Use precise numbers ($37,847) instead of round numbers ($38,000)",
+    "Frame solutions as preventing loss rather than creating gain",
+    "Get three 'yes' responses before assuming genuine agreement",
+    "Watch for pronoun usage to identify real decision makers",
+    "Use 'It seems like' or 'It sounds like' to label emotions safely"
+  ],
+  
+  "coaching_triggers": {
+    "if_customer_says": [
+      "I need to think about it",
+      "The price is too high", 
+      "We're happy with what we have",
+      "I'm not the decision maker",
+      "We don't have budget",
+      "It's too complicated",
+      "We need more time",
+      "I'll get back to you",
+      "Send me information",
+      "Maybe later"
+    ],
+    "then_coach": [
+      "Use labeling: 'It sounds like you have some concerns'",
+      "Ask calibrated question: 'What about this doesn't work?'",
+      "Get to 'no': 'Is this completely off base for you?'",
+      "Use tactical empathy: 'It seems like timing isn't right'",
+      "Address with accusation audit: 'You probably think this is too expensive'",
+      "Mirror: 'Too complicated?'",
+      "Uncover real timeline: 'What's driving the timeline?'",
+      "Prevent false yes: 'How do you see this working?'",
+      "Use loss aversion: 'What happens if nothing changes?'",
+      "Find Black Swan: 'What would need to be different?'"
+    ]
+  },
+  
+  "negotiator_types": {
+    "givers": {
+      "characteristics": "People-pleasers, highly sociable, poor time managers, eager to make you happy",
+      "approach": "Focus on implementation questions, don't let them over-commit",
+      "red_flags": "Quick agreement without substance, avoiding conflict"
+    },
+    "calculators": {
+      "characteristics": "Methodical, want all facts, unconcerned with time, distant/cold",
+      "approach": "Use clear data, avoid surprises, don't ask too many questions",
+      "red_flags": "Analysis paralysis, need excessive information"
+    },
+    "aggressives": {
+      "characteristics": "Achievement-oriented, hate wasted time, forceful style, need to feel heard",
+      "approach": "Let them talk first, use reflecting back, time pressure works",
+      "red_flags": "Dominating conversation, making threats, impatience"
+    }
+  },
+  
+  "implementation_checklist": [
+    "Get agreement three times using different methods",
+    "Ask 'How will you implement this?' to ensure follow-through",
+    "Identify all stakeholders with 'How does your boss feel about this?'",
+    "Watch for pronoun shifts indicating lack of authority",
+    "Create summary document that gets 'That's right' confirmation",
+    "Establish next steps with specific timelines",
+    "Build in check-in points to maintain momentum"
+  ],
+  
+  "warning_signs": {
+    "false_agreement": [
+      "Quick 'yes' responses without explanation",
+      "Vague commitments like 'We'll consider it'",
+      "Avoiding specific next steps",
+      "Body language inconsistent with words"
+    ],
+    "lying_indicators": [
+      "Overly verbose, complicated explanations",
+      "Heavy use of third-person pronouns (they, them, we)",
+      "Avoiding first-person pronouns (I, me)",
+      "Inconsistencies between words, tone, and body language"
+    ],
+    "lack_of_authority": [
+      "Consistent use of 'we' instead of 'I'",
+      "Deflecting to unnamed decision makers",
+      "Cannot answer implementation questions",
+      "Needs approval for every decision point"
+    ]
+  },
+  
+  "advanced_techniques": [
+    {
+      "technique": "Strategic Umbrage",
+      "description": "Show controlled anger at offers, not people",
+      "application": "When receiving unreasonable requests or lowball offers",
+      "example": "I'm afraid there are no circumstances that would make that work for me"
+    },
+    {
+      "technique": "Black Swan Hunting",
+      "description": "Look for unknown unknowns that completely change dynamics",
+      "application": "When behavior seems irrational or unexpected",
+      "example": "Face-to-face meetings to pick up non-verbal cues and build rapport"
+    },
+    {
+      "technique": "Ackerman Model",
+      "description": "65%, 85%, 95%, 100% counter-offer sequence",
+      "application": "In price negotiations when you're the buyer",
+      "example": "Decreasing increments make counterpart feel they're squeezing every penny"
+    },
+    {
+      "technique": "Non-monetary Pivoting",
+      "description": "Shift to value beyond price when price resistance emerges",
+      "application": "When price objections arise",
+      "example": "Let's put price aside - what else would make this valuable to you?"
+    }
+  ]
+}

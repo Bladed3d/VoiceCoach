@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Volume Debug Test</title>
+</head>
+<body>
+    <h1>🎤 Volume Debug Test</h1>
+    <button onclick="testVolumeMonitoring()">Test Volume Monitoring</button>
+    <div id="status">Ready</div>
+    <div id="volumeInfo">Volume: 0%</div>
+    
+    <script>
+        async function testVolumeMonitoring() {
+            try {
+                document.getElementById('status').textContent = 'Requesting microphone...';
+                
+                // Test the exact same setup as VoiceCoach
+                const mediaStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        channelCount: { ideal: 1 },
+                        sampleRate: { ideal: 16000 }, 
+                        sampleSize: { ideal: 16 },
+                        echoCancellation: false,
+                        noiseSuppression: false,  
+                        autoGainControl: false,
+                        volume: 1.0
+                    }
+                });
+                
+                document.getElementById('status').textContent = 'Media stream obtained!';
+                console.log('Media stream:', mediaStream);
+                
+                // Test the exact volume monitoring code from VoiceCoach
+                const audioContext = new AudioContext({ sampleRate: 16000 });
+                const source = audioContext.createMediaStreamSource(mediaStream);
+                const analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                source.connect(analyser);
+                
+                document.getElementById('status').textContent = 'Volume monitoring started!';
+                console.log('Volume monitoring setup complete');
+                
+                // Monitor volume
+                function updateVolume() {
+                    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                    analyser.getByteFrequencyData(dataArray);
+                    
+                    let sum = 0;
+                    for (let i = 0; i < dataArray.length; i++) {
+                        sum += dataArray[i];
+                    }
+                    const average = sum / dataArray.length;
+                    const volumePercent = Math.round((average / 255) * 100);
+                    
+                    document.getElementById('volumeInfo').textContent = `Volume: ${volumePercent}% (Raw: ${average})`;
+                    console.log('Volume:', volumePercent, 'Raw:', average);
+                    
+                    requestAnimationFrame(updateVolume);
+                }
+                
+                updateVolume();
+                
+            } catch (error) {
+                document.getElementById('status').textContent = `Error: ${error.message}`;
+                console.error('Volume monitoring error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

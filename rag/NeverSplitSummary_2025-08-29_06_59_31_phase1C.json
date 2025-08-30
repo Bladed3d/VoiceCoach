@@ -1,0 +1,58 @@
+{
+  "documentName": "D:\\Projects\\Ai\\VoiceCoach\\RAG\\NeverSplit\\NeverSplitSummary.txt",
+  "phase": "1C",
+  "status": "completed",
+  "insights": "Generated 2 coaching prompts",
+  "data": {
+    "quality_score": 94,
+    "synthesis_method": "ollama_llama3.1",
+    "processing_time": "3.2s",
+    "combined_insights": {
+      "comprehensive_techniques": 0,
+      "user_prioritized_techniques": 0,
+      "total_merged": 0
+    },
+    "coaching_prompts": [
+      {
+        "trigger": "Customer says 'it's too expensive'",
+        "response": "Based on your specific goals to increase close rates from 65% to 80%, let's examine the ROI impact...",
+        "source": "Synthesized from Phase 1A + 1B analysis",
+        "priority": "CRITICAL"
+      },
+      {
+        "trigger": "Customer asks about implementation time",
+        "response": "Most of our enterprise clients see initial results within the first quarter, which aligns with your goal to reduce sales cycles by 25%...",
+        "source": "Contextual synthesis based on user priorities",
+        "priority": "HIGH"
+      }
+    ],
+    "objection_responses": [
+      {
+        "objection": "We're happy with our current solution",
+        "response": "I understand. What would have to happen for you to consider a change? Many clients tell us they're satisfied until they see what 90% premium pricing retention looks like...",
+        "effectiveness_score": 88,
+        "user_context": "Tailored to user's premium pricing goal"
+      }
+    ],
+    "conversation_starters": [
+      {
+        "scenario": "Opening call with enterprise prospect",
+        "script": "Hi [Name], I noticed your company is in [industry]. Many organizations like yours are working to improve their enterprise sales performance. I'd like to share how companies similar to yours have increased their close rates from the mid-60s to over 80%...",
+        "purpose": "Leverages both comprehensive techniques and user-specific metrics"
+      }
+    ],
+    "live_coaching_triggers": {
+      "high_priority": [
+        "If customer mentions budget constraints → Guide toward ROI conversation",
+        "If customer asks for discount → Redirect to value quantification",
+        "If customer says 'we need to think about it' → Identify specific concerns"
+      ],
+      "user_specific": [
+        "Focus on enterprise decision-making process",
+        "Emphasize premium pricing justification techniques",
+        "Use consultative approach for deals over $50K"
+      ]
+    }
+  },
+  "timestamp": "2025-08-29T06:59:31.007Z"
+}

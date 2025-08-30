@@ -1,0 +1,25 @@
+{
+  "coaching_prompts": {
+    "opening": [
+      "Ask about their current process challenges",
+      "Reference their recent industry trends"
+    ],
+    "discovery": [
+      "What metrics matter most to your team?",
+      "How do you currently handle [specific challenge]?"
+    ],
+    "objection_handling": [
+      "I understand cost is a concern. Let's look at the ROI...",
+      "That's a common concern. Here's how others have addressed it..."
+    ],
+    "closing": [
+      "Based on what you've shared, this seems like a strong fit because...",
+      "What would need to happen for you to move forward?"
+    ]
+  },
+  "metadata": {
+    "processing_time_ms": 3100,
+    "confidence_score": 0.87,
+    "techniques_found": 24
+  }
+}

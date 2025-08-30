@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(C:\\Users\\Administrator\\.claude/**)",
+      "Bash(netstat -ano | findstr:*)",
+      "mcp__memory-keeper__context_save"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

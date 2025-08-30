@@ -1,0 +1,54 @@
+{
+  "documentName": "D:\\Projects\\Ai\\VoiceCoach\\RAG\\NeverSplit\\NeverSplitSummary.txt",
+  "phase": "1B",
+  "status": "completed",
+  "insights": "Contextual analysis with 0 priority techniques",
+  "data": {
+    "status": "request_prepared",
+    "phase": "1B",
+    "agent": "RAG Document Analyst2",
+    "document": {
+      "name": "D:\\Projects\\Ai\\VoiceCoach\\RAG\\NeverSplit\\NeverSplitSummary.txt",
+      "type": "sales_document",
+      "size": 188742,
+      "path": "D:\\Projects\\Ai\\VoiceCoach\\RAG\\NeverSplit\\NeverSplitSummary.txt"
+    },
+    "analysis": {
+      "actionable_techniques": [
+        {
+          "id": "analysis_request_prepared",
+          "title": "Analysis Request Ready for RAG Document Analyst2",
+          "priority": "HIGH",
+          "description": "Document analysis request prepared and saved for Claude Code processing",
+          "implementation": "Request saved to: D:\\Projects\\Ai\\VoiceCoach-v2\\temp\\analysis_request_1756450766998.json",
+          "context": "Phase 1A document analysis",
+          "effectiveness": "ready"
+        }
+      ],
+      "strategic_frameworks": [],
+      "audience_types": [],
+      "behavioral_indicators": [],
+      "coaching_insights": [
+        {
+          "category": "integration_status",
+          "insight": "Analysis request prepared - waiting for Claude Code to process via RAG Document Analyst2",
+          "priority": "HIGH",
+          "trigger_scenarios": [
+            "Phase 1A processing"
+          ]
+        }
+      ],
+      "success_metrics": [],
+      "integration_points": []
+    },
+    "metadata": {
+      "processing_time": "2025-08-29T06:59:27.001Z",
+      "breadcrumb_range": "3000-3099",
+      "confidence": "request_ready",
+      "analysis_request_path": "D:\\Projects\\Ai\\VoiceCoach-v2\\temp\\analysis_request_1756450766998.json",
+      "document_analyzed": false,
+      "awaiting_claude_processing": true
+    }
+  },
+  "timestamp": "2025-08-29T06:59:31.007Z"
+}

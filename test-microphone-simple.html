@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Microphone Test - VoiceCoach V2</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .volume-meter { 
+            width: 300px; 
+            height: 20px; 
+            border: 1px solid #ccc; 
+            margin: 10px 0;
+            background: #f0f0f0;
+        }
+        .volume-bar { 
+            height: 100%; 
+            background: #4CAF50; 
+            transition: width 0.1s;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .start { background: #4CAF50; color: white; }
+        .stop { background: #f44336; color: white; }
+        .status { 
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>🎤 VoiceCoach V2 - Microphone Test</h1>
+    
+    <div id="status" class="status info">Click "Test Microphone" to start</div>
+    
+    <button id="startBtn" class="start" onclick="startTest()">🎤 Test Microphone</button>
+    <button id="stopBtn" class="stop" onclick="stopTest()" style="display:none;">⏹️ Stop Test</button>
+    
+    <h3>Volume Level:</h3>
+    <div class="volume-meter">
+        <div id="volumeBar" class="volume-bar" style="width: 0%"></div>
+    </div>
+    <div id="volumeText">0%</div>
+    
+    <h3>Microphone Details:</h3>
+    <div id="micDetails">Not detected</div>
+    
+    <h3>Audio Test Results:</h3>
+    <ul id="testResults"></ul>
+
+    <script>
+        let mediaStream = null;
+        let audioContext = null;
+        let analyser = null;
+        let animationId = null;
+
+        function updateStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+
+        function addTestResult(message, isSuccess = true) {
+            const results = document.getElementById('testResults');
+            const li = document.createElement('li');
+            li.textContent = message;
+            li.style.color = isSuccess ? 'green' : 'red';
+            results.appendChild(li);
+        }
+
+        async function startTest() {
+            try {
+                updateStatus('Requesting microphone access...', 'info');
+                
+                // Request microphone with VoiceCoach V2 optimized settings
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        channelCount: { ideal: 1 },        // Mono for Vosk
+                        sampleRate: { ideal: 16000 },      // 16kHz for Vosk
+                        sampleSize: { ideal: 16 },         // 16-bit
+                        echoCancellation: false,           // Disable processing
+                        noiseSuppression: false,           // Disable processing  
+                        autoGainControl: false,            // Disable processing
+                        volume: 1.0                        // Max signal
+                    }
+                });
+
+                addTestResult('✅ Microphone access granted', true);
+
+                // Get actual microphone settings
+                const audioTrack = mediaStream.getAudioTracks()[0];
+                const settings = audioTrack.getSettings();
+                
+                document.getElementById('micDetails').innerHTML = `
+                    <strong>Device:</strong> ${audioTrack.label}<br>
+                    <strong>Sample Rate:</strong> ${settings.sampleRate}Hz<br>
+                    <strong>Channels:</strong> ${settings.channelCount}<br>
+                    <strong>Sample Size:</strong> ${settings.sampleSize}-bit<br>
+                    <strong>Echo Cancellation:</strong> ${settings.echoCancellation}<br>
+                    <strong>Noise Suppression:</strong> ${settings.noiseSuppression}<br>
+                    <strong>Auto Gain Control:</strong> ${settings.autoGainControl}
+                `;
+
+                // Verify 16kHz for Vosk
+                if (settings.sampleRate === 16000) {
+                    addTestResult('✅ Perfect! 16kHz sample rate (Vosk compatible)', true);
+                } else {
+                    addTestResult(`⚠️ Sample rate is ${settings.sampleRate}Hz (Vosk prefers 16kHz)`, false);
+                }
+
+                // Create audio context for volume detection
+                audioContext = new AudioContext({ sampleRate: 16000 });
+                const source = audioContext.createMediaStreamSource(mediaStream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                source.connect(analyser);
+
+                addTestResult('✅ Audio analysis pipeline created', true);
+
+                // Start volume monitoring
+                monitorVolume();
+
+                updateStatus('🎤 Microphone active - Speak now!', 'success');
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('stopBtn').style.display = 'inline-block';
+
+            } catch (error) {
+                updateStatus(`❌ Microphone access failed: ${error.message}`, 'error');
+                addTestResult(`❌ Error: ${error.message}`, false);
+            }
+        }
+
+        function monitorVolume() {
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            
+            function updateVolume() {
+                analyser.getByteFrequencyData(dataArray);
+                
+                // Calculate average volume
+                let sum = 0;
+                for (let i = 0; i < dataArray.length; i++) {
+                    sum += dataArray[i];
+                }
+                const average = sum / dataArray.length;
+                const volumePercent = Math.round((average / 255) * 100);
+                
+                // Update volume display
+                document.getElementById('volumeBar').style.width = `${volumePercent}%`;
+                document.getElementById('volumeText').textContent = `${volumePercent}%`;
+                
+                // Color coding for volume levels
+                const volumeBar = document.getElementById('volumeBar');
+                if (volumePercent > 20) {
+                    volumeBar.style.background = '#4CAF50'; // Green - good
+                    if (volumePercent > 10) { // Only log once when voice detected
+                        console.log(`🎤 Voice detected! Volume: ${volumePercent}%`);
+                    }
+                } else if (volumePercent > 5) {
+                    volumeBar.style.background = '#FF9800'; // Orange - low
+                } else {
+                    volumeBar.style.background = '#f44336'; // Red - too low
+                }
+                
+                animationId = requestAnimationFrame(updateVolume);
+            }
+            
+            updateVolume();
+        }
+
+        function stopTest() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+            
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            
+            updateStatus('Microphone test stopped', 'info');
+            document.getElementById('startBtn').style.display = 'inline-block';
+            document.getElementById('stopBtn').style.display = 'none';
+            
+            document.getElementById('volumeBar').style.width = '0%';
+            document.getElementById('volumeText').textContent = '0%';
+            
+            addTestResult('🛑 Microphone test stopped', true);
+        }
+    </script>
+</body>
+</html>

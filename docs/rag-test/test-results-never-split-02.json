@@ -1,0 +1,380 @@
+{
+  "document_summary": {
+    "main_focus": "FBI hostage negotiation tactics applied to everyday business and personal negotiations",
+    "value_for_sales": "Provides emotional intelligence techniques, customer typing systems, psychological manipulation tactics, and conversation scripts for handling objections and closing deals",
+    "total_techniques_found": "67"
+  },
+
+  "high_impact_techniques": [
+    {
+      "technique": "Mirroring - Repeat the last 1-3 words your counterpart said",
+      "situation": "Building rapport and making counterpart feel heard during initial conversations",
+      "example": "Customer: 'I'm concerned about the price.' You: 'Concerned about the price?'",
+      "priority": "CRITICAL"
+    },
+    {
+      "technique": "Tactical Empathy - Understand and articulate counterpart's emotions to influence outcomes",
+      "situation": "When customer is emotional, resistant, or showing signs of distress",
+      "example": "It seems like you're frustrated with the current solution and looking for something that actually works for your team",
+      "priority": "CRITICAL"
+    },
+    {
+      "technique": "Labeling - Name emotions to diffuse tension using 'It sounds like...' or 'It seems like...'",
+      "situation": "When detecting negative emotions, resistance, or hidden concerns",
+      "example": "'It sounds like you're disappointed by what's being offered' or 'It seems like you're not actually interested in coming to a solution'",
+      "priority": "CRITICAL"
+    },
+    {
+      "technique": "Calibrated Questions - Ask 'How' or 'What' open-ended questions to shift control",
+      "situation": "When faced with objections, unreasonable offers, or need to maintain control",
+      "example": "'How am I supposed to do that?' or 'What would you need to make this work?'",
+      "priority": "CRITICAL"
+    },
+    {
+      "technique": "Accusation Audit - Address objections upfront before they're raised",
+      "situation": "At beginning of difficult conversations or when you know you have disadvantages",
+      "example": "'You probably think I'm lowballing you, that I'm trying to cheat you, and that I don't respect your intelligence'",
+      "priority": "HIGH"
+    },
+    {
+      "technique": "Getting 'That's Right' - Summarize their position until they confirm you understand",
+      "situation": "When building agreement and commitment before closing",
+      "example": "Paraphrase their concerns and motivations until they say 'That's right' - this creates commitment",
+      "priority": "CRITICAL"
+    },
+    {
+      "technique": "Dynamic Silence - Use strategic pauses to encourage disclosure",
+      "situation": "After asking questions, making offers, or when counterpart seems ready to talk",
+      "example": "Ask calibrated question, then stay completely silent until they fill the void",
+      "priority": "HIGH"
+    },
+    {
+      "technique": "Strategic Umbrage - Controlled anger at the offer, not the person",
+      "situation": "When receiving insulting or unworkable offers",
+      "example": "'I'm afraid there are no circumstances that would make what you just proposed work for me' - said with controlled displeasure",
+      "priority": "HIGH"
+    }
+  ],
+
+  "strategic_frameworks": [
+    {
+      "framework": "Three-Phase Emotional Control System",
+      "description": "Make counterpart feel (1) Safe through tactical empathy, (2) In control through autonomy, (3) Committed through 'that's right'",
+      "components": ["Calculated empathy techniques", "Autonomy-giving questions", "Confirmation seeking"],
+      "application": "Use throughout entire negotiation - safety first, then control, then commitment",
+      "indicators": "Counterpart relaxes, starts talking more, asks questions, says 'that's right'"
+    },
+    {
+      "framework": "Black Swan Discovery Process",
+      "description": "Systematic approach to uncover hidden information that completely changes negotiation dynamics",
+      "components": ["Face-to-face meetings", "Similarity principle exploitation", "Language pattern analysis", "Information asymmetry recognition"],
+      "application": "Continuous information gathering to find the unknown unknown that gives you decisive leverage",
+      "indicators": "Unexpected revelations about motivation, constraints, or decision-making authority"
+    },
+    {
+      "framework": "Implementation Verification System",
+      "description": "Use open-ended questions and pronoun analysis to ensure genuine commitment and follow-through",
+      "components": ["Skin-in-the-game questions", "Pronoun pattern recognition", "Implementation planning", "Commitment confirmation"],
+      "application": "After getting agreement, verify they can and will actually deliver",
+      "indicators": "Use of first-person pronouns, detailed implementation discussion, addressing potential obstacles"
+    },
+    {
+      "framework": "Cognitive Bias Exploitation Framework", 
+      "description": "Systematically use framing effects and loss aversion to influence decision-making",
+      "components": ["Loss aversion triggers", "Framing effect applications", "Scarcity principle", "Deadline manipulation"],
+      "application": "Frame your solution as preventing losses rather than providing gains",
+      "indicators": "Increased urgency, fear-based responses, hasty decision-making"
+    }
+  ],
+
+  "customer_types": [
+    {
+      "type": "Givers (People-Pleasers)",
+      "characteristics": ["Highly sociable and agreeable", "Poor time managers", "Eager to make you happy", "Avoid conflict", "Often can't follow through"],
+      "approach": "Focus open-ended questions on implementation. Push for specifics on how they'll deliver. Don't sacrifice reasonable objections due to their agreeableness",
+      "avoid": "Don't let them agree to things they can't do. Don't be overly accommodating to the point of disadvantage"
+    },
+    {
+      "type": "Calculators (Methodical Analyzers)", 
+      "characteristics": ["Want all facts before deciding", "Unconcerned with time pressure", "Distant and cold", "Focus on results over relationships", "Analyze everything"],
+      "approach": "Use clear, unambiguous data. Don't ad-lib or give surprises. Limit questions until they have needed information. Smile to put at ease",
+      "avoid": "Don't ask too many questions early. Don't rush them. Don't expect warm relationship building"
+    },
+    {
+      "type": "Aggressives (Achievement-Oriented)",
+      "characteristics": ["Highly achievement-oriented", "Hate wasted time", "Care about deadlines", "Forceful personal style", "Need to feel heard before listening", "Classic hard bargainers"],
+      "approach": "Use labels, reflecting back, and open-ended questions to get 'that's right'. Let them talk first. Use time pressure as leverage. Mirror their intensity",
+      "avoid": "Don't browbeat them into false agreements. Don't ignore their need to be heard first"
+    },
+    {
+      "type": "Authority Figures (Decision Makers)",
+      "characteristics": ["Use third-person pronouns ('we', 'they')", "Deflect to avoid being pinned down", "Strategic about commitments", "Think systemically"],
+      "approach": "Recognize real decision-making authority through pronoun usage. Use strategic questions to pin down real constraints and processes",
+      "avoid": "Don't assume first-person pronoun users have authority. Don't confuse strategic deflection with lying"
+    },
+    {
+      "type": "Liars/Deceptive Counterparts",
+      "characteristics": ["More verbose with rambling sentences", "Use distant third-person pronouns", "Avoid 'I' or 'me'", "Try to distract from dishonesty", "Distance themselves psychologically"],
+      "approach": "Ask open-ended questions, watch for tonal and non-verbal cues, listen for revealing information. Distinguish from strategic deflection",
+      "avoid": "Don't immediately assume third-person pronoun use means lying - could be strategic authority deflection"
+    }
+  ],
+
+  "psychological_indicators": [
+    {
+      "indicator": "Use of first-person pronouns ('I', 'me') in authority contexts",
+      "meaning": "Likely not the real decision maker - true authority deflects to third person",
+      "response": "Probe for real decision-making process and authority figures",
+      "reliability": "High - but distinguish from CEO contexts where 'I' shows accountability"
+    },
+    {
+      "indicator": "Third-person pronoun dominance ('we', 'they', 'us')",
+      "meaning": "Either real authority being strategic or lying/deception - context dependent",
+      "response": "Use open-ended questions and watch non-verbal cues to distinguish strategic vs deceptive deflection",
+      "reliability": "Medium - requires additional confirmation"
+    },
+    {
+      "indicator": "Verbose, rambling sentences with complex language",
+      "meaning": "Potential deception - trying to distract from dishonesty",
+      "response": "Ask direct, simple calibrated questions to cut through the noise",
+      "reliability": "High when combined with pronoun analysis"
+    },
+    {
+      "indicator": "Immediate 'yes' responses without consideration",
+      "meaning": "False yes to end conversation - no real agreement or commitment",
+      "response": "Dig deeper with implementation questions and look for 'that's right' instead",
+      "reliability": "Very high"
+    },
+    {
+      "indicator": "Comfortable saying 'no' and setting boundaries", 
+      "meaning": "Feeling secure and in control - good negotiating position",
+      "response": "Continue building on this comfort to extract real needs and constraints",
+      "reliability": "High"
+    },
+    {
+      "indicator": "Body language representing 55% of communication",
+      "meaning": "Non-verbal cues more important than words for true meaning",
+      "response": "Prioritize face-to-face meetings and read full body language, not just words",
+      "reliability": "Very high - UCLA research-backed"
+    },
+    {
+      "indicator": "Tone representing 38% of communication",
+      "meaning": "How something is said matters more than what is said", 
+      "response": "Use appropriate tone (light/encouraging default) and listen to their tonal changes",
+      "reliability": "Very high - UCLA research-backed"
+    }
+  ],
+
+  "advanced_questions": [
+    {
+      "question": "How am I supposed to do that?",
+      "purpose": "Deflect unreasonable demands while making them solve your problem",
+      "timing": "When faced with impossible requests or lowball offers",
+      "follow_up": "Stay silent and let them work through solutions"
+    },
+    {
+      "question": "What would you need to make this work?",
+      "purpose": "Shift burden to them while uncovering real constraints and needs",
+      "timing": "When they resist your proposals or seem stuck",
+      "follow_up": "Use their answer to guide your revised approach"
+    },
+    {
+      "question": "How can we ensure that we follow through on what we've agreed to today?",
+      "purpose": "Test genuine commitment and create implementation accountability",
+      "timing": "After getting agreement but before finalizing",
+      "follow_up": "Look for detailed, specific implementation discussion"
+    },
+    {
+      "question": "What do you see as the main hurdles that could stop us from following through?",
+      "purpose": "Uncover hidden obstacles and test genuine buy-in",
+      "timing": "During commitment phase to verify realistic agreement",
+      "follow_up": "Address each hurdle specifically or walk away"
+    },
+    {
+      "question": "Let's put price aside for now - what else can you offer that would make this a good deal for me?",
+      "purpose": "Dodge price objections while discovering non-monetary value",
+      "timing": "When price becomes a sticking point",
+      "follow_up": "Build value story before returning to price discussion"
+    },
+    {
+      "question": "How can we move forward?",
+      "purpose": "Make them provide next steps while maintaining your control",
+      "timing": "When conversation stalls or you need to advance the process",
+      "follow_up": "Use their suggested steps as commitment mechanisms"
+    },
+    {
+      "question": "What are you hoping to accomplish?",
+      "purpose": "Uncover real motivations and desired outcomes",
+      "timing": "Early in discovery to understand true goals",
+      "follow_up": "Connect your solution to their stated accomplishment goals"
+    }
+  ],
+
+  "objection_handlers": [
+    {
+      "objection": "Price is too high",
+      "response": "How am I supposed to do that? [Price objection] You're asking me to sell below cost - what would you do in my position?",
+      "source": "Dodging tactics section"
+    },
+    {
+      "objection": "I need to think about it",
+      "response": "It sounds like something about this isn't sitting right with you. What is it?",
+      "source": "Labeling technique"
+    },
+    {
+      "objection": "I need to check with my boss/team",
+      "response": "How does your decision-making process work? What would your boss need to hear to be comfortable moving forward?",
+      "source": "Authority recognition and open-ended questions"
+    },
+    {
+      "objection": "We're happy with our current solution",
+      "response": "It sounds like your current setup is working well for you. What would have to change for you to consider something different?",
+      "source": "Labeling plus calibrated questioning"
+    },
+    {
+      "objection": "We don't have budget",
+      "response": "I understand budget is a concern. What would have to happen for budget to become available for the right solution?",
+      "source": "Empathy plus solution-focused questioning"
+    },
+    {
+      "objection": "We need more time",
+      "response": "It seems like timing is important to you. Help me understand what needs to happen timeline-wise for this to work for you?",
+      "source": "Timeline pressure and information gathering"
+    }
+  ],
+
+  "conversation_scripts": [
+    {
+      "scenario": "Opening a difficult negotiation with disadvantages",
+      "script": "I appreciate you taking this meeting. You probably think I'm wasting your time, that what I'm offering isn't competitive, and that you have better options. Is that accurate?",
+      "purpose": "Accusation audit disarms objections and triggers empathy response"
+    },
+    {
+      "scenario": "Handling an insulting lowball offer",
+      "script": "I see. I'm afraid there are no circumstances that would make what you just proposed work for me. [Said with controlled displeasure]",
+      "purpose": "Strategic umbrage - angry at offer, not person, while maintaining control"
+    },
+    {
+      "scenario": "Building rapport through similarity",
+      "script": "I noticed we both [shared experience/background]. That's interesting - how did you get into [relevant topic]?",
+      "purpose": "Exploit similarity principle to build trust and openness"
+    },
+    {
+      "scenario": "Getting commitment verification",
+      "script": "So if I understand correctly, you're saying [summarize their position]. Is that right? [Wait for 'that's right'] Now, what would need to happen on your end to make this work?",
+      "purpose": "Confirm understanding, get commitment, then test implementation ability"
+    },
+    {
+      "scenario": "Discovering hidden constraints",
+      "script": "This sounds like exactly what you need. What's stopping us from moving forward today?",
+      "purpose": "Direct question to uncover real obstacles and decision-making authority"
+    }
+  ],
+
+  "quick_wins": [
+    "Use mirroring (repeat last 1-3 words) to build instant rapport",
+    "Ask 'How am I supposed to do that?' instead of saying 'no' directly",
+    "Label emotions you observe: 'It sounds like you're frustrated'",
+    "Use tactical empathy before making requests: 'I know this is difficult...'",
+    "Stay silent after asking questions - let them fill the void",
+    "Get 'That's right' instead of 'yes' for real agreement",
+    "Watch pronoun usage to identify real decision makers",
+    "Do accusation audits: address objections before they raise them",
+    "Use precise numbers ($1,237 not $1,200) for more credible anchoring"
+  ],
+
+  "coaching_triggers": {
+    "if_customer_says": [
+      "I need to think about it",
+      "The price is too high", 
+      "I need to check with my boss",
+      "We're happy with current solution",
+      "We don't have budget",
+      "Maybe",
+      "I'll get back to you",
+      "That's interesting",
+      "We'll consider it",
+      "Send me some information"
+    ],
+    "then_coach": [
+      "Use labeling: 'It sounds like something isn't sitting right with you'",
+      "Ask calibrated question: 'How am I supposed to do that?'",
+      "Probe authority: 'How does your decision-making process work?'", 
+      "Challenge comfort: 'What would have to change for you to consider something different?'",
+      "Explore budget reality: 'What would make budget available for the right solution?'",
+      "Avoid the maybe trap - push for 'no' or real commitment",
+      "Don't accept delays - ask 'What would you need to decide today?'",
+      "Don't give information without commitment - ask what specifically they want to know",
+      "Get specific next steps with timeline",
+      "Ask what specific information would help them move forward"
+    ]
+  },
+
+  "real_time_use_cases": {
+    "pre_call_preparation": [
+      {
+        "technique": "Accusation Audit Preparation",
+        "application": "List every negative thing prospect could think about you/your company",
+        "timing": "Before every sales call"
+      },
+      {
+        "technique": "Calibrated Question Bank",
+        "application": "Prepare 5-7 'How' and 'What' questions specific to their situation",
+        "timing": "During call preparation research"
+      },
+      {
+        "technique": "Black Swan Research",
+        "application": "Research potential hidden motivations, constraints, or pressures",
+        "timing": "After initial discovery, before major meetings"
+      }
+    ],
+    "opening_introduction": [
+      {
+        "technique": "Similarity Principle Exploitation", 
+        "application": "Find and mention shared background, experiences, or connections",
+        "timing": "First 5 minutes of conversation"
+      },
+      {
+        "technique": "Tactical Empathy Opening",
+        "application": "Acknowledge their situation/challenges before pitching",
+        "timing": "After rapport, before needs discovery"
+      }
+    ],
+    "discovery_needs_analysis": [
+      {
+        "technique": "Emotional Labeling",
+        "application": "Name emotions you observe to build trust and gather information", 
+        "timing": "When you sense frustration, concern, or hesitation"
+      },
+      {
+        "technique": "Mirroring for Information",
+        "application": "Repeat their last few words to get them to elaborate",
+        "timing": "When they give short answers or seem to be holding back"
+      }
+    ],
+    "objection_handling": [
+      {
+        "technique": "Calibrated Questions vs Direct Objections",
+        "application": "Turn objections into questions they have to solve",
+        "timing": "Immediately when objections arise"
+      },
+      {
+        "technique": "Strategic Umbrage",
+        "application": "Show controlled anger at unreasonable offers/demands",
+        "timing": "When receiving insulting or impossible requests"
+      }
+    ],
+    "closing_commitment": [
+      {
+        "technique": "That's Right Confirmation",
+        "application": "Summarize until they confirm you understand completely",
+        "timing": "Before asking for commitment"
+      },
+      {
+        "technique": "Implementation Verification",
+        "application": "Use open-ended questions to ensure they can actually deliver",
+        "timing": "After getting agreement, before finalizing"
+      }
+    ]
+  }
+}

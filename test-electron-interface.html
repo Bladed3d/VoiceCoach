@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceCoach V2 Interface Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1e293b;
+            color: white;
+        }
+        .test-panel {
+            background: #374151;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .status {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .success { background: #065f46; }
+        .error { background: #991b1b; }
+        .warning { background: #92400e; }
+        .info { background: #1e40af; }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #1d4ed8; }
+        button:disabled { background: #6b7280; cursor: not-allowed; }
+        #results { 
+            max-height: 400px; 
+            overflow-y: auto; 
+            background: #111827; 
+            padding: 15px; 
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        .led-breadcrumb {
+            color: #10b981;
+            font-weight: bold;
+        }
+        .led-error {
+            color: #ef4444;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>VoiceCoach V2 Transcription Pipeline Test</h1>
+    
+    <div class="test-panel">
+        <h2>Server Status Check</h2>
+        <button onclick="checkServers()">Check Server Status</button>
+        <div id="server-status"></div>
+    </div>
+    
+    <div class="test-panel">
+        <h2>WebSocket Connection Test</h2>
+        <button onclick="testWebSocketConnection()" id="ws-test-btn">Test WebSocket Connection</button>
+        <div id="ws-status"></div>
+    </div>
+    
+    <div class="test-panel">
+        <h2>Audio Pipeline Simulation</h2>
+        <button onclick="simulateAudioPipeline()" id="audio-test-btn">Simulate Audio Pipeline</button>
+        <div id="audio-status"></div>
+    </div>
+    
+    <div class="test-panel">
+        <h2>LED Breadcrumb Validation</h2>
+        <button onclick="validateLEDChain()" id="led-test-btn">Validate LED Chain</button>
+        <div id="led-status"></div>
+    </div>
+    
+    <div class="test-panel">
+        <h2>Test Results</h2>
+        <button onclick="clearResults()">Clear Results</button>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        let testResults = [];
+        let websocket = null;
+        let ledBreadcrumbs = [];
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = `[${timestamp}] ${message}`;
+            testResults.push({time: timestamp, message, type});
+            
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = entry;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+            
+            console.log(entry);
+        }
+        
+        function ledLight(ledNumber, operation, data = {}) {
+            const breadcrumb = {
+                led: ledNumber,
+                operation: operation,
+                timestamp: Date.now(),
+                data: data
+            };
+            ledBreadcrumbs.push(breadcrumb);
+            
+            const isError = ledNumber >= 8000;
+            const className = isError ? 'led-error' : 'led-breadcrumb';
+            log(`LED ${ledNumber}: ${operation}`, className);
+            
+            return breadcrumb;
+        }
+        
+        async function checkServers() {
+            log('Checking server status...', 'info');
+            
+            // Check WebSocket server
+            try {
+                const wsResponse = await fetch('http://127.0.0.1:5000').catch(() => null);
+                if (wsResponse) {
+                    log('WebSocket Server (5000): Responding', 'success');
+                    document.getElementById('server-status').innerHTML = 
+                        '<div class="status success">WebSocket server is running</div>';
+                } else {
+                    throw new Error('WebSocket server not responding');
+                }
+            } catch (error) {
+                log('WebSocket Server (5000): Not responding', 'error');
+                document.getElementById('server-status').innerHTML = 
+                    '<div class="status error">WebSocket server not accessible</div>';
+                return false;
+            }
+            
+            // Check Electron app
+            try {
+                const electronResponse = await fetch('http://localhost:5175').catch(() => null);
+                if (electronResponse) {
+                    log('Electron App (5175): Responding', 'success');
+                } else {
+                    throw new Error('Electron app not responding');
+                }
+            } catch (error) {
+                log('Electron App (5175): Not responding', 'warning');
+            }
+            
+            return true;
+        }
+        
+        async function testWebSocketConnection() {
+            const btn = document.getElementById('ws-test-btn');
+            btn.disabled = true;
+            
+            try {
+                log('Starting WebSocket connection test...', 'info');
+                
+                // LED 7010: WebSocket connect start
+                ledLight(7010, 'websocket_connect_start', {server_url: 'ws://127.0.0.1:5000'});
+                
+                const startTime = Date.now();
+                websocket = new WebSocket('ws://127.0.0.1:5000');
+                
+                websocket.onopen = () => {
+                    const connectionTime = Date.now() - startTime;
+                    
+                    // LED 7011: WebSocket connected  
+                    ledLight(7011, 'websocket_connected', {connection_time_ms: connectionTime});
+                    log(`WebSocket connected in ${connectionTime}ms`, 'success');
+                    
+                    document.getElementById('ws-status').innerHTML = 
+                        '<div class="status success">WebSocket connected successfully</div>';
+                };
+                
+                websocket.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        
+                        if (data.type === 'server_ready') {
+                            // LED 7022: Status message received
+                            ledLight(7022, 'status_received', {message: data.message});
+                            log(`Server ready: ${data.message}`, 'success');
+                        } else if (data.type === 'transcription_started') {
+                            // LED 7023: Transcription status received
+                            ledLight(7023, 'transcription_status_received', {status: 'started'});
+                            log(`Transcription started: ${data.message}`, 'success');
+                        } else if (data.type === 'final_transcript') {
+                            // LED 7020: Transcript received
+                            ledLight(7020, 'transcript_received', {
+                                text_length: data.text.length,
+                                transcript_type: 'final'
+                            });
+                            log(`Transcript received: ${data.text}`, 'success');
+                        }
+                        
+                    } catch (error) {
+                        log(`Error parsing message: ${error}`, 'error');
+                    }
+                };
+                
+                websocket.onerror = (error) => {
+                    // LED 8011: WebSocket error
+                    ledLight(8011, 'websocket_connection_error', {error: 'connection_error'});
+                    log(`WebSocket error: ${error}`, 'error');
+                    
+                    document.getElementById('ws-status').innerHTML = 
+                        '<div class="status error">WebSocket connection failed</div>';
+                };
+                
+                websocket.onclose = (event) => {
+                    // LED 7012: WebSocket disconnected
+                    ledLight(7012, 'websocket_disconnected', {
+                        code: event.code,
+                        reason: event.reason
+                    });
+                    log(`WebSocket closed: ${event.code} - ${event.reason}`, 'info');
+                };
+                
+            } catch (error) {
+                // LED 8010: General error
+                ledLight(8010, 'websocket_general_error', {error: error.message});
+                log(`WebSocket test failed: ${error}`, 'error');
+                
+                document.getElementById('ws-status').innerHTML = 
+                    '<div class="status error">WebSocket test failed</div>';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+        
+        async function simulateAudioPipeline() {
+            if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+                log('WebSocket not connected - run connection test first', 'error');
+                return;
+            }
+            
+            const btn = document.getElementById('audio-test-btn');
+            btn.disabled = true;
+            
+            try {
+                log('Simulating complete audio pipeline...', 'info');
+                
+                // LED 7030: Start transcription command
+                ledLight(7030, 'start_transcription_command');
+                const startTime = Date.now();
+                
+                // Send start transcription command
+                websocket.send(JSON.stringify({type: 'start_transcription'}));
+                log('Sent start_transcription command', 'info');
+                
+                // Wait for responses (simulated)
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // LED 7070: Audio capture initialization
+                ledLight(7070, 'audio_capture_initialization_start');
+                log('Audio capture initialized (simulated)', 'success');
+                
+                // LED 7071: Audio capture started
+                ledLight(7071, 'audio_capture_started_successfully', {
+                    hasMediaStream: true,
+                    isRecording: true
+                });
+                
+                // LED 7075: Audio chunk transmission
+                ledLight(7075, 'audioworklet_pcm_transmission', {
+                    sampleCount: 1024,
+                    byteSize: 2048
+                });
+                log('Audio chunks transmitted (simulated)', 'success');
+                
+                // LED 7031: Stop transcription command
+                ledLight(7031, 'stop_transcription_command');
+                websocket.send(JSON.stringify({type: 'stop_transcription'}));
+                
+                // LED 7050: WebSocket disconnect start
+                ledLight(7050, 'websocket_disconnect_start');
+                
+                const totalTime = Date.now() - startTime;
+                log(`Audio pipeline simulation completed in ${totalTime}ms`, 'success');
+                
+                document.getElementById('audio-status').innerHTML = 
+                    '<div class="status success">Audio pipeline simulation completed</div>';
+                    
+            } catch (error) {
+                log(`Audio pipeline simulation failed: ${error}`, 'error');
+                document.getElementById('audio-status').innerHTML = 
+                    '<div class="status error">Audio pipeline simulation failed</div>';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+        
+        function validateLEDChain() {
+            log('Validating LED breadcrumb chain...', 'info');
+            
+            const expectedSequence = [7010, 7011, 7022, 7030, 7023, 7020, 7031, 7050];
+            const actualSequence = ledBreadcrumbs.map(led => led.led);
+            const errorLEDs = actualSequence.filter(led => led >= 8000);
+            
+            log(`Expected LED sequence: ${expectedSequence.join(', ')}`, 'info');
+            log(`Actual LED sequence: ${actualSequence.join(', ')}`, 'info');
+            log(`Error LEDs: ${errorLEDs.length > 0 ? errorLEDs.join(', ') : 'None'}`, 
+                errorLEDs.length > 0 ? 'warning' : 'success');
+            
+            const sequenceComplete = expectedSequence.every(led => actualSequence.includes(led));
+            const hasErrors = errorLEDs.length > 0;
+            
+            // Performance Analysis
+            if (ledBreadcrumbs.length > 1) {
+                const timespan = ledBreadcrumbs[ledBreadcrumbs.length - 1].timestamp - ledBreadcrumbs[0].timestamp;
+                log(`Total execution time: ${timespan}ms`, 'info');
+                
+                // Check VoiceCoach V2 <200ms requirement
+                const meetsRequirement = timespan < 200;
+                log(`VoiceCoach V2 <200ms requirement: ${meetsRequirement ? 'PASS' : 'FAIL'}`, 
+                    meetsRequirement ? 'success' : 'error');
+            }
+            
+            // Final assessment
+            const pipelineWorking = sequenceComplete && !hasErrors && ledBreadcrumbs.length >= expectedSequence.length;
+            
+            log(`LED Chain Validation: ${pipelineWorking ? 'PASS' : 'FAIL'}`, 
+                pipelineWorking ? 'success' : 'error');
+                
+            if (pipelineWorking) {
+                log('VoiceCoach V2 pipeline is FULLY OPERATIONAL', 'success');
+            } else {
+                log('VoiceCoach V2 pipeline needs attention', 'warning');
+            }
+            
+            document.getElementById('led-status').innerHTML = pipelineWorking ?
+                '<div class="status success">LED breadcrumb chain validated successfully</div>' :
+                '<div class="status warning">LED breadcrumb chain validation failed</div>';
+                
+            return pipelineWorking;
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            testResults = [];
+            ledBreadcrumbs = [];
+            log('Results cleared', 'info');
+        }
+        
+        // Auto-run server check on load
+        window.onload = () => {
+            log('VoiceCoach V2 Interface Test loaded', 'info');
+            checkServers();
+        };
+    </script>
+</body>
+</html>

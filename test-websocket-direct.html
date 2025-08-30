@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceCoach V2 WebSocket Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1e293b;
+            color: white;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .status.connected {
+            background: #22c55e;
+            color: white;
+        }
+        .status.disconnected {
+            background: #ef4444;
+            color: white;
+        }
+        .status.connecting {
+            background: #f59e0b;
+            color: white;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        button:disabled {
+            background: #6b7280;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 5px;
+            height: 400px;
+            overflow-y: scroll;
+            font-family: monospace;
+            font-size: 14px;
+            border: 1px solid #334155;
+        }
+        .led {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .led.success {
+            background: #22c55e;
+        }
+        .led.error {
+            background: #ef4444;
+        }
+        .led.warning {
+            background: #f59e0b;
+        }
+        .led.info {
+            background: #3b82f6;
+        }
+        .transcript {
+            background: #1e293b;
+            padding: 10px;
+            margin: 5px 0;
+            border-left: 4px solid #3b82f6;
+            border-radius: 3px;
+        }
+        .coaching {
+            background: #065f46;
+            padding: 10px;
+            margin: 5px 0;
+            border-left: 4px solid #10b981;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 VoiceCoach V2 WebSocket Test</h1>
+        
+        <div id="status" class="status disconnected">
+            <span class="led error"></span>
+            Disconnected - Server: ws://127.0.0.1:5000
+        </div>
+        
+        <div>
+            <button id="connectBtn" onclick="connect()">Connect</button>
+            <button id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+            <button id="startTranscriptionBtn" onclick="startTranscription()" disabled>Start Transcription</button>
+            <button id="stopTranscriptionBtn" onclick="stopTranscription()" disabled>Stop Transcription</button>
+            <button id="clearLogBtn" onclick="clearLog()">Clear Log</button>
+            <button id="testAudioBtn" onclick="testMicrophone()" disabled>Test Microphone</button>
+        </div>
+        
+        <h3>🔗 Connection & LED Status</h3>
+        <div id="log" class="log"></div>
+        
+        <h3>📝 Live Transcriptions</h3>
+        <div id="transcriptions"></div>
+        
+        <h3>🧠 Coaching Suggestions</h3>
+        <div id="coaching"></div>
+    </div>
+
+    <script>
+        let socket = null;
+        let isConnected = false;
+        let audioContext = null;
+        let mediaStream = null;
+        let source = null;
+        let isRecording = false;
+        let ledSequence = [];
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const ledClass = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info';
+            
+            logDiv.innerHTML += `<div><span class="led ${ledClass}"></span>[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            
+            // Track LED breadcrumbs
+            const ledMatch = message.match(/LED (\d+)/);
+            if (ledMatch) {
+                const ledNumber = parseInt(ledMatch[1]);
+                ledSequence.push({
+                    led: ledNumber,
+                    message: message,
+                    timestamp: Date.now(),
+                    type: type
+                });
+                
+                // Validate LED sequence for testing
+                validateLEDSequence(ledNumber);
+            }
+        }
+        
+        function validateLEDSequence(ledNumber) {
+            const expectedSequences = {
+                7010: "WebSocket connect start",
+                7011: "WebSocket connected", 
+                7030: "Start transcription command",
+                6020: "Start transcription requested (server)",
+                6040: "Starting microphone capture (server)",
+                7020: "Transcript received",
+                7021: "Coaching suggestion received"
+            };
+            
+            if (expectedSequences[ledNumber]) {
+                log(`✅ LED ${ledNumber}: ${expectedSequences[ledNumber]} - EXPECTED SEQUENCE`, 'success');
+            }
+        }
+
+        function updateStatus(status, type) {
+            const statusDiv = document.getElementById('status');
+            const ledClass = type === 'connected' ? 'success' : type === 'connecting' ? 'warning' : 'error';
+            statusDiv.innerHTML = `<span class="led ${ledClass}"></span>${status}`;
+            statusDiv.className = `status ${type}`;
+        }
+
+        function connect() {
+            if (socket) {
+                socket.close();
+            }
+            
+            log('🎵 LED 7010: WebSocket connect start', 'info');
+            updateStatus('Connecting...', 'connecting');
+            
+            try {
+                socket = new WebSocket('ws://127.0.0.1:5000');
+                socket.binaryType = 'arraybuffer';
+                
+                socket.onopen = function() {
+                    log('🎵 LED 7011: WebSocket connected successfully', 'success');
+                    updateStatus('Connected - Native WebSocket Protocol', 'connected');
+                    isConnected = true;
+                    
+                    document.getElementById('connectBtn').disabled = true;
+                    document.getElementById('disconnectBtn').disabled = false;
+                    document.getElementById('startTranscriptionBtn').disabled = false;
+                    document.getElementById('testAudioBtn').disabled = false;
+                };
+                
+                socket.onclose = function(event) {
+                    log(`🎵 LED 7012: WebSocket disconnected (Code: ${event.code}, Reason: ${event.reason || 'Unknown'})`, 'warning');
+                    updateStatus('Disconnected', 'disconnected');
+                    isConnected = false;
+                    
+                    document.getElementById('connectBtn').disabled = false;
+                    document.getElementById('disconnectBtn').disabled = true;
+                    document.getElementById('startTranscriptionBtn').disabled = true;
+                    document.getElementById('stopTranscriptionBtn').disabled = true;
+                    document.getElementById('testAudioBtn').disabled = true;
+                };
+                
+                socket.onerror = function(error) {
+                    log('❌ LED 8011: WebSocket connection error - Check if Python server is running', 'error');
+                    updateStatus('Connection Error - Check Server', 'disconnected');
+                    console.error('WebSocket error:', error);
+                };
+                
+                socket.onmessage = function(event) {
+                    try {
+                        let data;
+                        if (typeof event.data === 'string') {
+                            data = JSON.parse(event.data);
+                        } else {
+                            log('📡 Received binary data (audio response)', 'info');
+                            return;
+                        }
+                        
+                        handleMessage(data);
+                    } catch (error) {
+                        log('❌ Error parsing message: ' + error.message, 'error');
+                    }
+                };
+                
+            } catch (error) {
+                log('❌ LED 8010: Failed to create WebSocket connection - ' + error.message, 'error');
+                updateStatus('Connection Failed', 'disconnected');
+            }
+        }
+        
+        function handleMessage(data) {
+            log(`📡 Received message: ${JSON.stringify(data)}`, 'info');
+            
+            // Handle transcription results
+            if (data.type === 'transcription' || data.type === 'final_transcript' || data.type === 'partial_transcript') {
+                log('🎵 LED 7020: Transcript received', 'success');
+                
+                const transcriptDiv = document.getElementById('transcriptions');
+                const transcript = document.createElement('div');
+                transcript.className = 'transcript';
+                transcript.innerHTML = `
+                    <strong>${data.type === 'partial_transcript' ? '🎤 Live' : '✓ Final'}:</strong> 
+                    ${data.text || data.transcript || ''}
+                    <br><small>${new Date().toLocaleTimeString()}</small>
+                `;
+                transcriptDiv.appendChild(transcript);
+                transcriptDiv.scrollTop = transcriptDiv.scrollHeight;
+            }
+            
+            // Handle Vosk direct format
+            else if (data.text !== undefined && data.partial !== undefined) {
+                log('🎵 LED 7020: Vosk transcript received', 'success');
+                
+                const transcriptDiv = document.getElementById('transcriptions');
+                const transcript = document.createElement('div');
+                transcript.className = 'transcript';
+                transcript.innerHTML = `
+                    <strong>${data.partial ? '🎤 Live' : '✓ Final'}:</strong> 
+                    ${data.partial || data.text || ''}
+                    <br><small>${new Date().toLocaleTimeString()}</small>
+                `;
+                transcriptDiv.appendChild(transcript);
+                transcriptDiv.scrollTop = transcriptDiv.scrollHeight;
+            }
+            
+            // Handle coaching suggestions
+            else if (data.type === 'coaching_suggestion') {
+                log('🎵 LED 7021: Coaching suggestion received', 'success');
+                
+                const coachingDiv = document.getElementById('coaching');
+                const coaching = document.createElement('div');
+                coaching.className = 'coaching';
+                coaching.innerHTML = `
+                    <strong>${data.priority} - ${data.category}:</strong> ${data.suggestion}
+                    <br><strong>Trigger:</strong> ${data.trigger}
+                    <br><small>${new Date().toLocaleTimeString()}</small>
+                `;
+                coachingDiv.appendChild(coaching);
+                coachingDiv.scrollTop = coachingDiv.scrollHeight;
+            }
+            
+            // Handle status messages
+            else if (data.type === 'status') {
+                log(`🎵 LED 7022: Status received - ${data.message}`, 'info');
+            }
+            
+            // Handle transcription status
+            else if (data.type === 'transcription_status') {
+                log(`🎵 LED 7023: Transcription status - ${data.status}`, 'info');
+            }
+            
+            // Handle errors
+            else if (data.type === 'error') {
+                log(`❌ LED 8022: Server error - ${data.message}`, 'error');
+            }
+            
+            else {
+                log(`🔍 Unhandled message type: ${JSON.stringify(data)}`, 'warning');
+            }
+        }
+        
+        function disconnect() {
+            if (socket && isConnected) {
+                log('🎵 LED 7050: WebSocket disconnect start', 'info');
+                socket.close(1000, 'Client disconnect');
+            }
+        }
+        
+        function startTranscription() {
+            if (!isConnected) {
+                log('❌ LED 8030: Cannot start transcription - not connected', 'error');
+                return;
+            }
+            
+            log('🎵 LED 7030: Start transcription command sent', 'info');
+            socket.send(JSON.stringify({ type: 'start_transcription' }));
+            
+            document.getElementById('startTranscriptionBtn').disabled = true;
+            document.getElementById('stopTranscriptionBtn').disabled = false;
+            
+            // Start audio capture
+            startAudioCapture();
+        }
+        
+        function stopTranscription() {
+            if (!isConnected) {
+                log('❌ LED 8031: Cannot stop transcription - not connected', 'error');
+                return;
+            }
+            
+            log('🎵 LED 7031: Stop transcription command sent', 'info');
+            socket.send(JSON.stringify({ type: 'stop_transcription' }));
+            
+            document.getElementById('startTranscriptionBtn').disabled = false;
+            document.getElementById('stopTranscriptionBtn').disabled = true;
+            
+            // Stop audio capture
+            stopAudioCapture();
+        }
+        
+        async function startAudioCapture() {
+            try {
+                log('🎵 LED 7040: Starting audio capture', 'info');
+                
+                // Get microphone access with optimal settings for Vosk
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        channelCount: { ideal: 1 },
+                        sampleRate: { ideal: 16000 },
+                        sampleSize: { ideal: 16 },
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                });
+                
+                log('✅ Microphone access granted', 'success');
+                
+                // Create AudioContext
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                    sampleRate: 16000
+                });
+                
+                source = audioContext.createMediaStreamSource(mediaStream);
+                
+                // Create ScriptProcessorNode for audio processing
+                const processor = audioContext.createScriptProcessor(4096, 1, 1);
+                processor.onaudioprocess = function(event) {
+                    if (!isRecording) return;
+                    
+                    const inputBuffer = event.inputBuffer;
+                    const inputData = inputBuffer.getChannelData(0);
+                    
+                    // Convert to 16-bit PCM
+                    const pcmData = new Int16Array(inputData.length);
+                    for (let i = 0; i < inputData.length; i++) {
+                        pcmData[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32768));
+                    }
+                    
+                    // Send audio data
+                    if (socket && isConnected) {
+                        log(`🎵 LED 7040: Audio chunk sent (${pcmData.length} samples)`, 'info');
+                        socket.send(pcmData.buffer);
+                    }
+                };
+                
+                source.connect(processor);
+                processor.connect(audioContext.destination);
+                
+                isRecording = true;
+                log('✅ Audio capture started successfully', 'success');
+                
+            } catch (error) {
+                log(`❌ LED 8040: Audio capture failed - ${error.message}`, 'error');
+                console.error('Audio capture error:', error);
+            }
+        }
+        
+        function stopAudioCapture() {
+            try {
+                log('🎵 LED 7041: Stopping audio capture', 'info');
+                
+                isRecording = false;
+                
+                if (source) {
+                    source.disconnect();
+                    source = null;
+                }
+                
+                if (audioContext) {
+                    audioContext.close();
+                    audioContext = null;
+                }
+                
+                if (mediaStream) {
+                    mediaStream.getTracks().forEach(track => track.stop());
+                    mediaStream = null;
+                }
+                
+                log('✅ Audio capture stopped successfully', 'success');
+                
+            } catch (error) {
+                log(`❌ Error stopping audio capture: ${error.message}`, 'error');
+                console.error('Audio stop error:', error);
+            }
+        }
+        
+        async function testMicrophone() {
+            try {
+                log('🎧 Testing microphone access...', 'info');
+                const testStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        channelCount: { ideal: 1 },
+                        sampleRate: { ideal: 16000 }
+                    }
+                });
+                
+                log('✅ Microphone test successful', 'success');
+                testStream.getTracks().forEach(track => track.stop());
+                
+                // Get available audio devices
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const audioDevices = devices.filter(device => device.kind === 'audioinput');
+                
+                log(`📡 Found ${audioDevices.length} audio input devices:`, 'info');
+                audioDevices.forEach((device, index) => {
+                    log(`  ${index + 1}. ${device.label || 'Unknown Device'} (${device.deviceId})`, 'info');
+                });
+                
+            } catch (error) {
+                log(`❌ Microphone test failed: ${error.message}`, 'error');
+                
+                if (error.name === 'NotAllowedError') {
+                    log('💡 Microphone permission denied. Please allow access and try again.', 'warning');
+                } else if (error.name === 'NotFoundError') {
+                    log('💡 No microphone found. Please connect a microphone and try again.', 'warning');
+                } else {
+                    log('💡 Check microphone permissions and device availability.', 'warning');
+                }
+            }
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            document.getElementById('transcriptions').innerHTML = '';
+            document.getElementById('coaching').innerHTML = '';
+            ledSequence = [];
+        }
+        
+        // Auto-connect on page load for testing
+        window.onload = function() {
+            log('🚀 VoiceCoach V2 WebSocket Test Client initialized', 'success');
+            log('📡 Server: ws://127.0.0.1:5000 (Native WebSocket Protocol)', 'info');
+            log('🎯 Click Connect to test WebSocket connection', 'info');
+        };
+        
+        // Test sequence validation
+        function runTestSequence() {
+            log('🧪 Starting automated test sequence...', 'info');
+            
+            setTimeout(() => {
+                if (isConnected) {
+                    log('✅ Test 1: Connection - PASSED', 'success');
+                    startTranscription();
+                    
+                    setTimeout(() => {
+                        log('🎤 Test phrase: "Hello, this is a test message for VoiceCoach V2"', 'info');
+                        
+                        setTimeout(() => {
+                            stopTranscription();
+                            setTimeout(() => {
+                                log('🎯 Test sequence complete - Check LED breadcrumbs above', 'success');
+                            }, 2000);
+                        }, 5000);
+                    }, 2000);
+                } else {
+                    log('❌ Test 1: Connection - FAILED', 'error');
+                }
+            }, 2000);
+        }
+        
+        // Add test sequence button
+        setTimeout(() => {
+            const container = document.querySelector('.container');
+            const testBtn = document.createElement('button');
+            testBtn.innerHTML = '🧪 Run Automated Test';
+            testBtn.onclick = runTestSequence;
+            testBtn.style.background = '#059669';
+            container.appendChild(testBtn);
+        }, 1000);
+        
+    </script>
+</body>
+</html>

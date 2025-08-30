@@ -1,0 +1,364 @@
+I'll help you research these critical topics for solving your Electron startup sequence timing issues. Here's a comprehensive analysis and solutions:
+
+1. Electron Single-Instance with Cleanup Timing
+Problem: Single-instance detection happens before cleanup can run.
+
+Solution: Implement a pre-initialization cleanup phase:
+
+javascript
+// main.js - Modified single instance logic
+const { app } = require('electron');
+const { killProcessesOnPorts, cleanupPorts } = require('./cleanup');
+
+// Pre-initialization cleanup
+async function preInitializeCleanup() {
+  try {
+    await killProcessesOnPorts([5000, 5175]);
+    await cleanupPorts([5000, 5175]);
+    console.log('Pre-initialization cleanup completed');
+  } catch (error) {
+    console.warn('Cleanup warning:', error.message);
+  }
+}
+
+// Modified single instance lock
+const gotTheLock = app.requestSingleInstanceLock(async (additionalData) => {
+  // This runs when second instance is launched
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
+});
+
+if (!gotTheLock) {
+  // Run cleanup and quit if another instance exists
+  preInitializeCleanup().finally(() => {
+    app.quit();
+  });
+} else {
+  // First instance - run cleanup before app ready
+  app.whenReady().then(async () => {
+    await preInitializeCleanup();
+    createWindow();
+  });
+}
+2. Windows Batch/PowerShell Startup Scripts
+Robust pre-startup cleanup script (PowerShell):
+
+powershell
+# pre-startup-cleanup.ps1
+param([int[]]$Ports = @(5000, 5175))
+
+function Kill-ProcessesOnPorts {
+    param([int[]]$Ports)
+    
+    foreach ($port in $Ports) {
+        try {
+            # Find processes using the port
+            $processes = netstat -ano | findstr ":$port" | findstr "LISTENING"
+            
+            foreach ($line in $processes) {
+                $pid = $line -replace '.*\s+(\d+)$', '$1'
+                if ($pid -match '^\d+$') {
+                    Write-Host "Killing process $pid on port $port"
+                    taskkill /F /PID $pid 2>$null
+                    Start-Sleep -Milliseconds 100
+                }
+            }
+        }
+        catch {
+            Write-Warning "Error cleaning port $port: $_"
+        }
+    }
+}
+
+function Test-PortsAvailable {
+    param([int[]]$Ports)
+    
+    foreach ($port in $Ports) {
+        $listening = netstat -ano | findstr ":$port" | findstr "LISTENING"
+        if ($listening) {
+            return $false
+        }
+    }
+    return $true
+}
+
+# Main execution
+Write-Host "Starting pre-startup cleanup..."
+Kill-ProcessesOnPorts -Ports $Ports
+
+# Verify cleanup
+$retries = 0
+$maxRetries = 3
+
+while ($retries -lt $maxRetries -and !(Test-PortsAvailable -Ports $Ports)) {
+    Write-Host "Ports still in use, retrying... ($($retries + 1)/$maxRetries)"
+    Kill-ProcessesOnPorts -Ports $Ports
+    Start-Sleep -Seconds 1
+    $retries++
+}
+
+if (Test-PortsAvailable -Ports $Ports) {
+    Write-Host "✅ Ports $($Ports -join ', ') are now available"
+    exit 0
+} else {
+    Write-Host "❌ Failed to free ports $($Ports -join ', ')"
+    exit 1
+}
+Batch file wrapper for Electron app:
+
+batch
+@echo off
+:: startup.bat
+echo Running pre-startup cleanup...
+powershell -ExecutionPolicy Bypass -File "pre-startup-cleanup.ps1" -Ports 5000,5175
+
+if %errorlevel% equ 0 (
+    echo Starting VoiceCoach...
+    start "" "VoiceCoach.exe"
+) else (
+    echo Cleanup failed. Please close applications using ports 5000 or 5175.
+    pause
+)
+3. Process Management Patterns for Windows
+Best practices for clean app restarts:
+
+Pattern 1: Parent Process Monitor
+
+javascript
+// monitor.js
+const { spawn } = require('child_process');
+const { killProcessesOnPorts } = require('./cleanup');
+
+class AppMonitor {
+  constructor() {
+    this.appProcess = null;
+    this.isRestarting = false;
+  }
+
+  async startApp() {
+    if (this.isRestarting) return;
+    
+    await killProcessesOnPorts([5000, 5175]);
+    
+    this.appProcess = spawn('VoiceCoach.exe', [], {
+      detached: true,
+      stdio: 'ignore'
+    });
+
+    this.appProcess.on('close', (code) => {
+      if (!this.isRestarting) {
+        this.restartApp();
+      }
+    });
+  }
+
+  async restartApp() {
+    this.isRestarting = true;
+    
+    // Kill existing process gracefully
+    if (this.appProcess) {
+      this.appProcess.kill('SIGTERM');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    await killProcessesOnPorts([5000, 5175]);
+    await this.startApp();
+    
+    this.isRestarting = false;
+  }
+}
+Pattern 2: Mutex-based Startup Control
+
+javascript
+// mutex-manager.js
+const { app } = require('electron');
+const fs = require('fs');
+const path = require('path');
+
+class StartupMutex {
+  constructor() {
+    this.mutexFile = path.join(app.getPath('temp'), 'voicecoach.lock');
+  }
+
+  acquire() {
+    try {
+      // Try to create lock file
+      fs.writeFileSync(this.mutexFile, process.pid.toString(), { flag: 'wx' });
+      return true;
+    } catch (error) {
+      return false; // Lock already exists
+    }
+  }
+
+  release() {
+    try {
+      if (fs.existsSync(this.mutexFile)) {
+        fs.unlinkSync(this.mutexFile);
+      }
+    } catch (error) {
+      console.warn('Could not release mutex:', error.message);
+    }
+  }
+
+  getExistingPid() {
+    try {
+      if (fs.existsSync(this.mutexFile)) {
+        return parseInt(fs.readFileSync(this.mutexFile, 'utf8'));
+      }
+    } catch (error) {
+      return null;
+    }
+    return null;
+  }
+}
+4. Windows Port Management Utilities
+Enhanced port cleanup utility:
+
+javascript
+// cleanup.js - Enhanced Windows port management
+const { exec, spawn } = require('child_process');
+const util = require('util');
+const execPromise = util.promisify(exec);
+
+async function killProcessesOnPorts(ports) {
+  const commands = [];
+  
+  for (const port of ports) {
+    // Use multiple methods for robustness
+    commands.push(
+      `for /f "tokens=5" %a in ('netstat -ano ^| findstr :${port} ^| findstr LISTENING') do taskkill /F /PID %a`,
+      `powershell -Command "Get-NetTCPConnection -LocalPort ${port} | Where-Object State -eq 'Listen' | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }"`
+    );
+  }
+
+  for (const cmd of commands) {
+    try {
+      await execPromise(cmd, { windowsHide: true });
+    } catch (error) {
+      // Expected errors when no processes found
+      if (!error.message.includes('no tasks') && !error.message.includes('not found')) {
+        console.warn(`Cleanup warning: ${error.message}`);
+      }
+    }
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+}
+
+async function cleanupPorts(ports) {
+  // Additional cleanup using Windows native tools
+  try {
+    // Use WMIC for more reliable process termination
+    for (const port of ports) {
+      const wmicCmd = `wmic process where "commandline like '%${port}%'" delete`;
+      await execPromise(wmicCmd, { windowsHide: true });
+    }
+  } catch (error) {
+    console.warn('WMIC cleanup warning:', error.message);
+  }
+}
+
+// Verify ports are free
+async function verifyPortsAvailable(ports, maxRetries = 5) {
+  for (let i = 0; i < maxRetries; i++) {
+    const busyPorts = [];
+    
+    for (const port of ports) {
+      try {
+        const { stdout } = await execPromise(
+          `netstat -ano | findstr ":${port}" | findstr "LISTENING"`,
+          { windowsHide: true }
+        );
+        if (stdout.trim()) {
+          busyPorts.push(port);
+        }
+      } catch (error) {
+        // No output means port is free
+      }
+    }
+
+    if (busyPorts.length === 0) {
+      return true;
+    }
+
+    if (i < maxRetries - 1) {
+      await killProcessesOnPorts(busyPorts);
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
+  
+  return false;
+}
+
+module.exports = {
+  killProcessesOnPorts,
+  cleanupPorts,
+  verifyPortsAvailable
+};
+Integrated Solution Architecture
+Recommended implementation sequence:
+
+Pre-Launch Script: Use PowerShell script as entry point
+
+Mutex Control: Ensure only one cleanup/startup sequence runs
+
+Aggressive Cleanup: Multiple methods for port/process cleanup
+
+Verification: Confirm ports are free before app start
+
+Graceful Handoff: Start Electron app after successful cleanup
+
+Final startup flow:
+
+javascript
+// main.js - Final implementation
+const { app } = require('electron');
+const { killProcessesOnPorts, verifyPortsAvailable } = require('./cleanup');
+const StartupMutex = require('./mutex-manager');
+
+const mutex = new StartupMutex();
+
+async function ensureCleanStartup() {
+  // Try to acquire mutex - if failed, another instance is starting
+  if (!mutex.acquire()) {
+    console.log('Another instance is starting up');
+    app.quit();
+    return false;
+  }
+
+  try {
+    // Aggressive cleanup
+    await killProcessesOnPorts([5000, 5175]);
+    
+    // Verify with retries
+    const portsAvailable = await verifyPortsAvailable([5000, 5175], 3);
+    
+    if (!portsAvailable) {
+      throw new Error('Ports 5000 and/or 5175 are still occupied');
+    }
+
+    return true;
+  } catch (error) {
+    mutex.release();
+    throw error;
+  }
+}
+
+// Modified app startup
+app.whenReady().then(async () => {
+  try {
+    const cleanStart = await ensureCleanStartup();
+    if (cleanStart) {
+      createWindow();
+    }
+  } catch (error) {
+    console.error('Startup failed:', error.message);
+    app.quit();
+  }
+});
+
+app.on('before-quit', () => {
+  mutex.release();
+});
+This approach ensures cleanup happens before single-instance checks and provides robust Windows process management for your Electron application.
