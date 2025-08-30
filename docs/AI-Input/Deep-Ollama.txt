@@ -1,0 +1,116 @@
+Based on your questions and the working curl test, here are the answers:
+
+1. Node.js HTTP Request in IPC Handler
+Yes, the approach is correct for connecting to Ollama. The Node.js http or https module is the right choice for making requests from the main process to localhost:11434. Example of a proper implementation:
+
+javascript
+const http = require('http');
+
+ipcMain.handle('get-ollama-models', async () => {
+  return new Promise((resolve, reject) => {
+    const req = http.get('http://localhost:11434/api/tags', (res) => {
+      let data = '';
+      res.on('data', (chunk) => data += chunk);
+      res.on('end', () => resolve(JSON.parse(data)));
+    });
+    
+    req.on('error', (error) => reject(error));
+    req.end();
+  });
+});
+2. Electron Security Policies Blocking Localhost
+Yes, this is very likely the issue. Recent Electron versions have strict security policies that block connections to localhost by default. You need to:
+
+Option 1: Enable localhost access in webSecurity (in main process):
+
+javascript
+const mainWindow = new BrowserWindow({
+  webPreferences: {
+    webSecurity: false, // ⚠️ Use with caution - only for development
+    allowRunningInsecureContent: true // May also be needed
+  }
+});
+Option 2: Better approach - Use a custom protocol:
+
+javascript
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'app',
+    privileges: {
+      secure: true,
+      standard: true,
+      allowServiceWorkers: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      bypassCSP: true
+    }
+  }
+]);
+3. Why IPC Handler Might Not Receive Calls
+Common reasons include:
+
+Context Isolation enabled without proper contextBridge setup
+
+Missing preload script configuration
+
+Incorrect IPC channel names between renderer and main
+
+Promise handling issues in the renderer process
+
+Check your preload script:
+
+javascript
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('electronAPI', {
+  getOllamaModels: () => ipcRenderer.invoke('get-ollama-models')
+});
+Renderer call should be:
+
+javascript
+window.electronAPI.getOllamaModels()
+  .then(models => console.log(models))
+  .catch(error => console.error(error));
+4. Alternative Approach for Desktop Ollama Connections
+Yes, consider these better approaches:
+
+Option A: Use net module instead of http (more Electron-friendly):
+
+javascript
+const { net } = require('electron');
+
+ipcMain.handle('get-ollama-models', async () => {
+  const request = net.request('http://localhost:11434/api/tags');
+  
+  return new Promise((resolve, reject) => {
+    let data = '';
+    request.on('response', (response) => {
+      response.on('data', (chunk) => data += chunk);
+      response.on('end', () => resolve(JSON.parse(data)));
+    });
+    request.on('error', reject);
+    request.end();
+  });
+});
+Option B: Use fetch with proper permissions (Electron 17+):
+
+javascript
+// In main process with appropriate permissions
+ipcMain.handle('get-ollama-models', async () => {
+  const response = await fetch('http://localhost:11434/api/tags');
+  return response.json();
+});
+Recommended Solution
+Start with the net module approach as it's specifically designed for Electron and handles localhost connections more reliably than the Node.js http module.
+
+Also ensure you have proper CSP headers and consider adding error handling for when Ollama isn't running:
+
+javascript
+ipcMain.handle('get-ollama-models', async () => {
+  try {
+    const request = net.request('http://localhost:11434/api/tags');
+    // ... implementation
+  } catch (error) {
+    return { error: 'Ollama not available', status: 'offline' };
+  }
+});

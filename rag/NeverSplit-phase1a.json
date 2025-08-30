@@ -1,0 +1,427 @@
+{
+  "document_summary": {
+    "main_focus": "Emotion-based negotiation techniques derived from FBI hostage negotiation, emphasizing psychological understanding over rational argument",
+    "value_for_sales": "Provides systematic frameworks for reading customers, managing emotional states, and guiding conversations through psychological principles rather than logical persuasion",
+    "total_techniques_found": "52"
+  },
+  
+  "high_impact_techniques": [
+    {
+      "technique": "Tactical Empathy - Understanding and articulating emotions to influence outcomes",
+      "situation": "When customer shows emotional resistance, stress, or uncertainty",
+      "example": "It sounds like you're frustrated with your current solution and worried about making another mistake",
+      "priority": "CRITICAL"
+    },
+    {
+      "technique": "Mirroring - Repeat last 1-3 words to build instant rapport",
+      "situation": "After customer makes any statement or objection",
+      "example": "Customer: 'This is too complicated.' You: 'Too complicated?'",
+      "priority": "CRITICAL"
+    },
+    {
+      "technique": "Labeling - Name emotions to diffuse tension and create safety",
+      "situation": "When detecting any emotional state (positive or negative)",
+      "example": "It seems like you're concerned about the implementation timeline",
+      "priority": "CRITICAL"
+    },
+    {
+      "technique": "Calibrated Questions - Open-ended how/what questions that create illusion of control",
+      "situation": "When facing objections, need guidance, or want them to solve problems",
+      "example": "How would this need to work for your team? What would have to happen for this to feel right?",
+      "priority": "CRITICAL"
+    },
+    {
+      "technique": "Accusation Audit - Preemptively address negative thoughts",
+      "situation": "At beginning of conversations or when sensing hidden resistance",
+      "example": "You're probably thinking this is just another sales pitch from someone who doesn't understand your business",
+      "priority": "CRITICAL"
+    },
+    {
+      "technique": "Getting 'That's Right' - Confirm deep understanding and agreement",
+      "situation": "After summarizing customer's position, needs, or concerns",
+      "example": "So what I'm hearing is... [complete summary]. Customer responds: 'That's exactly right!'",
+      "priority": "CRITICAL"
+    },
+    {
+      "technique": "Strategic Use of 'No' - Make customers feel in control through rejection",
+      "situation": "When breaking through resistance or false agreement",
+      "example": "Is it completely unreasonable to think we could solve this problem?",
+      "priority": "HIGH"
+    },
+    {
+      "technique": "Dynamic Silence - Strategic pauses to encourage elaboration",
+      "situation": "After calibrated questions or emotional labels",
+      "example": "Ask question, then wait 5-7 seconds without speaking",
+      "priority": "HIGH"
+    },
+    {
+      "technique": "Loss Aversion Framing - Present solutions as preventing loss",
+      "situation": "When creating urgency or demonstrating value",
+      "example": "Without addressing this, you'll continue losing $X monthly in inefficiencies",
+      "priority": "HIGH"
+    },
+    {
+      "technique": "The Genuine Yes Test - Verify real commitment through three confirmations",
+      "situation": "Before assuming agreement or moving to next steps",
+      "example": "Get yes, then label/summarize for 'that's right', then ask implementation question",
+      "priority": "HIGH"
+    }
+  ],
+
+  "strategic_frameworks": [
+    {
+      "framework": "Calculated Empathy System",
+      "description": "Five-step approach to making customers feel emotionally safe and understood",
+      "components": ["Active Listening", "Right Tone Usage", "Reflecting Back", "Emotional Labeling", "Accusation Audits"],
+      "application": "Use throughout conversation to build trust and gather information by making customer feel secure",
+      "indicators": "Customer becomes more open, shares concerns, relaxes body language"
+    },
+    {
+      "framework": "Autonomy Creation Process",
+      "description": "Make customers feel in control while guiding them to desired outcomes",
+      "components": ["Open-ended Questions", "Getting to No", "Solution-oriented Responses", "Implementation Focus"],
+      "application": "Give illusion of control by asking how/what questions and letting them reject options",
+      "indicators": "Customer starts providing solutions, becomes more engaged, takes ownership"
+    },
+    {
+      "framework": "Information Hierarchy Model",
+      "description": "Three levels of information in negotiations: Known Knowns, Known Unknowns, Unknown Unknowns (Black Swans)",
+      "components": ["Surface Facts", "Acknowledged Gaps", "Hidden Motivators"],
+      "application": "Systematically probe beyond obvious information to find game-changing insights",
+      "indicators": "Inconsistencies in behavior, unexpected reactions, emotional responses"
+    },
+    {
+      "framework": "Ackerman Bargaining Model",
+      "description": "Six-step tactical sequence for monetary negotiations",
+      "components": ["Target Setting (65%)", "Three Raises (85%, 95%, 100%)", "Precise Numbers", "Non-monetary Items"],
+      "application": "When negotiating price as buyer, use decreasing increments to create reciprocity",
+      "indicators": "Price-sensitive discussions, budget constraints, negotiation requests"
+    },
+    {
+      "framework": "Implementation Assurance System",
+      "description": "Ensure follow-through beyond verbal agreement",
+      "components": ["Authority Verification", "Stakeholder Mapping", "Commitment Testing", "Process Definition"],
+      "application": "Before closing, verify who makes decisions and how implementation actually happens",
+      "indicators": "Vague commitments, pronoun deflection, unclear next steps"
+    },
+    {
+      "framework": "Psychological Leverage Model",
+      "description": "Three types of influence: Positive (give what they want), Negative (prevent loss), Normative (their own standards)",
+      "components": ["Positive Leverage", "Negative Leverage", "Normative Leverage"],
+      "application": "Adapt influence approach based on what motivates the specific customer type",
+      "indicators": "Customer values, fears, stated principles, inconsistencies"
+    }
+  ],
+
+  "customer_types": [
+    {
+      "type": "Givers (Accommodators)",
+      "characteristics": ["People-pleasers", "Highly sociable", "Relationship-focused", "Poor time managers", "Avoid conflict", "Quick to agree"],
+      "approach": "Focus on implementation questions, don't let them over-commit, be direct about potential issues",
+      "avoid": "Don't assume quick agreement is genuine, don't let them sacrifice reasonable objections"
+    },
+    {
+      "type": "Calculators (Analysts)",
+      "characteristics": ["Methodical", "Data-driven", "Unconcerned with time", "Want all facts", "Distant/cold", "Thorough"],
+      "approach": "Provide clear data, avoid surprises, don't overwhelm with questions, be patient with analysis time",
+      "avoid": "Don't rush them, don't rely on emotional appeals, don't make unsupported claims"
+    },
+    {
+      "type": "Aggressives (Drivers)",
+      "characteristics": ["Achievement-oriented", "Time-sensitive", "Forceful style", "Need to be heard first", "Dominating", "Results-focused"],
+      "approach": "Let them talk first, use reflecting back, apply time pressure, get 'that's right' confirmation",
+      "avoid": "Don't try to out-talk them, don't ignore their need to feel in control, don't waste their time"
+    },
+    {
+      "type": "Authority Figures",
+      "characteristics": ["Use first-person pronouns (I, me)", "Make definitive statements", "Can commit immediately", "Confident decision-making"],
+      "approach": "Direct engagement, focus on outcomes, respect their time, present complete solutions",
+      "avoid": "Don't over-explain, don't seek excessive validation, don't delay decisions"
+    },
+    {
+      "type": "Influencers (Non-Decision Makers)",
+      "characteristics": ["Use third-person pronouns (we, they)", "Deflect to others", "Cannot commit", "Vague about process"],
+      "approach": "Map the real decision-makers, understand their role, get introductions to authority",
+      "avoid": "Don't assume they can close, don't invest all effort here, don't ignore the real power structure"
+    }
+  ],
+
+  "psychological_indicators": [
+    {
+      "indicator": "Pronoun Usage - First person (I, me) vs Third person (we, they, us)",
+      "meaning": "First person indicates decision-making authority; third person suggests deflection or lack of power",
+      "response": "With first person: engage directly. With third person: map stakeholders and decision process",
+      "reliability": "High - consistent indicator of organizational authority"
+    },
+    {
+      "indicator": "Tone/Body Language Mismatch - Words don't match emotional presentation",
+      "meaning": "Internal conflict, hidden concerns, or lack of genuine agreement",
+      "response": "Use labeling: 'It seems like there might be some hesitation here'",
+      "reliability": "Very High - 93% of communication is non-verbal (38% tone, 55% body language)"
+    },
+    {
+      "indicator": "Verbal Complexity - Overly elaborate or evasive explanations",
+      "meaning": "Potential deception, confusion, or attempting to hide something",
+      "response": "Ask calibrated questions to simplify and clarify actual concerns",
+      "reliability": "Moderate - can indicate lying but also just personality style"
+    },
+    {
+      "indicator": "Quick Agreement Without Details - Fast 'yes' responses",
+      "meaning": "False agreement to end conversation or get you off their back",
+      "response": "Test with implementation questions: 'How would this work in practice?'",
+      "reliability": "High - genuine agreement involves consideration and details"
+    },
+    {
+      "indicator": "Time Pressure Creation - Artificial urgency or deadline pressure",
+      "meaning": "Attempting to force premature decision or compromise",
+      "response": "Reveal your own timeline and flip pressure: 'What's driving that timeline?'",
+      "reliability": "High - most deadlines are flexible and used as tactics"
+    },
+    {
+      "indicator": "Emotional Labeling Response - How they react to emotion identification",
+      "meaning": "Confirms or denies emotional state, reveals real concerns",
+      "response": "If confirmed: explore deeper. If denied: adjust understanding",
+      "reliability": "Very High - immediate emotional reaction is hard to fake"
+    },
+    {
+      "indicator": "Mirror Response - How they react to repeated words",
+      "meaning": "Elaboration indicates engagement; deflection suggests discomfort",
+      "response": "Continue mirroring if they elaborate; switch tactics if they deflect",
+      "reliability": "High - mirroring triggers automatic elaboration response"
+    },
+    {
+      "indicator": "Solution Ownership - Who generates ideas for moving forward",
+      "meaning": "When they provide solutions, they're mentally invested in success",
+      "response": "Build on their ideas rather than imposing your solutions",
+      "reliability": "Very High - people support what they help create"
+    }
+  ],
+
+  "advanced_questions": [
+    {
+      "question": "How am I supposed to do that?",
+      "purpose": "Says 'no' without using the word, forces them to solve your problem",
+      "timing": "When facing unreasonable requests or impossible conditions",
+      "follow_up": "Listen to their solution, then ask implementation questions"
+    },
+    {
+      "question": "What about this doesn't work for you?",
+      "purpose": "Uncovers specific objections rather than general resistance",
+      "timing": "When sensing hesitation or getting vague negative responses",
+      "follow_up": "Address specific concerns with targeted solutions"
+    },
+    {
+      "question": "How can we ensure this actually happens?",
+      "purpose": "Tests genuine commitment and reveals implementation challenges",
+      "timing": "After getting agreement but before assuming the deal is done",
+      "follow_up": "Map out specific steps and accountability measures"
+    },
+    {
+      "question": "How does your boss typically feel about initiatives like this?",
+      "purpose": "Identifies hidden stakeholders and organizational dynamics",
+      "timing": "When sensing the person may not have final authority",
+      "follow_up": "Understand boss's priorities and concerns, seek introduction"
+    },
+    {
+      "question": "What would need to happen for this to feel right?",
+      "purpose": "Uncovers emotional and practical requirements for agreement",
+      "timing": "When logical arguments aren't working or sensing emotional barriers",
+      "follow_up": "Address both practical and emotional needs identified"
+    },
+    {
+      "question": "What would have to change for you to consider an alternative?",
+      "purpose": "Opens possibility discussion with satisfied customers",
+      "timing": "When they claim happiness with current situation",
+      "follow_up": "Present changes that align with their stated conditions"
+    },
+    {
+      "question": "How do you see this playing out if nothing changes?",
+      "purpose": "Activates loss aversion by making status quo consequences real",
+      "timing": "When they're avoiding decision or delaying action",
+      "follow_up": "Contrast negative outcome with positive solution benefits"
+    },
+    {
+      "question": "What's the biggest challenge this would solve?",
+      "purpose": "Identifies primary value driver and pain point",
+      "timing": "During discovery phase or when positioning solutions",
+      "follow_up": "Quantify impact and connect to emotional consequences"
+    },
+    {
+      "question": "How would you define success with this?",
+      "purpose": "Establishes clear criteria and expectations for outcomes",
+      "timing": "Before presenting solutions or closing agreement",
+      "follow_up": "Design solution specifically to achieve their success definition"
+    },
+    {
+      "question": "What questions haven't I asked that I should have?",
+      "purpose": "Uncovers unknown unknowns and hidden concerns",
+      "timing": "Near end of discovery or when sensing missing information",
+      "follow_up": "Explore whatever they reveal with additional calibrated questions"
+    }
+  ],
+  
+  "objection_handlers": [
+    {
+      "objection": "The price is too high",
+      "response": "It sounds like price is a real concern for you. What about the investment doesn't work? How would this need to be structured to make sense?",
+      "source": "Chapters on Calibrated Questions and Loss Aversion"
+    },
+    {
+      "objection": "We need to think about it",
+      "response": "I understand wanting to think it through. It seems like there might be something specific that's giving you pause. What would need to feel different?",
+      "source": "Chapter on Labeling and Getting to No"
+    },
+    {
+      "objection": "We're happy with our current solution",
+      "response": "That's great that it's working well for you. What would need to change in your situation for you to consider an alternative?",
+      "source": "Chapter on Advanced Questions"
+    },
+    {
+      "objection": "I'm not the decision maker",
+      "response": "I appreciate your honesty. How does your team typically evaluate decisions like this? How do you think [boss/committee] would react to this?",
+      "source": "Chapter on Implementation - Authority Identification"
+    },
+    {
+      "objection": "We don't have budget",
+      "response": "Budget constraints are real. Help me understand - is this about timing or about the value not being clear? What would have to be true about the ROI?",
+      "source": "Chapter on Framing and Loss Aversion"
+    },
+    {
+      "objection": "It's too complicated",
+      "response": "Simplicity is important. What would simple look like for your situation? How could we make this feel more straightforward?",
+      "source": "Chapter on Emotional Labeling"
+    },
+    {
+      "objection": "We need more time",
+      "response": "Time is important to get this right. What's driving the timeline on your end? How would you define 'enough time'?",
+      "source": "Chapter on Deadlines and Implementation"
+    },
+    {
+      "objection": "Send me some information",
+      "response": "I'd be happy to send relevant information. What specific questions do you have that information would answer? How do you typically review materials like this?",
+      "source": "Chapter on False Agreement and Implementation"
+    }
+  ],
+  
+  "conversation_scripts": [
+    {
+      "scenario": "Opening a cold outreach",
+      "script": "Hi [Name], I know this is probably an interruption and you're wondering why you should even take this call. You might be thinking this is just another vendor trying to sell you something you don't need. What I'd like to discuss could help with [specific challenge]. Does that seem worth a few minutes of your time?",
+      "purpose": "Uses accusation audit to disarm resistance and calibrated question to create engagement"
+    },
+    {
+      "scenario": "Discovery conversation with hesitant prospect",
+      "script": "It seems like you've had some bad experiences with solutions like this before. What happened that made you cautious? What would need to be different this time for you to feel confident moving forward?",
+      "purpose": "Labels emotion, uncovers past issues, focuses on future requirements"
+    },
+    {
+      "scenario": "Handling multiple decision makers",
+      "script": "I appreciate you taking time to walk me through this. It sounds like there are several people involved in decisions like this. How does your team typically work through evaluations? What concerns do you think others might have?",
+      "purpose": "Maps decision process and stakeholders while gathering intelligence on concerns"
+    },
+    {
+      "scenario": "Creating urgency without pressure",
+      "script": "Help me understand the timeline you're working with. What happens if this problem continues for another quarter? How would that impact your team's goals?",
+      "purpose": "Uses loss aversion and lets customer articulate consequences rather than imposing urgency"
+    },
+    {
+      "scenario": "Testing genuine agreement",
+      "script": "So if I understand correctly, you want [summarize needs], you're concerned about [summarize concerns], and success looks like [summarize outcomes]. Is that right? [Wait for 'That's right'] Great - how do you see us moving forward on this?",
+      "purpose": "Gets confirmation of understanding, then immediately tests with implementation question"
+    },
+    {
+      "scenario": "Dealing with price-focused discussion",
+      "script": "I hear that investment is a key consideration. It sounds like you want to make sure this delivers real value. What would good ROI look like to you? How do you typically measure success with investments like this?",
+      "purpose": "Shifts from price to value, gets their success criteria, moves to their measurement standards"
+    }
+  ],
+  
+  "quick_wins": [
+    "Replace all yes/no questions with 'How' and 'What' questions",
+    "Start difficult conversations with accusation audits",
+    "Use customer's exact words when summarizing their position",
+    "Pause 5-7 seconds after asking calibrated questions",
+    "Label emotions before addressing logical concerns",
+    "Listen for pronoun usage to identify decision-making authority",
+    "Get 'That's right' before assuming agreement",
+    "Test agreement with implementation questions",
+    "Use precise numbers ($47,847) instead of round numbers ($48,000)",
+    "Frame solutions as preventing loss rather than creating gain",
+    "Mirror the last 3 words when customer states objections",
+    "Ask 'What questions haven't I asked?' to find unknown unknowns"
+  ],
+  
+  "coaching_triggers": {
+    "if_customer_says": [
+      "I need to think about it",
+      "The price is too high", 
+      "We're happy with what we have",
+      "I'm not the decision maker",
+      "We don't have budget",
+      "It's too complicated",
+      "We need more time",
+      "Send me information",
+      "Maybe later",
+      "We'll get back to you",
+      "This looks good",
+      "Yes, this makes sense"
+    ],
+    "then_coach": [
+      "Label: 'It sounds like there's something specific giving you pause'",
+      "Calibrated question: 'What about the investment doesn't work?'",
+      "Advanced question: 'What would need to change for you to consider alternatives?'",
+      "Authority mapping: 'How does your team typically make decisions like this?'",
+      "Reframe: 'Is this about timing or value clarity?'",
+      "Simplify: 'What would simple look like for your situation?'",
+      "Timeline probe: 'What's driving the timeline on your end?'",
+      "Specify: 'What specific questions would information answer?'",
+      "Timeline consequences: 'What happens if nothing changes?'",
+      "Implementation test: 'How do you see us moving forward?'",
+      "Test agreement: Get summary confirmation first",
+      "Implementation test: 'How would this work in practice?'"
+    ]
+  },
+
+  "power_dynamics": {
+    "authority_indicators": [
+      "Uses first-person pronouns consistently (I, me, my)",
+      "Makes definitive statements without hedging",
+      "Comfortable with silence and pauses",
+      "Asks strategic questions back",
+      "Controls meeting flow and timing"
+    ],
+    "influence_patterns": [
+      "Real decision makers often deflect initially to test you",
+      "Authority figures get frustrated with excessive process",
+      "Influencers need to look good to their superiors",
+      "Committee decisions require different strategies for each member"
+    ],
+    "navigation_strategies": [
+      "Match communication style to their negotiator type",
+      "Give authority figures control and respect their time",
+      "Help influencers build internal case with their superiors",
+      "Map all stakeholders before investing significant effort"
+    ]
+  },
+
+  "pre_call_preparation": {
+    "customer_research": [
+      "Identify likely negotiator type from available information",
+      "Research company decision-making processes",
+      "Understand their industry challenges and pressures",
+      "Identify potential Black Swan areas (financial, competitive, personal)"
+    ],
+    "strategic_planning": [
+      "Prepare accusation audit for likely negative perceptions",
+      "Plan calibrated questions for common scenarios",
+      "Identify non-monetary value elements",
+      "Set Ackerman model targets if price negotiation expected"
+    ],
+    "psychological_preparation": [
+      "Practice emotional regulation techniques",
+      "Prepare to mirror their communication style",
+      "Plan how to create safety and autonomy feelings",
+      "Anticipate likely objections and emotional responses"
+    ]
+  }
+}

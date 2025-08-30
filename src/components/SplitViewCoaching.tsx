@@ -149,7 +149,7 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
     );
   }
 
-  const { isRecording, wsStatus, sessionData, coachingPrompts, transcriptions, liveTranscript, volumeState } = sessionState;
+  const { isRecording, wsStatus, ollamaStatus, sessionData, coachingPrompts, transcriptions, liveTranscript, volumeState } = sessionState;
 
   const formatDuration = (ms: number) => {
     const seconds = Math.floor(ms / 1000);
@@ -177,6 +177,7 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
         <div className="flex items-center justify-between px-4 py-3">
           {/* Left Side - Connection Status */}
           <div className="flex items-center space-x-4">
+            {/* WebSocket Status */}
             <div className="flex items-center space-x-2">
               <div className={`w-2 h-2 rounded-full ${
                 wsStatus === 'Connected' ? 'bg-green-400 animate-pulse' : 
@@ -190,6 +191,23 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
                 'text-slate-300'
               }`}>
                 {wsStatus}
+              </span>
+            </div>
+            
+            {/* Ollama Status */}
+            <div className="flex items-center space-x-2">
+              <div className={`w-2 h-2 rounded-full ${
+                ollamaStatus?.includes('Ready') || ollamaStatus === 'Connected' ? 'bg-green-400 animate-pulse' : 
+                ollamaStatus?.includes('Initializing') ? 'bg-yellow-400 animate-pulse' :
+                ollamaStatus === 'Disconnected' || !ollamaStatus ? 'bg-red-400' :
+                'bg-yellow-400'
+              }`}></div>
+              <span className={`text-sm font-medium ${
+                ollamaStatus?.includes('Ready') || ollamaStatus === 'Connected' ? 'text-green-400' :
+                ollamaStatus?.includes('Initializing') ? 'text-yellow-400' :
+                'text-red-400'
+              }`}>
+                Ollama: {ollamaStatus || 'Disconnected'}
               </span>
             </div>
             

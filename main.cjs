@@ -1,6 +1,6 @@
 // Cleanup is now handled by pre-startup-cleanup.js before npm run dev
 
-const { app, BrowserWindow, ipcMain, dialog, systemPreferences, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, systemPreferences, shell, net } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
 const fsSync = require('fs');
@@ -828,6 +828,127 @@ ipcMain.handle('process-with-ollama', async (event, { combinedAnalysis, task, mo
   }
 });
 
+// Desktop-native Ollama API calls using Electron's net module
+ipcMain.handle('ollama-test-connection', async () => {
+  try {
+    console.log('🔍 IPC Handler: Testing Ollama connection using Electron net module...');
+    
+    return new Promise((resolve, reject) => {
+      const request = net.request('http://localhost:11434/api/tags');
+      
+      request.on('response', (response) => {
+        console.log(`🔍 IPC Handler: Ollama response - Status: ${response.statusCode}`);
+        let data = '';
+        
+        response.on('data', (chunk) => {
+          data += chunk;
+        });
+        
+        response.on('end', () => {
+          if (response.statusCode === 200) {
+            try {
+              const parsed = JSON.parse(data);
+              console.log('✅ IPC Handler: Ollama connection successful');
+              resolve({ success: true, data: parsed });
+            } catch (parseError) {
+              console.log('❌ IPC Handler: Failed to parse Ollama response');
+              resolve({ success: false, error: 'Failed to parse response' });
+            }
+          } else {
+            resolve({ success: false, error: `HTTP ${response.statusCode}` });
+          }
+        });
+      });
+
+      request.on('error', (error) => {
+        console.log('❌ IPC Handler: Ollama connection error:', error.message);
+        resolve({ success: false, error: error.message });
+      });
+
+      // Set timeout
+      setTimeout(() => {
+        request.abort();
+        console.log('⏰ IPC Handler: Ollama connection timeout');
+        resolve({ success: false, error: 'Connection timeout' });
+      }, 5000);
+
+      request.end();
+    });
+  } catch (error) {
+    console.log('❌ IPC Handler: Exception in ollama-test-connection:', error.message);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('ollama-generate', async (event, { prompt, model = 'qwen2.5:14b-instruct-q4_K_M' }) => {
+  try {
+    console.log('🔍 IPC Handler: Generating Ollama response using Electron net module...');
+    
+    return new Promise((resolve, reject) => {
+      const postData = JSON.stringify({
+        model: model,
+        prompt: prompt,
+        stream: false,
+        options: {
+          temperature: 0.3,
+          top_p: 0.9,
+          num_predict: 300
+        }
+      });
+
+      const request = net.request({
+        method: 'POST',
+        url: 'http://localhost:11434/api/generate',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      request.on('response', (response) => {
+        console.log(`🔍 IPC Handler: Ollama generate response - Status: ${response.statusCode}`);
+        let data = '';
+        
+        response.on('data', (chunk) => {
+          data += chunk;
+        });
+        
+        response.on('end', () => {
+          if (response.statusCode === 200) {
+            try {
+              const result = JSON.parse(data);
+              console.log('✅ IPC Handler: Ollama generation successful');
+              resolve({ success: true, response: result.response });
+            } catch (parseError) {
+              console.log('❌ IPC Handler: Failed to parse Ollama generation response');
+              resolve({ success: false, error: 'Failed to parse response' });
+            }
+          } else {
+            resolve({ success: false, error: `HTTP ${response.statusCode}` });
+          }
+        });
+      });
+
+      request.on('error', (error) => {
+        console.log('❌ IPC Handler: Ollama generation error:', error.message);
+        resolve({ success: false, error: error.message });
+      });
+
+      // Set timeout for generation (30 seconds)
+      setTimeout(() => {
+        request.abort();
+        console.log('⏰ IPC Handler: Ollama generation timeout');
+        resolve({ success: false, error: 'Generation timeout' });
+      }, 30000);
+
+      request.write(postData);
+      request.end();
+    });
+  } catch (error) {
+    console.log('❌ IPC Handler: Exception in ollama-generate:', error.message);
+    return { success: false, error: error.message };
+  }
+});
+
 // Storage operations
 ipcMain.handle('save-insights', async (event, insights) => {
   try {
@@ -851,6 +972,41 @@ ipcMain.handle('load-insights', async () => {
   } catch (error) {
     // Return null if file doesn't exist
     return null;
+  }
+});
+
+// Load RAG document by filename
+ipcMain.handle('load-rag-document', async (event, filename) => {
+  try {
+    const projectRoot = path.join(__dirname);
+    const ragDir = path.join(projectRoot, 'rag');
+    
+    // Check if exact filename exists
+    let filePath = path.join(ragDir, filename);
+    if (!fsSync.existsSync(filePath)) {
+      // Try glob pattern for wildcard matches (e.g., *original.txt)
+      const files = fsSync.readdirSync(ragDir);
+      const matchingFiles = files.filter(file => {
+        if (filename.includes('*')) {
+          const pattern = filename.replace(/\*/g, '.*');
+          const regex = new RegExp(pattern);
+          return regex.test(file);
+        }
+        return file === filename;
+      });
+      
+      if (matchingFiles.length === 0) {
+        return { success: false, error: `File not found: ${filename}` };
+      }
+      
+      // Use first matching file
+      filePath = path.join(ragDir, matchingFiles[0]);
+    }
+    
+    const content = await fs.readFile(filePath, 'utf-8');
+    return { success: true, content };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
 });
 

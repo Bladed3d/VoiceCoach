@@ -17,6 +17,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveInsights: (insights) => ipcRenderer.invoke('save-insights', insights),
   loadInsights: () => ipcRenderer.invoke('load-insights'),
   
+  // RAG document loading
+  loadRagDocument: (filename) => ipcRenderer.invoke('load-rag-document', filename),
+  
+  // Desktop-native Ollama API
+  ollamaTestConnection: () => ipcRenderer.invoke('ollama-test-connection'),
+  ollamaGenerate: (data) => ipcRenderer.invoke('ollama-generate', data),
+  
   // Processed Documents Storage
   saveProcessedDocument: (document) => ipcRenderer.invoke('save-processed-document', document),
   loadProcessedDocuments: () => ipcRenderer.invoke('load-processed-documents'),

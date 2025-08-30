@@ -13,7 +13,9 @@ export const useCoachingSession = () => {
 
   // Initialize session manager
   useEffect(() => {
+    console.log('🔧 useCoachingSession: Initializing SessionManagerService...');
     sessionManager.current = new SessionManagerService();
+    console.log('🔧 useCoachingSession: SessionManagerService created');
     
     // Subscribe to state changes
     sessionManager.current.onStateChange((state: SessionState) => {
@@ -23,6 +25,7 @@ export const useCoachingSession = () => {
     // Set initial state
     setSessionState(sessionManager.current.getState());
     setIsInitialized(true);
+    console.log('🔧 useCoachingSession: Hook initialized successfully');
 
     // Cleanup on unmount
     return () => {

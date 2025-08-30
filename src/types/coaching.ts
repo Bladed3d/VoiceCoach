@@ -59,6 +59,7 @@ export interface PanelState {
 export interface SessionState {
   isRecording: boolean;
   wsStatus: string;
+  ollamaStatus?: string;
   sessionData: SessionData;
   coachingPrompts: CoachingPrompt[];
   transcriptions: TranscriptionItem[];
