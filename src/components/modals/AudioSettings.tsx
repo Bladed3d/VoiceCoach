@@ -2,9 +2,11 @@
  * VoiceCoach V2 - Audio Settings Component
  * Extracted from SettingsModal for modular architecture compliance
  */
-import React, { useEffect } from 'react';
-import { Volume2, AlertCircle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Volume2, AlertCircle, Mic, Settings } from 'lucide-react';
 import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
+import { VoskSettingsModal } from './VoskSettingsModal';
+import { VoskConfig, defaultVoskConfig } from '../../types/vosk-config';
 
 interface AudioDevice {
   deviceId: string;
@@ -44,6 +46,12 @@ const AudioSettingsComponent: React.FC<AudioSettingsProps> = ({
   onMicrophoneChange
 }) => {
   const trail = new BreadcrumbTrail('AudioSettings');
+  const [showVoskSettings, setShowVoskSettings] = useState(false);
+  const [voskConfig, setVoskConfig] = useState<VoskConfig>(() => {
+    // Load saved config from localStorage
+    const saved = localStorage.getItem('voicecoach-vosk-config');
+    return saved ? JSON.parse(saved) : defaultVoskConfig;
+  });
   
   // Component lifecycle tracking
   useEffect(() => {
@@ -222,6 +230,34 @@ const AudioSettingsComponent: React.FC<AudioSettingsProps> = ({
             </div>
             <p className="text-xs text-slate-400 mt-2 ml-7">Reduces background noise during recording</p>
           </div>
+          
+          {/* Vosk Transcription Settings Button */}
+          <div className="bg-slate-800/30 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-medium flex items-center space-x-2">
+                  <Mic className="w-4 h-4 text-primary-400" />
+                  <span>Vosk Transcription Settings</span>
+                </h4>
+                <p className="text-xs text-slate-400 mt-1">
+                  Configure real-time transcription speed and accuracy
+                </p>
+              </div>
+              <button
+                onClick={() => setShowVoskSettings(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors text-sm"
+              >
+                <Settings className="w-4 h-4" />
+                <span>Configure</span>
+              </button>
+            </div>
+            {voskConfig && (
+              <div className="mt-3 text-xs text-slate-400 space-y-1">
+                <div>Mode: <span className="text-slate-300">{voskConfig.transcription.mode}</span></div>
+                <div>Silence timeout: <span className="text-slate-300">{voskConfig.silenceDetection.partialTimeout}s</span></div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -253,6 +289,35 @@ const AudioSettingsComponent: React.FC<AudioSettingsProps> = ({
           </div>
         </div>
       </div>
+      
+      {/* Vosk Settings Modal */}
+      <VoskSettingsModal
+        isOpen={showVoskSettings}
+        onClose={() => setShowVoskSettings(false)}
+        onSave={async (config) => {
+          setVoskConfig(config);
+          trail.light(7303, {
+            operation: 'vosk_config_applied',
+            config
+          });
+          
+          // Send config to Python server via IPC
+          try {
+            const result = await (window as any).electronAPI.updateVoskConfig(config);
+            if (result.success) {
+              console.log('✅ Vosk config updated:', result.message);
+              if (result.requiresRestart && appState.isRecording) {
+                alert('Vosk configuration saved. Please restart the transcription session to apply changes.');
+              }
+            } else {
+              console.error('❌ Failed to update Vosk config:', result.error);
+            }
+          } catch (error) {
+            console.error('❌ Error updating Vosk config:', error);
+          }
+        }}
+        currentConfig={voskConfig}
+      />
     </div>
   );
 };

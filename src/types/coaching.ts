@@ -64,5 +64,8 @@ export interface SessionState {
   coachingPrompts: CoachingPrompt[];
   transcriptions: TranscriptionItem[];
   liveTranscript: string;
-  volumeState: VolumeState;
+  volumeState?: VolumeState; // Legacy single volume state
+  micVolumeState?: VolumeState; // Microphone volume
+  tabVolumeState?: VolumeState; // Tab/headphone volume
+  captureMode?: 'microphone' | 'full-conversation'; // Audio capture mode
 }

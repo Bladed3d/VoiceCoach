@@ -23,33 +23,28 @@ export const TranscriptionPanel: React.FC<TranscriptionPanelProps> = ({
 }) => {
   return (
     <div className="h-full glass-panel p-6 flex flex-col min-h-0 max-w-full">
-      <div className="mb-4">
-        <div className="flex items-center space-x-2 mb-2">
-          <MessageSquare className="w-4 h-4 text-primary-400 flex-shrink-0" />
-          <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-semibold leading-tight">
-              <span className="block">Live</span>
-              <span className="block">Transcript</span>
-            </h2>
-          </div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-2">
+          <MessageSquare className="w-4 h-4 text-primary-400" />
+          <h2 className="text-lg font-semibold">Live Talk</h2>
+          <span className="text-xs text-slate-400">
+            ({transcriptions.length} count)
+          </span>
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-slate-400">({transcriptions.length} messages)</span>
-          <div className="flex items-center space-x-2">
-            <button 
-              className="text-sm text-slate-400 hover:text-white"
-              onClick={onClear}
-            >
-              Clear
-            </button>
-            <button 
-              className="text-slate-400 hover:text-red-400 p-1 rounded"
-              onClick={onCollapse}
-              title="Collapse panel"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+        <div className="flex items-center space-x-2">
+          <button 
+            className="text-sm text-slate-400 hover:text-white px-2 py-1 border border-slate-600 rounded"
+            onClick={onClear}
+          >
+            Clear
+          </button>
+          <button 
+            className="text-slate-400 hover:text-red-400 p-1 border border-slate-600 rounded"
+            onClick={onCollapse}
+            title="Collapse to vertical"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       </div>
       

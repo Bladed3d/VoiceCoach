@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Desktop-native Ollama API
   ollamaTestConnection: () => ipcRenderer.invoke('ollama-test-connection'),
   ollamaGenerate: (data) => ipcRenderer.invoke('ollama-generate', data),
+  ollamaListModels: () => ipcRenderer.invoke('ollama-list-models'),
   
   // Processed Documents Storage
   saveProcessedDocument: (document) => ipcRenderer.invoke('save-processed-document', document),
@@ -35,12 +36,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // VoiceCoach Transcription
   startTranscription: () => ipcRenderer.invoke('start-transcription'),
   stopTranscription: () => ipcRenderer.invoke('stop-transcription'),
+  updateVoskConfig: (config) => ipcRenderer.invoke('update-vosk-config', config),
   getConversationHistory: () => ipcRenderer.invoke('get-conversation-history'),
   clearConversationHistory: () => ipcRenderer.invoke('clear-conversation-history'),
   
   // Enhanced Audio System Support
   requestMicrophoneAccess: () => ipcRenderer.invoke('request-microphone-access'),
   checkAudioDevices: () => ipcRenderer.invoke('check-audio-devices'),
+  getDesktopSources: () => ipcRenderer.invoke('get-desktop-sources'),
   
   // Event listeners for transcription
   onTranscriptUpdate: (callback) => {

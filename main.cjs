@@ -1,6 +1,6 @@
 // Cleanup is now handled by pre-startup-cleanup.js before npm run dev
 
-const { app, BrowserWindow, ipcMain, dialog, systemPreferences, shell, net } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, systemPreferences, shell, net, desktopCapturer } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
 const fsSync = require('fs');
@@ -210,6 +210,43 @@ const createWindow = () => {
     }
   });
 
+  // Handle display media requests (screen/audio capture)
+  mainWindow.webContents.session.setDisplayMediaRequestHandler((request, callback) => {
+    console.log('🎵 LED 1054: APP_LIFECYCLE - Display media request for screen/audio capture');
+    
+    // Get available sources for screen capture
+    desktopCapturer.getSources({ 
+      types: ['screen', 'window'],
+      fetchWindowIcons: true 
+    }).then(sources => {
+      console.log('🎵 LED 1055: APP_LIFECYCLE - Available sources for capture:', sources.length);
+      
+      // Use the primary screen source with audio
+      const primaryScreen = sources.find(source => source.name === 'Entire Screen' || source.name.includes('Screen'));
+      
+      if (primaryScreen) {
+        console.log('🎵 LED 1056: APP_LIFECYCLE - Using source:', primaryScreen.name);
+        callback({ 
+          video: primaryScreen,
+          audio: 'loopback' // This enables system audio capture
+        });
+      } else if (sources.length > 0) {
+        // Fallback to first available source
+        console.log('🎵 LED 1056: APP_LIFECYCLE - Using fallback source:', sources[0].name);
+        callback({ 
+          video: sources[0],
+          audio: 'loopback'
+        });
+      } else {
+        console.log('❌ LED 8055: ERROR_HANDLING - No sources available for capture');
+        callback({});
+      }
+    }).catch(error => {
+      console.log('❌ LED 8056: ERROR_HANDLING - Failed to get desktop sources:', error);
+      callback({});
+    });
+  });
+
   // Handle external links in system browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
@@ -408,10 +445,83 @@ function sendCoachingSuggestion(suggestion) {
   }
 }
 
+// Initialize Ollama models at app startup (once only)
+const initializeOllamaModels = async () => {
+  try {
+    console.log('🔧 STARTUP: Initializing Ollama models at app startup...');
+    
+    const request = net.request('http://localhost:11434/api/tags');
+    
+    return new Promise((resolve) => {
+      request.on('response', (response) => {
+        console.log(`🔧 STARTUP: Ollama init response - Status: ${response.statusCode}`);
+        let data = '';
+        
+        response.on('data', (chunk) => {
+          data += chunk;
+        });
+        
+        response.on('end', () => {
+          if (response.statusCode === 200) {
+            try {
+              const parsed = JSON.parse(data);
+              const models = parsed.models?.map(model => ({
+                name: model.name,
+                size: model.size,
+                modified_at: model.modified_at,
+                displayName: model.name.split(':')[0] + (model.name.includes(':') ? ':' + model.name.split(':')[1] : '')
+              })) || [];
+              
+              // Send to renderer process via webContents when window is ready
+              if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.executeJavaScript(`
+                  localStorage.setItem('voicecoach-ollama-models', '${JSON.stringify(models).replace(/'/g, "\\'")}');
+                  console.log('🔧 STARTUP: Ollama models cached at startup:', ${models.length});
+                `);
+              }
+              
+              console.log('✅ STARTUP: Ollama models initialized successfully:', models.length);
+              resolve();
+            } catch (parseError) {
+              console.log('❌ STARTUP: Failed to parse Ollama models at startup');
+              resolve();
+            }
+          } else {
+            console.log('❌ STARTUP: Ollama not available at startup, will use fallback');
+            resolve();
+          }
+        });
+      });
+
+      request.on('error', (error) => {
+        console.log('❌ STARTUP: Ollama init error at startup:', error.message);
+        resolve();
+      });
+
+      // Shorter timeout for startup - don't delay app launch
+      setTimeout(() => {
+        request.abort();
+        console.log('⏰ STARTUP: Ollama init timeout at startup (non-blocking)');
+        resolve();
+      }, 2000);
+
+      request.end();
+    });
+  } catch (error) {
+    console.log('❌ STARTUP: Exception in Ollama initialization:', error.message);
+  }
+};
+
 // 🚨 CRITICAL: Enhanced app lifecycle - cleanup already done in startApp()
 app.whenReady().then(() => {
   console.log('🎵 LED 1067: APP_LIFECYCLE - App ready, creating window (cleanup handled by pre-startup script)');
   createWindow();
+  
+  // Initialize Ollama models after window is ready
+  mainWindow.webContents.once('dom-ready', () => {
+    console.log('🔧 STARTUP: DOM ready, initializing Ollama models...');
+    initializeOllamaModels();
+  });
   
   app.on('activate', () => {
     console.log('🎵 LED 1069: APP_LIFECYCLE - App activation requested');
@@ -949,6 +1059,66 @@ ipcMain.handle('ollama-generate', async (event, { prompt, model = 'qwen2.5:14b-i
   }
 });
 
+// Get available Ollama models for dropdown selection
+ipcMain.handle('ollama-list-models', async () => {
+  try {
+    console.log('🔍 IPC Handler: Fetching available Ollama models...');
+    
+    return new Promise((resolve, reject) => {
+      const request = net.request('http://localhost:11434/api/tags');
+      
+      request.on('response', (response) => {
+        console.log(`🔍 IPC Handler: Ollama models response - Status: ${response.statusCode}`);
+        let data = '';
+        
+        response.on('data', (chunk) => {
+          data += chunk;
+        });
+        
+        response.on('end', () => {
+          if (response.statusCode === 200) {
+            try {
+              const parsed = JSON.parse(data);
+              // Extract model names from the response
+              const models = parsed.models?.map(model => ({
+                name: model.name,
+                size: model.size,
+                modified_at: model.modified_at,
+                displayName: model.name.split(':')[0] + (model.name.includes(':') ? ':' + model.name.split(':')[1] : '')
+              })) || [];
+              
+              console.log('✅ IPC Handler: Ollama models fetched successfully:', models.length);
+              resolve({ success: true, models });
+            } catch (parseError) {
+              console.log('❌ IPC Handler: Failed to parse Ollama models response');
+              resolve({ success: false, error: 'Failed to parse response' });
+            }
+          } else {
+            resolve({ success: false, error: `HTTP ${response.statusCode}` });
+          }
+        });
+      });
+
+      request.on('error', (error) => {
+        console.log('❌ IPC Handler: Ollama models fetch error:', error.message);
+        resolve({ success: false, error: error.message });
+      });
+
+      // Set timeout
+      setTimeout(() => {
+        request.abort();
+        console.log('⏰ IPC Handler: Ollama models fetch timeout');
+        resolve({ success: false, error: 'Connection timeout' });
+      }, 5000);
+
+      request.end();
+    });
+  } catch (error) {
+    console.log('❌ IPC Handler: Exception in ollama-list-models:', error.message);
+    return { success: false, error: error.message };
+  }
+});
+
 // Storage operations
 ipcMain.handle('save-insights', async (event, insights) => {
   try {
@@ -1336,6 +1506,70 @@ ipcMain.handle('check-audio-devices', async () => {
   }
 });
 
+// Get desktop audio sources for system audio capture
+ipcMain.handle('get-desktop-sources', async () => {
+  try {
+    console.log('🎵 LED 1052: APP_LIFECYCLE - Getting desktop sources for audio capture {"operation":"get_desktop_sources_start","timestamp":' + Date.now() + '} ElectronMain_1052');
+    
+    const sources = await desktopCapturer.getSources({
+      types: ['window', 'screen'],
+      fetchWindowIcons: false
+    });
+    
+    // Find sources with audio capability
+    const audioSources = sources.map(source => ({
+      id: source.id,
+      name: source.name,
+      hasAudio: true // All desktop sources can potentially have audio
+    }));
+    
+    console.log('🎵 LED 1053: APP_LIFECYCLE - Desktop sources retrieved {"operation":"desktop_sources_retrieved","count":' + audioSources.length + ',"timestamp":' + Date.now() + '} ElectronMain_1053');
+    console.log('🎧 Available audio sources:', audioSources);
+    
+    return audioSources;
+  } catch (error) {
+    console.log('❌ LED 8050 FAILED [ElectronMain]: ERROR_HANDLING Desktop sources error: ' + error.message);
+    return [];
+  }
+});
+
+// Vosk Configuration Update Handler
+ipcMain.handle('update-vosk-config', async (event, config) => {
+  try {
+    console.log('🎵 LED 1009: VOSK_CONFIG - Updating Vosk configuration', {
+      mode: config?.transcription?.mode,
+      partialTimeout: config?.silenceDetection?.partialTimeout,
+      timestamp: Date.now()
+    });
+    
+    // If server is running, send config update via WebSocket
+    if (pythonWebSocketServer) {
+      // Store config for server restart
+      global.voskConfig = config;
+      
+      // TODO: Send config update to running server via WebSocket
+      // For now, we'll need to restart the server with new config
+      console.log('⚠️ Vosk config updated - restart transcription to apply changes');
+      
+      return { 
+        success: true, 
+        message: 'Config saved - restart transcription to apply',
+        requiresRestart: true 
+      };
+    } else {
+      // Store config for next server start
+      global.voskConfig = config;
+      return { 
+        success: true, 
+        message: 'Config saved for next session' 
+      };
+    }
+  } catch (error) {
+    console.log('❌ LED 8009: VOSK_CONFIG - Failed to update config:', error.message);
+    return { success: false, error: error.message };
+  }
+});
+
 // VoiceCoach WebSocket Transcription Service IPC Handlers  
 ipcMain.handle('start-transcription', async () => {
   const serverStartTime = Date.now();
@@ -1421,14 +1655,40 @@ ipcMain.handle('start-transcription', async () => {
     // LED 1032: Python server spawn preparation - Use absolute path with app.getAppPath()
     const pythonScript = path.join(app.getAppPath(), 'src', 'services', 'vosk-native-websocket-server.py');
     
+    // Prepare Vosk config arguments if available
+    const voskConfigArgs = [];
+    if (global.voskConfig) {
+      const config = global.voskConfig;
+      // Pass key configuration parameters as command-line arguments
+      voskConfigArgs.push(
+        '--partial-timeout', String(config.silenceDetection?.partialTimeout || 2.0),
+        '--sentence-gap', String(config.silenceDetection?.sentenceGapThreshold || 0.5),
+        '--min-silence', String(config.silenceDetection?.minTrailingSilence || 0.5),
+        '--sample-rate', String(config.audio?.sampleRate || 16000),
+        '--chunk-size', String(config.audio?.chunkSize || 8000),
+        '--mode', config.transcription?.mode || 'sentence',
+        '--min-phrase-words', String(config.transcription?.minPhraseWords || 3)
+      );
+      
+      if (config.silenceDetection?.aggressiveEndpointing) {
+        voskConfigArgs.push('--aggressive');
+      }
+      if (config.transcription?.enablePartials) {
+        voskConfigArgs.push('--enable-partials');
+      }
+      if (config.transcription?.enableWordTimings) {
+        voskConfigArgs.push('--enable-word-timings');
+      }
+    }
+    
     // Determine Python executable path - Windows cmd.exe wrapper approach
     let pythonCmd = 'python';
-    let pythonArgs = [pythonScript];
+    let pythonArgs = [pythonScript, ...voskConfigArgs];
     
     if (process.platform === 'win32') {
       // ✅ Windows Fix #2: Use cmd.exe wrapper for reliable execution
       pythonCmd = 'cmd.exe';
-      pythonArgs = ['/c', 'python', pythonScript];
+      pythonArgs = ['/c', 'python', pythonScript, ...voskConfigArgs];
     } else {
       pythonCmd = 'python3';
     }

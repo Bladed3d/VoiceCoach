@@ -34,14 +34,18 @@ export class VoiceCoachWebSocketClient {
   private onStatusCallback?: (status: string) => void;
   private onErrorCallback?: (error: string) => void;
   private onMediaStreamCallback?: (mediaStream: MediaStream) => void;
+  private onDualStreamsCallback?: (micStream: MediaStream | null, tabStream: MediaStream | null) => void;
   private trail: BreadcrumbTrail;
   
   // Audio capture properties - AudioWorklet for optimal performance
   private mediaStream: MediaStream | null = null;
+  private micStream: MediaStream | null = null;  // Store separately for cleanup
+  private tabStream: MediaStream | null = null;   // Store separately for cleanup
   private audioContext: AudioContext | null = null;
   private audioWorkletNode: AudioWorkletNode | null = null;
   private source: MediaStreamAudioSourceNode | null = null;
   private isRecording = false;
+  private audioCaptureMode: 'microphone' | 'full-conversation' = 'full-conversation';
 
   constructor(serverUrl: string = 'ws://127.0.0.1:5000') {
     // LED 7001: Enhanced URL validation and fallback
@@ -406,8 +410,33 @@ export class VoiceCoachWebSocketClient {
     }
   }
 
+  // Set audio capture mode (call before startTranscription)
+  setAudioCaptureMode(mode: 'microphone' | 'full-conversation'): void {
+    this.audioCaptureMode = mode;
+    console.log(`📹 Audio capture mode set to: ${mode}`);
+    this.trail.light(7029, {
+      audio_mode_set: mode,
+      timestamp: Date.now()
+    });
+  }
+  
+  // Get current audio capture mode
+  getAudioCaptureMode(): 'microphone' | 'full-conversation' {
+    return this.audioCaptureMode;
+  }
+  
   // LED Breadcrumb 7030: Start transcription
-  async startTranscription(): Promise<boolean> {
+  async startTranscription(captureMode: 'microphone' | 'full-conversation' = 'microphone'): Promise<boolean> {
+    // LED 7028: Log capture mode selection
+    this.trail.light(7028, {
+      operation: 'capture_mode_selected',
+      mode: captureMode,
+      previousMode: this.audioCaptureMode,
+      timestamp: Date.now()
+    });
+    
+    // Set the capture mode
+    this.setAudioCaptureMode(captureMode);
     // LED 7029: Pre-transcription validation
     this.trail.checkpoint(7029, 'transcription_prerequisites',
       () => this.socket?.readyState === WebSocket.OPEN,
@@ -457,9 +486,9 @@ export class VoiceCoachWebSocketClient {
       timestamp: Date.now()
     });
     
-    // Start audio capture
+    // Start audio capture with configured mode
     try {
-      await this.startAudioCapture();
+      await this.startAudioCapture(this.audioCaptureMode);
       this.trail.light(7071, {
         operation: 'audio_capture_started_successfully',
         isRecording: this.isRecording,
@@ -475,15 +504,25 @@ export class VoiceCoachWebSocketClient {
   }
 
   // LED Breadcrumb 7072: High-performance AudioWorklet implementation
-  private async startAudioCapture(): Promise<void> {
+  private async startAudioCapture(captureMode: 'microphone' | 'full-conversation' = 'full-conversation'): Promise<void> {
     try {
+      // LED 7072: Audio capture initialization with mode details
       this.trail.light(7072, {
-        operation: 'requesting_microphone_access_optimized',
+        operation: 'audio_capture_init',
+        captureMode: captureMode,
+        browserInfo: navigator.userAgent,
+        timestamp: Date.now()
+      });
+      
+      // LED 7073: Microphone access request
+      this.trail.light(7073, {
+        operation: 'requesting_microphone_access',
+        mode: captureMode,
         timestamp: Date.now()
       });
 
-      // Configure microphone for optimal Vosk compatibility
-      this.mediaStream = await navigator.mediaDevices.getUserMedia({
+      // Step 1: Capture microphone (user's side) for optimal Vosk compatibility
+      this.micStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           channelCount: { ideal: 1 }, // Mono for Vosk
           sampleRate: { ideal: 16000 }, // Native 16kHz for Vosk
@@ -494,29 +533,349 @@ export class VoiceCoachWebSocketClient {
           volume: 1.0 // Maximum signal strength
         }
       });
+      
+      // LED 7074: Microphone capture success
+      this.trail.light(7074, {
+        operation: 'microphone_captured',
+        streamId: this.micStream.id,
+        trackCount: this.micStream.getTracks().length,
+        audioTracks: this.micStream.getAudioTracks().map(t => ({
+          id: t.id,
+          label: t.label,
+          enabled: t.enabled,
+          muted: t.muted,
+          readyState: t.readyState
+        })),
+        timestamp: Date.now()
+      });
+      
+      console.log('✅ Microphone captured for user audio');
+      
+      // Step 2: Capture tab/system audio if in full-conversation mode
+      if (captureMode === 'full-conversation') {
+        // LED 7075: Attempting full conversation capture
+        this.trail.light(7075, {
+          operation: 'full_conversation_mode_start',
+          micStreamReady: !!this.micStream,
+          timestamp: Date.now()
+        });
+        
+        try {
+          // LED 7076: Requesting display media for tab audio
+          this.trail.light(7076, {
+            operation: 'requesting_display_media',
+            purpose: 'tab_audio_capture',
+            isElectron: !!(window as any).electronAPI,
+            timestamp: Date.now()
+          });
+          
+          // Try multiple approaches to capture system audio (like our test)
+          const approaches = [
+            // Approach 1: Simple with video (most compatible)
+            {
+              name: 'Simple with Video',
+              options: {
+                audio: true,
+                video: true
+              }
+            },
+            // Approach 2: Chrome Desktop Audio
+            {
+              name: 'Chrome Desktop Audio',
+              options: {
+                audio: {
+                  // @ts-ignore
+                  mandatory: {
+                    chromeMediaSource: 'desktop'
+                  }
+                },
+                video: {
+                  // @ts-ignore
+                  mandatory: {
+                    chromeMediaSource: 'desktop'
+                  }
+                }
+              }
+            },
+            // Approach 3: System audio flag
+            {
+              name: 'System Audio Flag',
+              options: {
+                audio: true,
+                video: false,
+                // @ts-ignore
+                systemAudio: 'include'
+              }
+            },
+            // Approach 4: Simple audio only
+            {
+              name: 'Audio Only',
+              options: {
+                audio: true,
+                video: false
+              }
+            }
+          ];
 
-      this.trail.light(7073, {
-        operation: 'optimal_microphone_configured',
+          let captured = false;
+          let lastError: Error | null = null;
+
+          for (const approach of approaches) {
+            if (captured) break;
+            
+            try {
+              this.trail.light(7076, {
+                operation: 'trying_display_media_approach',
+                approach: approach.name,
+                timestamp: Date.now()
+              });
+              
+              console.log(`Trying system audio capture: ${approach.name}`);
+              
+              // @ts-ignore - Various non-standard options
+              const stream = await navigator.mediaDevices.getDisplayMedia(approach.options);
+              
+              const audioTracks = stream.getAudioTracks();
+              const videoTracks = stream.getVideoTracks();
+              
+              this.trail.light(7076, {
+                operation: 'display_media_received',
+                approach: approach.name,
+                audioTrackCount: audioTracks.length,
+                videoTrackCount: videoTracks.length,
+                timestamp: Date.now()
+              });
+              
+              // Remove video tracks - we only want audio
+              videoTracks.forEach(track => {
+                track.stop();
+                stream.removeTrack(track);
+              });
+              
+              if (audioTracks.length > 0) {
+                console.log(`✅ System audio captured with: ${approach.name}`, audioTracks[0].label);
+                this.tabStream = stream;
+                captured = true;
+                
+                this.trail.light(7077, {
+                  operation: 'system_audio_capture_success',
+                  approach: approach.name,
+                  audioLabel: audioTracks[0].label,
+                  timestamp: Date.now()
+                });
+              } else {
+                console.warn(`No audio tracks with approach: ${approach.name}`);
+                stream.getTracks().forEach(t => t.stop());
+              }
+              
+            } catch (error) {
+              lastError = error as Error;
+              console.warn(`Approach ${approach.name} failed:`, error);
+              this.trail.light(8076, {
+                operation: 'display_media_approach_failed',
+                approach: approach.name,
+                error: (error as Error).message,
+                timestamp: Date.now()
+              });
+            }
+          }
+
+          if (!captured) {
+            throw lastError || new Error('All system audio capture approaches failed');
+          }
+          
+          // LED 7077: Tab audio capture success
+          this.trail.light(7077, {
+            operation: 'tab_audio_captured',
+            streamId: this.tabStream.id,
+            trackCount: this.tabStream.getTracks().length,
+            audioTracks: this.tabStream.getAudioTracks().map(t => ({
+              id: t.id,
+              label: t.label,
+              enabled: t.enabled,
+              muted: t.muted,
+              readyState: t.readyState
+            })),
+            timestamp: Date.now()
+          });
+          
+          
+          console.log('✅ Tab/system audio captured for remote participant');
+        } catch (error) {
+          // LED 8077: Tab audio capture failure
+          this.trail.fail(8077, error as Error);
+          this.trail.light(8078, {
+            operation: 'tab_audio_fallback',
+            error: (error as Error).message,
+            fallbackMode: 'microphone_only',
+            timestamp: Date.now()
+          });
+          
+          console.warn('⚠️ Could not capture tab audio - will use microphone only:', error);
+          // Continue with just microphone if tab capture fails
+        }
+      } else {
+        // LED 7079: Microphone-only mode confirmed
+        this.trail.light(7079, {
+          operation: 'microphone_only_mode',
+          reason: 'user_selected',
+          timestamp: Date.now()
+        });
+        
+        console.log('ℹ️ Microphone-only mode selected');
+      }
+      
+      // Step 3: Mix both streams into one combined stream
+      if (this.tabStream) {
+        // LED 7080: Starting audio mixing for full conversation
+        this.trail.light(7080, {
+          operation: 'audio_mixing_start',
+          micStreamId: this.micStream.id,
+          tabStreamId: this.tabStream.id,
+          timestamp: Date.now()
+        });
+        
+        // Create AudioContext for mixing
+        const mixingContext = new AudioContext({ sampleRate: 16000 });
+        const micSource = mixingContext.createMediaStreamSource(this.micStream);
+        const tabSource = mixingContext.createMediaStreamSource(this.tabStream);
+        const destination = mixingContext.createMediaStreamDestination();
+        
+        // LED 7081: Audio sources created for mixing
+        this.trail.light(7081, {
+          operation: 'audio_sources_created',
+          mixingContextState: mixingContext.state,
+          sampleRate: mixingContext.sampleRate,
+          micSourceChannelCount: micSource.channelCount,
+          tabSourceChannelCount: tabSource.channelCount,
+          timestamp: Date.now()
+        });
+        
+        // Connect both sources to destination
+        micSource.connect(destination);
+        tabSource.connect(destination);
+        
+        // LED 7082: Audio streams connected and mixed
+        this.trail.light(7082, {
+          operation: 'streams_mixed',
+          destinationChannelCount: destination.channelCount,
+          combinedStreamId: destination.stream.id,
+          combinedTrackCount: destination.stream.getTracks().length,
+          timestamp: Date.now()
+        });
+        
+        // Use the combined stream
+        this.mediaStream = destination.stream;
+        console.log('✅ Audio streams mixed: capturing both sides of conversation');
+        
+        // LED 7083: Full conversation capture ready
+        this.trail.light(7083, {
+          operation: 'full_conversation_ready',
+          captureMode: 'full-conversation',
+          hasMicrophone: true,
+          hasTabAudio: true,
+          streamsMixed: true,
+          finalStreamId: this.mediaStream.id,
+          timestamp: Date.now()
+        });
+      } else {
+        // LED 7084: Microphone-only fallback
+        this.trail.light(7084, {
+          operation: 'microphone_only_fallback',
+          reason: this.tabStream ? 'unknown' : 'no_tab_stream',
+          micStreamId: this.micStream.id,
+          timestamp: Date.now()
+        });
+        
+        // Fallback to microphone only
+        this.mediaStream = this.micStream;
+        console.log('ℹ️ Using microphone only (single-sided capture)');
+        
+        // LED 7085: Single audio capture confirmed
+        this.trail.light(7085, {
+          operation: 'single_audio_ready',
+          captureMode: 'microphone',
+          hasMicrophone: true,
+          hasTabAudio: false,
+          streamsMixed: false,
+          finalStreamId: this.mediaStream.id,
+          timestamp: Date.now()
+        });
+      }
+
+      // LED 7086: Final stream configuration
+      this.trail.light(7086, {
+        operation: 'final_stream_configured',
         streamActive: this.mediaStream.active,
         trackCount: this.mediaStream.getTracks().length,
-        actualSettings: this.mediaStream.getAudioTracks()[0]?.getSettings(),
+        audioTrackSettings: this.mediaStream.getAudioTracks()[0]?.getSettings(),
+        captureMode: this.tabStream ? 'full-conversation' : 'microphone',
         timestamp: Date.now()
       });
 
-      // Notify UI about media stream for volume monitoring
+      // LED 7087: Volume monitoring setup
       if (this.onMediaStreamCallback && this.mediaStream) {
+        this.trail.light(7087, {
+          operation: 'volume_monitoring_callback',
+          hasCallback: true,
+          streamProvided: true,
+          timestamp: Date.now()
+        });
         this.onMediaStreamCallback(this.mediaStream);
+      } else {
+        this.trail.light(7087, {
+          operation: 'volume_monitoring_skipped',
+          hasCallback: !!this.onMediaStreamCallback,
+          hasStream: !!this.mediaStream,
+          timestamp: Date.now()
+        });
+      }
+      
+      // LED 7260: Dual stream volume monitoring setup
+      if (this.onDualStreamsCallback) {
+        this.trail.light(7260, {
+          operation: 'dual_stream_monitoring_setup',
+          hasMicStream: !!this.micStream,
+          hasTabStream: !!this.tabStream,
+          timestamp: Date.now()
+        });
+        this.onDualStreamsCallback(this.micStream, this.tabStream);
       }
 
+      // LED 7088: AudioContext creation for Vosk
+      this.trail.light(7088, {
+        operation: 'creating_audio_context',
+        targetSampleRate: 16000,
+        timestamp: Date.now()
+      });
+      
       // Create AudioContext with exact Vosk sample rate
       this.audioContext = new AudioContext({
         sampleRate: 16000
       });
+      
+      // LED 7089: AudioContext created successfully
+      this.trail.light(7089, {
+        operation: 'audio_context_created',
+        actualSampleRate: this.audioContext.sampleRate,
+        contextState: this.audioContext.state,
+        baseLatency: this.audioContext.baseLatency,
+        outputLatency: this.audioContext.outputLatency,
+        timestamp: Date.now()
+      });
 
+      // LED 7090: Loading AudioWorklet
+      this.trail.light(7090, {
+        operation: 'loading_audioworklet',
+        workletPath: '/vosk-audio-worklet.js',
+        timestamp: Date.now()
+      });
+      
       // Load AudioWorklet for high-performance processing
       await this.audioContext.audioWorklet.addModule('/vosk-audio-worklet.js');
       
-      this.trail.light(7074, {
+      // LED 7091: AudioWorklet loaded successfully
+      this.trail.light(7091, {
         operation: 'audioworklet_loaded',
         contextSampleRate: this.audioContext.sampleRate,
         contextState: this.audioContext.state,
@@ -626,12 +985,16 @@ export class VoiceCoachWebSocketClient {
 
   // LED Breadcrumb 7078: Stop audio capture (AudioWorklet optimized)
   private stopAudioCapture(): void {
-    this.trail.light(7078, {
-      operation: 'optimized_audio_capture_stop_start',
+    // LED 7092: Audio capture stop initiated
+    this.trail.light(7092, {
+      operation: 'audio_capture_stop_initiated',
       wasRecording: this.isRecording,
       hasAudioContext: !!this.audioContext,
       hasAudioWorklet: !!this.audioWorkletNode,
       hasMediaStream: !!this.mediaStream,
+      hasMicStream: !!this.micStream,
+      hasTabStream: !!this.tabStream,
+      captureMode: this.tabStream ? 'full-conversation' : 'microphone',
       timestamp: Date.now()
     });
 
@@ -641,8 +1004,9 @@ export class VoiceCoachWebSocketClient {
       // Stop AudioWorklet recording
       if (this.audioWorkletNode) {
         this.audioWorkletNode.port.postMessage('STOP_RECORDING');
-        this.trail.light(7079, {
-          operation: 'audioworklet_stop_command_sent',
+        // LED 7093: AudioWorklet stop command sent
+        this.trail.light(7093, {
+          operation: 'audioworklet_stop_command',
           timestamp: Date.now()
         });
       }
@@ -651,7 +1015,8 @@ export class VoiceCoachWebSocketClient {
       if (this.audioWorkletNode) {
         this.audioWorkletNode.disconnect();
         this.audioWorkletNode = null;
-        this.trail.light(7080, {
+        // LED 7094: AudioWorklet disconnected
+        this.trail.light(7094, {
           operation: 'audioworklet_disconnected',
           timestamp: Date.now()
         });
@@ -678,30 +1043,93 @@ export class VoiceCoachWebSocketClient {
         this.audioContext = null;
       }
 
-      // Stop MediaStream tracks
+      // LED 7095: Stopping all media streams
+      this.trail.light(7095, {
+        operation: 'stopping_all_streams',
+        hasMediaStream: !!this.mediaStream,
+        hasMicStream: !!this.micStream,
+        hasTabStream: !!this.tabStream,
+        timestamp: Date.now()
+      });
+      
+      // Stop all MediaStream tracks (combined, mic, and tab)
       if (this.mediaStream) {
-        this.mediaStream.getTracks().forEach(track => {
+        const trackCount = this.mediaStream.getTracks().length;
+        this.mediaStream.getTracks().forEach((track, index) => {
           track.stop();
-          this.trail.light(7083, {
-            operation: 'media_track_stopped',
+          // LED 7096: Individual track stopped
+          this.trail.light(7096, {
+            operation: 'combined_stream_track_stopped',
+            trackIndex: index,
             trackKind: track.kind,
-            trackEnabled: track.enabled,
+            trackLabel: track.label,
+            totalTracks: trackCount,
             timestamp: Date.now()
           });
         });
         this.mediaStream = null;
       }
+      
+      // Stop microphone stream
+      if (this.micStream) {
+        const micTrackCount = this.micStream.getTracks().length;
+        this.micStream.getTracks().forEach((track, index) => {
+          track.stop();
+          // LED 7097: Microphone track stopped
+          this.trail.light(7097, {
+            operation: 'mic_track_stopped',
+            trackIndex: index,
+            trackLabel: track.label,
+            totalTracks: micTrackCount,
+            timestamp: Date.now()
+          });
+        });
+        this.micStream = null;
+        console.log('🛑 Microphone stream stopped');
+      }
+      
+      // Stop tab/system audio stream
+      if (this.tabStream) {
+        const tabTrackCount = this.tabStream.getTracks().length;
+        this.tabStream.getTracks().forEach((track, index) => {
+          track.stop();
+          // LED 7098: Tab audio track stopped
+          this.trail.light(7098, {
+            operation: 'tab_audio_track_stopped',
+            trackIndex: index,
+            trackLabel: track.label,
+            totalTracks: tabTrackCount,
+            timestamp: Date.now()
+          });
+        });
+        this.tabStream = null;
+        console.log('🛑 Tab audio stream stopped');
+      }
 
-      this.trail.light(7084, {
-        operation: 'optimized_audio_cleanup_complete',
+      // LED 7099: Audio cleanup complete
+      this.trail.light(7099, {
+        operation: 'audio_cleanup_complete',
         isRecording: this.isRecording,
-        resourcesCleared: true,
-        performanceOptimized: true,
+        allStreamsStopped: !this.mediaStream && !this.micStream && !this.tabStream,
+        audioContextClosed: !this.audioContext,
+        audioWorkletDisconnected: !this.audioWorkletNode,
         timestamp: Date.now()
       });
 
     } catch (error) {
-      this.trail.fail(8078, error as Error);
+      // LED 8095: Audio cleanup error
+      this.trail.fail(8095, error as Error);
+      this.trail.light(8096, {
+        operation: 'audio_cleanup_error',
+        error: (error as Error).message,
+        partialCleanup: {
+          mediaStreamCleaned: !this.mediaStream,
+          micStreamCleaned: !this.micStream,
+          tabStreamCleaned: !this.tabStream,
+          audioContextCleaned: !this.audioContext
+        },
+        timestamp: Date.now()
+      });
     }
   }
 
@@ -857,6 +1285,10 @@ export class VoiceCoachWebSocketClient {
 
   onMediaStream(callback: (mediaStream: MediaStream) => void): void {
     this.onMediaStreamCallback = callback;
+  }
+  
+  onDualStreams(callback: (micStream: MediaStream | null, tabStream: MediaStream | null) => void): void {
+    this.onDualStreamsCallback = callback;
   }
 
   // Connection status

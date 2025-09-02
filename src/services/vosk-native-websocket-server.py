@@ -2,11 +2,13 @@
 """
 VoiceCoach V2 - Native WebSocket Vosk Server (Working Version)
 Receives audio data from client and returns transcription - FIXED asyncio threading issues
+Now with configurable parameters from command line
 """
 import asyncio
 import json
 import websockets
 import sys
+import argparse
 from datetime import datetime
 from vosk import Model, KaldiRecognizer
 
@@ -17,23 +19,44 @@ if sys.platform == 'win32':
     sys.stderr = codecs.getwriter('utf-8')(sys.stderr.detach())
 
 class VoskNativeWebSocketServer:
-    def __init__(self, model_path=None, host='127.0.0.1', port=5000):
+    def __init__(self, model_path=None, host='127.0.0.1', port=5000, config=None):
         self.host = host
         self.port = port
         self.connected_clients = set()
+        
+        # Store configuration
+        self.config = config or {}
+        self.partial_timeout = float(self.config.get('partial_timeout', 2.0))
+        self.sentence_gap = float(self.config.get('sentence_gap', 0.5))
+        self.min_silence = float(self.config.get('min_silence', 0.5))
+        self.sample_rate = int(self.config.get('sample_rate', 16000))
+        self.chunk_size = int(self.config.get('chunk_size', 8000))
+        self.mode = self.config.get('mode', 'sentence')
+        self.min_phrase_words = int(self.config.get('min_phrase_words', 3))
+        self.aggressive = self.config.get('aggressive', False)
+        self.enable_partials = self.config.get('enable_partials', True)
+        self.enable_word_timings = self.config.get('enable_word_timings', False)
         
         # Load Vosk model
         if model_path is None:
             model_path = r"C:\Users\Administrator\Downloads\LLM\vosk-model-en-us-0.22-lgraph\vosk-model-en-us-0.22-lgraph"
         
         print(f"[6000] VoiceCoach V2 Native WebSocket Transcription Server starting at {datetime.now()}")
+        print(f"[6001] Configuration: mode={self.mode}, partialTimeout={self.partial_timeout}s, sampleRate={self.sample_rate}Hz")
         print(f"[6002] Loading Vosk model from: {model_path}")
         self.model = Model(model_path)
         print(f"[6002.1] Vosk model loaded successfully")
         
-        # Create recognizer for 16kHz audio (matches client AudioWorklet)
-        self.recognizer = KaldiRecognizer(self.model, 16000)
-        print(f"[6002.2] Recognizer initialized for 16kHz audio")
+        # Create recognizer with configured sample rate
+        self.recognizer = KaldiRecognizer(self.model, self.sample_rate)
+        
+        # Configure recognizer based on settings
+        if not self.enable_word_timings:
+            self.recognizer.SetWords(False)
+        if self.enable_partials:
+            self.recognizer.SetPartialWords(True)
+            
+        print(f"[6002.2] Recognizer initialized for {self.sample_rate}Hz audio, mode={self.mode}")
 
     async def handle_client(self, websocket, path):
         """Handle client connection and messages"""
@@ -248,5 +271,57 @@ class VoskNativeWebSocketServer:
             await asyncio.Future()  # Run forever
 
 if __name__ == "__main__":
-    server = VoskNativeWebSocketServer()
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description='VoiceCoach V2 Vosk WebSocket Server')
+    parser.add_argument('--partial-timeout', type=float, default=2.0,
+                        help='Timeout for partial to final conversion (seconds)')
+    parser.add_argument('--sentence-gap', type=float, default=0.5,
+                        help='Gap threshold for sentence detection (seconds)')
+    parser.add_argument('--min-silence', type=float, default=0.5,
+                        help='Minimum trailing silence for finals (seconds)')
+    parser.add_argument('--sample-rate', type=int, default=16000,
+                        help='Audio sample rate (Hz)')
+    parser.add_argument('--chunk-size', type=int, default=8000,
+                        help='Audio chunk size (samples)')
+    parser.add_argument('--mode', choices=['word', 'phrase', 'sentence', 'hybrid'],
+                        default='sentence', help='Transcription mode')
+    parser.add_argument('--min-phrase-words', type=int, default=3,
+                        help='Minimum words for phrase detection')
+    parser.add_argument('--aggressive', action='store_true',
+                        help='Use aggressive endpointing')
+    parser.add_argument('--enable-partials', action='store_true', default=True,
+                        help='Enable partial results')
+    parser.add_argument('--enable-word-timings', action='store_true',
+                        help='Enable word-level timestamps')
+    parser.add_argument('--model-path', type=str, default=None,
+                        help='Path to Vosk model')
+    parser.add_argument('--host', type=str, default='127.0.0.1',
+                        help='WebSocket server host')
+    parser.add_argument('--port', type=int, default=5000,
+                        help='WebSocket server port')
+    
+    args = parser.parse_args()
+    
+    # Convert args to config dict
+    config = {
+        'partial_timeout': args.partial_timeout,
+        'sentence_gap': args.sentence_gap,
+        'min_silence': args.min_silence,
+        'sample_rate': args.sample_rate,
+        'chunk_size': args.chunk_size,
+        'mode': args.mode,
+        'min_phrase_words': args.min_phrase_words,
+        'aggressive': args.aggressive,
+        'enable_partials': args.enable_partials,
+        'enable_word_timings': args.enable_word_timings
+    }
+    
+    print(f"[6000.1] Starting with configuration: {config}")
+    
+    server = VoskNativeWebSocketServer(
+        model_path=args.model_path,
+        host=args.host,
+        port=args.port,
+        config=config
+    )
     asyncio.run(server.start_server())

@@ -33,8 +33,11 @@ export interface SemanticSearchResult {
   id: string;
   content: string;
   content_type: string;
+  priority: 'CRITICAL' | 'HIGH' | 'STANDARD';
   similarity_score: number;
   search_keywords: string[];
+  coaching_trigger?: string;
+  expected_outcome?: string;
   metadata?: {
     char_count: number;
     collection_source: string;

@@ -2,7 +2,8 @@
  * VoiceCoach V2 - Simplified Liquid Grid Animation
  * Rebuilt for reliability with pure CSS and minimal JavaScript
  */
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
+import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
 
 interface SimpleLiquidGridProps {
   className?: string;
@@ -16,6 +17,7 @@ export const SimpleLiquidGrid: React.FC<SimpleLiquidGridProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number>();
   const intervalsRef = useRef<NodeJS.Timeout[]>([]);
+  const trail = new BreadcrumbTrail('SimpleLiquidGrid');
 
   // Grid generation function that can be called on resize
   const createGrid = useCallback(() => {
@@ -32,17 +34,24 @@ export const SimpleLiquidGrid: React.FC<SimpleLiquidGridProps> = ({
 
     console.log('SimpleLiquidGrid: Creating responsive grid');
     
-    // Simple grid creation
-    const gridSize = 30;
-    const cols = Math.floor(container.clientWidth / gridSize);
-    const rows = Math.floor(container.clientHeight / gridSize);
+    // Responsive grid creation - calculate optimal size for container
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
     
-    console.log(`Creating ${cols}x${rows} grid for ${container.clientWidth}x${container.clientHeight}`);
+    // Calculate optimal grid size based on container dimensions
+    const targetCols = Math.max(8, Math.floor(containerWidth / 45)); // At least 8 columns
+    const targetRows = Math.max(6, Math.floor(containerHeight / 45)); // At least 6 rows
     
-    // Create 3x more squares - much denser grid
-    const spacing = gridSize + 5; // Less spacing for more squares
-    const actualCols = Math.floor(container.clientWidth / spacing);
-    const actualRows = Math.floor(container.clientHeight / spacing);
+    const gridSize = Math.min(
+      Math.floor(containerWidth / targetCols) - 3, // Leave 3px spacing
+      Math.floor(containerHeight / targetRows) - 3
+    );
+    
+    const spacing = gridSize + 4; // Consistent 4px spacing
+    const actualCols = Math.floor(containerWidth / spacing);
+    const actualRows = Math.floor(containerHeight / spacing);
+    
+    console.log(`Creating ${actualCols}x${actualRows} responsive grid (${gridSize}px squares) for ${containerWidth}x${containerHeight}`);
     const colors = [
       'rgba(14, 165, 233, 0.8)', // primary blue
       'rgba(34, 197, 94, 0.8)',  // success green  
@@ -88,18 +97,44 @@ export const SimpleLiquidGrid: React.FC<SimpleLiquidGridProps> = ({
       }
     }
     
-    // Create streaking pin lights that follow grid lines
-    const createPinLight = () => {
+    
+    // Create pin lights more frequently - 2x as many streaks
+    const pinLightInterval = setInterval(() => {
+      // Higher probability and more frequent spawning
+      if (Math.random() < 0.8) createPinLightWithAnimation();
+      // Sometimes spawn two at once
+      if (Math.random() < 0.3) {
+        setTimeout(() => createPinLightWithAnimation(), 200 + Math.random() * 400);
+      }
+    }, 800 + Math.random() * 1000); // Faster interval
+    
+    // Store interval for cleanup
+    intervalsRef.current.push(pinLightInterval);
+
+    // Add CSS animation for pin lights - contained within bounds with unique ID
+    const animationId = `pinStreak_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const style = document.createElement('style');
+    style.id = animationId;
+    style.textContent = `
+      @keyframes ${animationId} {
+        0% { transform: translateY(0); opacity: 0; }
+        10% { opacity: 1; }
+        90% { opacity: 1; }
+        100% { transform: translateY(-${container.clientHeight + 50}px); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Update pin light animation to use unique name
+    const createPinLightWithAnimation = () => {
       const pinLight = document.createElement('div');
-      // Calculate exact grid line positions
       const gridLineOptions = [];
       
-      // Add positions at left edge of each column and between columns
       for (let col = 0; col <= actualCols; col++) {
         if (col === 0) {
-          gridLineOptions.push(0); // Left edge
+          gridLineOptions.push(0);
         } else {
-          gridLineOptions.push(col * spacing - (spacing - gridSize) / 2); // Between columns
+          gridLineOptions.push(col * spacing - (spacing - gridSize) / 2);
         }
       }
       
@@ -107,20 +142,19 @@ export const SimpleLiquidGrid: React.FC<SimpleLiquidGridProps> = ({
       pinLight.style.cssText = `
         position: absolute;
         left: ${xPos}px;
-        bottom: -200px;
+        bottom: -50px;
         width: 2px;
-        height: 150px;
+        height: 100px;
         background: linear-gradient(to top, 
           transparent, 
           rgba(255, 255, 255, 0.2),
           rgba(14, 165, 233, 0.8),
           #00D4FF);
-        animation: pinStreak 2s linear forwards;
+        animation: ${animationId} 2s linear forwards;
         pointer-events: none;
-        z-index: 20;
+        z-index: 1;
       `;
       
-      // Add glowing dot at top
       const dot = document.createElement('div');
       dot.style.cssText = `
         position: absolute;
@@ -141,31 +175,6 @@ export const SimpleLiquidGrid: React.FC<SimpleLiquidGridProps> = ({
         if (pinLight.parentNode) pinLight.remove();
       }, 2000);
     };
-    
-    // Create pin lights more frequently - 2x as many streaks
-    const pinLightInterval = setInterval(() => {
-      // Higher probability and more frequent spawning
-      if (Math.random() < 0.8) createPinLight();
-      // Sometimes spawn two at once
-      if (Math.random() < 0.3) {
-        setTimeout(() => createPinLight(), 200 + Math.random() * 400);
-      }
-    }, 800 + Math.random() * 1000); // Faster interval
-    
-    // Store interval for cleanup
-    intervalsRef.current.push(pinLightInterval);
-
-    // Add CSS animation for pin lights
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes pinStreak {
-        0% { transform: translateY(0); opacity: 0; }
-        10% { opacity: 1; }
-        90% { opacity: 1; }
-        100% { transform: translateY(-${container.clientHeight + 300}px); opacity: 0; }
-      }
-    `;
-    document.head.appendChild(style);
 
     // Return grid data and cleanup function
     return {
@@ -271,8 +280,13 @@ export const SimpleLiquidGrid: React.FC<SimpleLiquidGridProps> = ({
       window.removeEventListener('resize', handleResize);
       clearTimeout(resizeTimeout);
       gridData.cleanup();
+      
+      // Force cleanup of container
       if (containerRef.current) {
         containerRef.current.innerHTML = '';
+        // Remove any dynamically added styles
+        const styles = document.querySelectorAll(`style[id*="pinStreak_"]`);
+        styles.forEach(style => style.remove());
       }
     };
   }, [isActive, createGrid]);
@@ -280,11 +294,11 @@ export const SimpleLiquidGrid: React.FC<SimpleLiquidGridProps> = ({
   if (!isActive) return null;
 
   return (
-    <div className={`relative w-full h-full ${className}`}>
+    <div className={`relative w-full h-full ${className} overflow-hidden rounded-lg`}>
       {/* Grid Container */}
       <div 
         ref={containerRef}
-        className="absolute inset-0 overflow-hidden"
+        className="absolute inset-1 overflow-hidden rounded-lg"
         style={{
           background: 'rgba(15, 23, 42, 0.8)',
           borderRadius: '0.5rem'

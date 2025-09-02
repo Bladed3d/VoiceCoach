@@ -35,15 +35,15 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
         </div>
         <div className="flex items-center space-x-2">
           <button 
-            className="text-sm text-slate-400 hover:text-white"
+            className="text-sm text-slate-400 hover:text-white px-2 py-1 border border-slate-600 rounded"
             onClick={onClearUsed}
           >
             Reset Used
           </button>
           <button 
-            className="text-slate-400 hover:text-red-400 p-1 rounded"
+            className="text-slate-400 hover:text-red-400 p-1 border border-slate-600 rounded"
             onClick={onCollapse}
-            title="Collapse panel"
+            title="Collapse to vertical"
           >
             <X className="w-4 h-4" />
           </button>

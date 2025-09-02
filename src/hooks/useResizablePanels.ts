@@ -35,7 +35,7 @@ const SMALL_SCREEN_CONFIG: ResizablePanelsConfig = {
     collapsedWidth: 40,
   },
   transcription: {
-    minWidth: 150,
+    minWidth: 180,
     defaultWidth: 200,
     collapsedWidth: 40,
   },
@@ -52,7 +52,7 @@ const MEDIUM_SCREEN_CONFIG: ResizablePanelsConfig = {
     collapsedWidth: 44,
   },
   transcription: {
-    minWidth: 180,
+    minWidth: 220,
     defaultWidth: 240,
     collapsedWidth: 44,
   },
@@ -69,7 +69,7 @@ const DEFAULT_CONFIG: ResizablePanelsConfig = {
     collapsedWidth: 48,
   },
   transcription: {
-    minWidth: 200,
+    minWidth: 250,
     defaultWidth: 280,
     collapsedWidth: 48,
   },
@@ -97,18 +97,18 @@ export const useResizablePanels = (initialConfig?: ResizablePanelsConfig) => {
   // Track viewport width for responsive updates
   const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
   
-  // Panel states
+  // Panel states - NEVER allow panels to be hidden, only collapsed
   const [scriptPanel, setScriptPanel] = useState<PanelState>({
-    isCollapsed: true, // Start collapsed for clean interface
-    isHidden: false, // Visible but collapsed
+    isCollapsed: false, // Start expanded for immediate visibility
+    isHidden: false, // Always visible - never hidden
     width: config.script.defaultWidth,
     minWidth: config.script.minWidth,
     maxWidth: Infinity, // No maximum width limit - user has full control
   });
   
   const [transcriptionPanel, setTranscriptionPanel] = useState<PanelState>({
-    isCollapsed: false,
-    isHidden: false, // Visible and expanded
+    isCollapsed: false, // Start expanded for immediate visibility
+    isHidden: false, // Always visible - never hidden
     width: config.transcription.defaultWidth,
     minWidth: config.transcription.minWidth,
     maxWidth: Infinity, // No maximum width limit - user has full control
@@ -163,27 +163,21 @@ export const useResizablePanels = (initialConfig?: ResizablePanelsConfig) => {
     });
   }, [config.transcription.collapsedWidth, trail]);
 
-  // Toggle panel visibility (completely hide/show)
+  // DISABLED: Toggle panel visibility - panels should never be completely hidden
   const toggleScriptVisibility = useCallback(() => {
-    setScriptPanel(prev => {
-      const newState = { ...prev, isHidden: !prev.isHidden };
-      trail.light(7124, {
-        panel_visibility: 'script_panel',
-        action: newState.isHidden ? 'hidden' : 'visible'
-      });
-      return newState;
+    trail.light(7124, {
+      panel_visibility: 'script_panel',
+      action: 'visibility_toggle_disabled_panels_always_visible'
     });
+    // No-op: panels are always visible, only collapsible
   }, [trail]);
 
   const toggleTranscriptionVisibility = useCallback(() => {
-    setTranscriptionPanel(prev => {
-      const newState = { ...prev, isHidden: !prev.isHidden };
-      trail.light(7125, {
-        panel_visibility: 'transcription_panel',
-        action: newState.isHidden ? 'hidden' : 'visible'
-      });
-      return newState;
+    trail.light(7125, {
+      panel_visibility: 'transcription_panel', 
+      action: 'visibility_toggle_disabled_panels_always_visible'
     });
+    // No-op: panels are always visible, only collapsible
   }, [trail]);
   
   // Start drag resize
@@ -276,19 +270,19 @@ export const useResizablePanels = (initialConfig?: ResizablePanelsConfig) => {
       if (JSON.stringify(newConfig) !== JSON.stringify(prevConfig)) {
         setConfig(newConfig);
         
-        // Auto-hide panels on small screens
+        // Auto-collapse panels on small screens (collapsed, not hidden)
         if (newWidth < 1280) {
-          // Hide transcription panel on small screens if both panels are visible
-          if (!scriptPanel.isHidden && !transcriptionPanel.isHidden) {
-            setTranscriptionPanel(prev => ({ ...prev, isHidden: true }));
-            trail.light(7126, { auto_hide: 'transcription_panel', reason: 'small_screen', width: newWidth });
+          // Collapse transcription panel on small screens for space efficiency
+          if (!transcriptionPanel.isCollapsed) {
+            setTranscriptionPanel(prev => ({ ...prev, isCollapsed: true }));
+            trail.light(7126, { auto_collapse: 'transcription_panel', reason: 'small_screen', width: newWidth });
           }
         }
         if (newWidth < 1024) {
-          // Hide script panel on very small screens
-          if (!scriptPanel.isHidden) {
-            setScriptPanel(prev => ({ ...prev, isHidden: true }));
-            trail.light(7127, { auto_hide: 'script_panel', reason: 'very_small_screen', width: newWidth });
+          // Collapse script panel on very small screens
+          if (!scriptPanel.isCollapsed) {
+            setScriptPanel(prev => ({ ...prev, isCollapsed: true }));
+            trail.light(7127, { auto_collapse: 'script_panel', reason: 'very_small_screen', width: newWidth });
           }
         }
         
@@ -305,7 +299,7 @@ export const useResizablePanels = (initialConfig?: ResizablePanelsConfig) => {
     handleResize(); // Initial check
     
     return () => window.removeEventListener('resize', handleResize);
-  }, [config, scriptPanel.isHidden, transcriptionPanel.isHidden, trail]);
+  }, [config, scriptPanel.isCollapsed, transcriptionPanel.isCollapsed, trail]);
   
   // Persist panel configurations to localStorage (run once on mount)
   useEffect(() => {
@@ -314,12 +308,22 @@ export const useResizablePanels = (initialConfig?: ResizablePanelsConfig) => {
       try {
         const parsed = JSON.parse(savedConfig);
         if (parsed.script) {
-          setScriptPanel(prev => ({ ...prev, ...parsed.script }));
+          // Force panels to be visible - never hidden
+          setScriptPanel(prev => ({ 
+            ...prev, 
+            ...parsed.script,
+            isHidden: false // Always override hidden state to false
+          }));
         }
         if (parsed.transcription) {
-          setTranscriptionPanel(prev => ({ ...prev, ...parsed.transcription }));
+          // Force panels to be visible - never hidden
+          setTranscriptionPanel(prev => ({ 
+            ...prev, 
+            ...parsed.transcription,
+            isHidden: false // Always override hidden state to false
+          }));
         }
-        trail.light(7124, { panel_config: 'loaded_from_storage' });
+        trail.light(7124, { panel_config: 'loaded_from_storage_force_visible' });
       } catch (e) {
         trail.light(7125, { panel_config: 'failed_to_load', error: e });
       }
@@ -330,12 +334,18 @@ export const useResizablePanels = (initialConfig?: ResizablePanelsConfig) => {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       const configToSave = {
-        script: scriptPanel,
-        transcription: transcriptionPanel,
+        script: {
+          ...scriptPanel,
+          isHidden: false // Always save as visible
+        },
+        transcription: {
+          ...transcriptionPanel,
+          isHidden: false // Always save as visible
+        },
       };
       try {
         localStorage.setItem('voicecoach-panel-config', JSON.stringify(configToSave));
-        trail.light(7129, { panel_config: 'saved_to_storage', panels: Object.keys(configToSave) });
+        trail.light(7129, { panel_config: 'saved_to_storage_force_visible', panels: Object.keys(configToSave) });
       } catch (e) {
         trail.light(7130, { panel_config: 'save_failed', error: e });
       }

@@ -1,0 +1,8 @@
+{
+  "name": "audio-capture-test",
+  "version": "1.0.0",
+  "main": "test-audio-main.cjs",
+  "scripts": {
+    "test": "electron test-audio-main.cjs"
+  }
+}

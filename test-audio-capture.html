@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>System Audio Capture Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .meter {
+            width: 100%;
+            height: 30px;
+            background: #333;
+            border-radius: 5px;
+            margin: 10px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        .meter-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #ffff00, #ff0000);
+            width: 0%;
+            transition: width 0.1s;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            background: #333;
+            border-radius: 5px;
+        }
+        .error {
+            color: #ff6b6b;
+        }
+        .success {
+            color: #51cf66;
+        }
+        .info {
+            color: #74c0fc;
+        }
+        pre {
+            background: #2a2a2a;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>System Audio Capture Test</h1>
+        <p>This tests capturing system/desktop audio in Electron</p>
+        
+        <div>
+            <button onclick="testMicrophone()">Test 1: Microphone Only</button>
+            <button onclick="testSystemAudio()">Test 2: System Audio Only</button>
+            <button onclick="testBothAudio()">Test 3: Both Mic + System</button>
+            <button onclick="stopAll()">Stop All</button>
+        </div>
+        
+        <h3>Microphone Level:</h3>
+        <div class="meter">
+            <div id="mic-meter" class="meter-fill"></div>
+        </div>
+        
+        <h3>System Audio Level:</h3>
+        <div class="meter">
+            <div id="system-meter" class="meter-fill"></div>
+        </div>
+        
+        <h3>Status Log:</h3>
+        <div id="status" class="status"></div>
+        
+        <h3>Debug Info:</h3>
+        <pre id="debug"></pre>
+    </div>
+
+    <script>
+        let micStream = null;
+        let systemStream = null;
+        let micAnalyser = null;
+        let systemAnalyser = null;
+        let micContext = null;
+        let systemContext = null;
+        let animationId = null;
+
+        function log(message, type = 'info') {
+            const status = document.getElementById('status');
+            const time = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            status.innerHTML += `<div class="${className}">[${time}] ${message}</div>`;
+            status.scrollTop = status.scrollHeight;
+            console.log(`[${type}] ${message}`);
+        }
+
+        function updateDebug(info) {
+            document.getElementById('debug').textContent = JSON.stringify(info, null, 2);
+        }
+
+        async function testMicrophone() {
+            try {
+                log('Requesting microphone access...', 'info');
+                
+                micStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    },
+                    video: false
+                });
+                
+                const tracks = micStream.getAudioTracks();
+                log(`Microphone captured! Tracks: ${tracks.length}`, 'success');
+                
+                updateDebug({
+                    source: 'Microphone',
+                    tracks: tracks.map(t => ({
+                        label: t.label,
+                        enabled: t.enabled,
+                        muted: t.muted,
+                        readyState: t.readyState,
+                        settings: t.getSettings()
+                    }))
+                });
+                
+                setupAudioAnalyser(micStream, 'mic');
+                
+            } catch (error) {
+                log(`Microphone error: ${error.message}`, 'error');
+                updateDebug({ error: error.message, stack: error.stack });
+            }
+        }
+
+        async function testSystemAudio() {
+            try {
+                log('Requesting system audio capture...', 'info');
+                log('IMPORTANT: You may need to select a screen/window', 'info');
+                
+                // Try different approaches
+                const approaches = [
+                    // Approach 1: Simple audio request
+                    {
+                        name: 'Simple Audio',
+                        options: {
+                            audio: true,
+                            video: false
+                        }
+                    },
+                    // Approach 2: With video (will remove later)
+                    {
+                        name: 'With Video',
+                        options: {
+                            audio: true,
+                            video: true
+                        }
+                    },
+                    // Approach 3: Chrome-specific
+                    {
+                        name: 'Chrome System Audio',
+                        options: {
+                            audio: {
+                                mandatory: {
+                                    chromeMediaSource: 'desktop'
+                                }
+                            },
+                            video: {
+                                mandatory: {
+                                    chromeMediaSource: 'desktop'
+                                }
+                            }
+                        }
+                    },
+                    // Approach 4: System audio flag
+                    {
+                        name: 'System Audio Flag',
+                        options: {
+                            audio: true,
+                            video: false,
+                            systemAudio: 'include'
+                        }
+                    }
+                ];
+
+                let captured = false;
+                for (const approach of approaches) {
+                    if (captured) break;
+                    
+                    try {
+                        log(`Trying approach: ${approach.name}`, 'info');
+                        systemStream = await navigator.mediaDevices.getDisplayMedia(approach.options);
+                        
+                        const audioTracks = systemStream.getAudioTracks();
+                        const videoTracks = systemStream.getVideoTracks();
+                        
+                        log(`Got stream! Audio tracks: ${audioTracks.length}, Video tracks: ${videoTracks.length}`, 'success');
+                        
+                        // Remove video tracks if present
+                        videoTracks.forEach(track => {
+                            track.stop();
+                            systemStream.removeTrack(track);
+                        });
+                        
+                        if (audioTracks.length > 0) {
+                            log(`System audio captured with approach: ${approach.name}`, 'success');
+                            
+                            updateDebug({
+                                source: 'System Audio',
+                                approach: approach.name,
+                                tracks: audioTracks.map(t => ({
+                                    label: t.label,
+                                    enabled: t.enabled,
+                                    muted: t.muted,
+                                    readyState: t.readyState,
+                                    settings: t.getSettings()
+                                }))
+                            });
+                            
+                            setupAudioAnalyser(systemStream, 'system');
+                            captured = true;
+                        } else {
+                            log(`No audio tracks with approach: ${approach.name}`, 'error');
+                            systemStream.getTracks().forEach(t => t.stop());
+                        }
+                        
+                    } catch (err) {
+                        log(`Approach ${approach.name} failed: ${err.message}`, 'error');
+                    }
+                }
+                
+                if (!captured) {
+                    throw new Error('All system audio capture approaches failed');
+                }
+                
+            } catch (error) {
+                log(`System audio error: ${error.message}`, 'error');
+                updateDebug({ error: error.message, stack: error.stack });
+            }
+        }
+
+        async function testBothAudio() {
+            await testMicrophone();
+            await testSystemAudio();
+        }
+
+        function setupAudioAnalyser(stream, type) {
+            const context = new AudioContext();
+            const source = context.createMediaStreamSource(stream);
+            const analyser = context.createAnalyser();
+            
+            analyser.fftSize = 256;
+            analyser.smoothingTimeConstant = 0.8;
+            
+            source.connect(analyser);
+            
+            if (type === 'mic') {
+                micContext = context;
+                micAnalyser = analyser;
+            } else {
+                systemContext = context;
+                systemAnalyser = analyser;
+            }
+            
+            if (!animationId) {
+                updateVolumeLevels();
+            }
+            
+            log(`Audio analyser setup for ${type}`, 'success');
+        }
+
+        function updateVolumeLevels() {
+            const updateMeter = (analyser, meterId) => {
+                if (!analyser) return 0;
+                
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                analyser.getByteFrequencyData(dataArray);
+                
+                let sum = 0;
+                for (let i = 0; i < dataArray.length; i++) {
+                    sum += dataArray[i];
+                }
+                const average = sum / dataArray.length;
+                const percentage = (average / 255) * 100;
+                
+                document.getElementById(meterId).style.width = percentage + '%';
+                return percentage;
+            };
+            
+            const micLevel = updateMeter(micAnalyser, 'mic-meter');
+            const systemLevel = updateMeter(systemAnalyser, 'system-meter');
+            
+            animationId = requestAnimationFrame(updateVolumeLevels);
+        }
+
+        function stopAll() {
+            log('Stopping all streams...', 'info');
+            
+            if (micStream) {
+                micStream.getTracks().forEach(track => track.stop());
+                micStream = null;
+            }
+            
+            if (systemStream) {
+                systemStream.getTracks().forEach(track => track.stop());
+                systemStream = null;
+            }
+            
+            if (micContext) {
+                micContext.close();
+                micContext = null;
+                micAnalyser = null;
+            }
+            
+            if (systemContext) {
+                systemContext.close();
+                systemContext = null;
+                systemAnalyser = null;
+            }
+            
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            
+            document.getElementById('mic-meter').style.width = '0%';
+            document.getElementById('system-meter').style.width = '0%';
+            
+            log('All streams stopped', 'success');
+        }
+
+        // Check environment
+        window.addEventListener('DOMContentLoaded', () => {
+            const isElectron = !!(window.electronAPI || window.isElectron);
+            const userAgent = navigator.userAgent;
+            
+            log(`Environment: ${isElectron ? 'Electron' : 'Browser'}`, 'info');
+            log(`User Agent: ${userAgent}`, 'info');
+            
+            updateDebug({
+                environment: {
+                    isElectron,
+                    electronAPI: !!(window.electronAPI),
+                    platform: navigator.platform,
+                    userAgent: userAgent.substring(0, 100) + '...'
+                }
+            });
+        });
+    </script>
+</body>
+</html>

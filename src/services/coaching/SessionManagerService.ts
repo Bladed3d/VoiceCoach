@@ -5,26 +5,35 @@
  */
 import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
 import { VoiceCoachWebSocketClient, TranscriptEvent, CoachingSuggestion } from '../websocket/websocket-client';
-import { VolumeMonitoringService } from '../audio/VolumeMonitoringService';
+import { DualVolumeMonitoringService } from '../audio/DualVolumeMonitoringService';
 import { ChromaDBService } from '../knowledge/ChromaDBService';
+import { getSelectedModel } from '../../lib/model-utils';
 import { 
   SessionState, 
   CoachingPrompt, 
   TranscriptionItem, 
   VolumeState 
 } from '../../types/coaching';
+// Simple file-based Ollama instruction loader (browser version for Electron)
+import { ollamaInstructionLoader } from './OllamaInstructionLoader-Browser';
+
+// Conversation analyzers for rich context detection
+import { conversationAnalyzer } from './analyzers/ConversationAnalyzer';
 import { SemanticSearchResult } from '../../types/chromadb';
 
 export class SessionManagerService {
   private trail: BreadcrumbTrail;
   private wsClient: VoiceCoachWebSocketClient;
-  private volumeService: VolumeMonitoringService;
+  private volumeService: DualVolumeMonitoringService;
   private chromaDBService: ChromaDBService;
   private sessionState: SessionState;
   private stateCallback?: (state: SessionState) => void;
   private sessionTimer: NodeJS.Timeout | null = null;
   private ragDocument: any = null;
-  private useSemanticSearch: boolean = false;
+  private useSemanticSearch: boolean = true;
+  private lastSearchResults: SemanticSearchResult[] = []; // Store results for priority mapping
+  private callStartTime: Date | null = null; // Track call start for enhanced Ollama
+  private conversationHistory: Array<{ speaker: 'user' | 'prospect'; text: string; timestamp: string }> = [];
 
   constructor() {
     console.log('🚀 SessionManagerService: Constructor starting...');
@@ -32,7 +41,7 @@ export class SessionManagerService {
     
     // Initialize services
     this.wsClient = new VoiceCoachWebSocketClient('ws://127.0.0.1:5000');
-    this.volumeService = new VolumeMonitoringService();
+    this.volumeService = new DualVolumeMonitoringService();
     this.chromaDBService = new ChromaDBService('universal_neversplit');
     
     // Initialize session state
@@ -75,29 +84,29 @@ export class SessionManagerService {
     });
 
     try {
-      console.log('🔍 Testing Ollama connection via desktop IPC...');
+      console.log('🔍 Checking Ollama models from app startup cache...');
       
-      // LED 6302: Testing connection
+      // LED 6302: Checking cached models  
       this.trail.light(6302, {
-        operation: 'ollama_connection_test',
-        method: 'desktop_ipc',
+        operation: 'ollama_cache_check',
+        method: 'localStorage',
         timestamp: Date.now()
       });
       
-      // Test Ollama connection using desktop-native IPC call
-      const result = await (window as any).electronAPI.ollamaTestConnection();
-      console.log('🔍 Ollama connection result:', result);
+      // Check if models were loaded at app startup and cached
+      const cachedModels = localStorage.getItem('voicecoach-ollama-models');
+      const hasModels = cachedModels && JSON.parse(cachedModels).length > 0;
       
-      // LED 6303: Connection test result
+      // LED 6303: Cache check result
       this.trail.light(6303, {
-        operation: 'ollama_connection_result',
-        success: result.success,
-        error: result.error || null,
+        operation: 'ollama_cache_result',
+        success: hasModels,
+        modelCount: hasModels ? JSON.parse(cachedModels!).length : 0,
         timestamp: Date.now()
       });
       
-      if (result.success) {
-        console.log('✅ Ollama API accessible, loading document...');
+      if (hasModels) {
+        console.log('✅ Ollama models available from startup cache, loading document...');
         
         // LED 6304: Document loading start
         this.trail.light(6304, {
@@ -134,12 +143,12 @@ export class SessionManagerService {
         });
         console.log('🎵 LED 6305: Ollama initialization completed successfully');
 
-        console.log('✅ Ollama connected successfully');
+        console.log('✅ Ollama models loaded successfully from cache');
         if (documentLoaded) {
           console.log('✅ NeverSplit document loaded for coaching');
         }
       } else {
-        throw new Error(`Ollama connection failed: ${result.error}`);
+        throw new Error('No Ollama models found in cache - models should be loaded at app startup');
       }
     } catch (error) {
       console.error('❌ Full Ollama error details:', error);
@@ -236,7 +245,7 @@ export class SessionManagerService {
   }
 
   /**
-   * Generate Ollama coaching suggestion (direct API call from working version)
+   * Generate Ollama coaching suggestion (using file-based instructions)
    */
   private async generateOllamaCoaching(transcriptionText: string): Promise<void> {
     if (transcriptionText.length < 50) {
@@ -249,13 +258,14 @@ export class SessionManagerService {
     }
 
     try {
+      const selectedModel = getSelectedModel();
+      
       this.trail.light(6330, {
         operation: 'ollama_coaching_generation_start',
         transcript_length: transcriptionText.length,
-        model: 'llama3.1:8b-instruct-q4_K_M',
+        model: selectedModel,
         knowledge_source: this.useSemanticSearch ? 'chromadb_semantic' : 'rag_document',
-        optimization: 'superior_rag_performance',
-        benchmark: '2.5s_vs_4.4s_improvement',
+        uses_file_instructions: true,
         timestamp: Date.now()
       });
 
@@ -264,7 +274,7 @@ export class SessionManagerService {
       // Use desktop-native IPC call for Ollama generation
       const result = await (window as any).electronAPI.ollamaGenerate({
         prompt: prompt,
-        model: 'llama3.1:8b-instruct-q4_K_M'
+        model: selectedModel
       });
 
       if (!result.success) {
@@ -274,11 +284,30 @@ export class SessionManagerService {
       const suggestion = result.response?.trim();
 
       if (suggestion && suggestion.length > 10) {
+        // Try to parse as JSON first (if instructions return JSON)
+        let coachingData: any = null;
+        try {
+          coachingData = JSON.parse(suggestion);
+        } catch {
+          // If not JSON, treat as plain text suggestion
+          coachingData = { suggestion: suggestion };
+        }
+        
+        // Extract priority from response or ChromaDB
+        let promptPriority: 'critical' | 'high' | 'medium' | 'low' = 'medium';
+        if (coachingData.priority) {
+          promptPriority = coachingData.priority.toLowerCase() as any;
+        } else if (this.useSemanticSearch && this.lastSearchResults && this.lastSearchResults.length > 0) {
+          const topResult = this.lastSearchResults[0];
+          promptPriority = topResult.priority === 'CRITICAL' ? 'critical' :
+                          topResult.priority === 'HIGH' ? 'high' : 'medium';
+        }
+
         const newPrompt: CoachingPrompt = {
           id: Date.now(),
-          priority: 'medium',
-          text: suggestion,
-          category: 'real_time_coaching',
+          priority: promptPriority,
+          text: coachingData.suggestion || suggestion,
+          category: coachingData.category || 'real_time_coaching',
           trigger: 'transcript_analysis',
           context: transcriptionText.slice(-200), // Last 200 chars for context
           timestamp: Date.now()
@@ -324,12 +353,16 @@ export class SessionManagerService {
       try {
         const searchResults = await this.chromaDBService.semanticSearch(transcriptionText, 3);
         
+        // Store results for priority mapping
+        this.lastSearchResults = searchResults;
+        
         // LED 6361: Search results obtained
         this.trail.light(6361, {
           operation: 'semantic_search_results',
           results_count: searchResults.length,
           top_similarity: searchResults[0]?.similarity_score || 0,
           content_types: searchResults.map(r => r.content_type),
+          priorities: searchResults.map(r => r.priority),
           timestamp: Date.now()
         });
 
@@ -338,7 +371,7 @@ export class SessionManagerService {
           `${result.content_type.toUpperCase()}: ${result.content}`
         ).join('\n');
 
-        console.log(`🔍 ChromaDB: Found ${searchResults.length} relevant coaching techniques`);
+        console.log(`🔍 ChromaDB: Found ${searchResults.length} relevant coaching techniques with priorities: ${searchResults.map(r => r.priority).join(', ')}`);
 
       } catch (error) {
         // LED 8360: Semantic search failure, fallback to RAG
@@ -360,30 +393,41 @@ export class SessionManagerService {
       }) : '';
     }
 
-    return `You are a real-time sales coach. Provide ONE specific action for the salesperson based on this conversation.
-
-Knowledge Base: ${knowledgeContext}
-
-Conversation: "${transcriptionText}"
-
-Rules:
-- Maximum 20 words
-- ONE specific action only
-- Use present tense ("Ask:", "Say:", "Try:")
-- Be immediately actionable
-
-Action:`;
+    // Run conversation analysis for rich context
+    const analysis = conversationAnalyzer.analyze(transcriptionText, false);
+    
+    // Use the file-based instruction loader with rich context
+    const prompt = ollamaInstructionLoader.buildPrompt({
+      transcript: transcriptionText,
+      knowledge: knowledgeContext,
+      salesStage: analysis.salesStage, // Now using advanced detection
+      callDuration: this.callStartTime ? 
+        Math.round((Date.now() - this.callStartTime.getTime()) / 1000 / 60) : 0,
+      objections: analysis.objections.map(o => o.type), // Rich objection detection
+      topics: undefined, // Could extract from conversation
+      sentiment: analysis.momentum // Using momentum as sentiment proxy
+    });
+    
+    return prompt;
   }
 
   /**
    * Start coaching session
    */
-  async startSession(): Promise<boolean> {
+  async startSession(captureMode: 'microphone' | 'full-conversation' = 'microphone'): Promise<boolean> {
     const sessionStartTime = Date.now();
+    this.callStartTime = new Date(); // Track for call duration
+    
+    // Reset analyzers for new session
+    conversationAnalyzer.reset();
+    
+    // Store capture mode in state
+    this.updateSessionState({ captureMode });
     
     // LED 6301: Session start initiation
     this.trail.light(6301, {
       operation: 'session_start_initiation',
+      captureMode: captureMode,
       timestamp: sessionStartTime
     });
 
@@ -429,8 +473,8 @@ Action:`;
       // Connect WebSocket client
       await this.wsClient.connect();
       
-      // Start transcription
-      if (await this.wsClient.startTranscription()) {
+      // Start transcription with capture mode
+      if (await this.wsClient.startTranscription(captureMode)) {
         // Start session timer
         this.startSessionTimer();
         
@@ -627,7 +671,18 @@ Action:`;
         level: 0,
         isMonitoring: false,
         status: 'silent'
-      }
+      },
+      micVolumeState: {
+        level: 0,
+        isMonitoring: false,
+        status: 'silent'
+      },
+      tabVolumeState: {
+        level: 0,
+        isMonitoring: false,
+        status: 'silent'
+      },
+      captureMode: 'microphone'
     };
   }
 
@@ -688,7 +743,7 @@ Action:`;
       this.updateSessionState({ wsStatus: `Error: ${error}` });
     });
 
-    // Handle MediaStream for volume monitoring
+    // Handle MediaStream for volume monitoring (legacy single stream)
     this.wsClient.onMediaStream((mediaStream: MediaStream) => {
       // LED 6305: MediaStream received for volume monitoring
       this.trail.light(6305, {
@@ -697,7 +752,27 @@ Action:`;
         timestamp: Date.now()
       });
       
-      this.volumeService.startMonitoring(mediaStream);
+      // For backward compatibility with single stream
+      this.volumeService.startMicMonitoring(mediaStream);
+    });
+    
+    // Handle dual streams for separate volume monitoring
+    this.wsClient.onDualStreams((micStream: MediaStream | null, tabStream: MediaStream | null) => {
+      // LED 6306: Dual streams received for volume monitoring
+      this.trail.light(6306, {
+        operation: 'dual_streams_received',
+        hasMicStream: !!micStream,
+        hasTabStream: !!tabStream,
+        timestamp: Date.now()
+      });
+      
+      if (micStream) {
+        this.volumeService.startMicMonitoring(micStream);
+      }
+      
+      if (tabStream) {
+        this.volumeService.startTabMonitoring(tabStream);
+      }
     });
   }
 
@@ -705,8 +780,14 @@ Action:`;
    * Private: Setup volume monitoring handler
    */
   private setupVolumeHandler(): void {
-    this.volumeService.onVolumeChange((volumeState: VolumeState) => {
-      this.updateSessionState({ volumeState });
+    // Microphone volume handler
+    this.volumeService.onMicVolumeChange((volumeState: VolumeState) => {
+      this.updateSessionState({ micVolumeState: volumeState });
+    });
+    
+    // Tab/headphone volume handler  
+    this.volumeService.onTabVolumeChange((volumeState: VolumeState) => {
+      this.updateSessionState({ tabVolumeState: volumeState });
     });
   }
 

@@ -337,28 +337,35 @@ export class ChromaDBService {
     // Simulate search time
     await new Promise(resolve => setTimeout(resolve, 25));
 
-    // Mock results based on common coaching scenarios
+    // Mock results based on common coaching scenarios with actual ChromaDB data priorities
     const mockResults: SemanticSearchResult[] = [
       {
         id: 'chunk_001',
-        content: 'Mirroring: Repeat the last 1-3 words to build rapport. When customer says "This is expensive", you respond "Expensive?" in questioning tone.',
+        content: 'TECHNIQUE: Mirroring - Repeat customer\'s last 1-3 words in questioning tone. When they say "This is expensive", respond "Expensive?" Shows you\'re listening and triggers them to elaborate with valuable information.',
         content_type: 'technique',
+        priority: 'HIGH',
         similarity_score: 0.89,
-        search_keywords: ['mirroring', 'expensive', 'rapport', 'listening', 'questioning']
+        search_keywords: ['mirroring', 'expensive', 'questioning tone', 'listening', 'elaborate', 'valuable information'],
+        coaching_trigger: 'When customer makes any statement, especially concerns',
+        expected_outcome: 'Customer provides more details and feels heard'
       },
       {
-        id: 'chunk_019',
-        content: 'Loss Aversion: People fear equal loss more than they value equal gain. Frame your solution as preventing their loss rather than providing gain.',
-        content_type: 'principle', 
-        similarity_score: 0.82,
+        id: 'chunk_002', 
+        content: 'OBJECTION: "The price is too high" → RESPONSE: "It sounds like price is a real concern for you. What about the investment doesn\'t work? How would this need to be structured to make sense?" → FOLLOW-UP: Use calibrated questions to understand their real budget constraints.',
+        content_type: 'objection_handler',
+        priority: 'CRITICAL',
+        similarity_score: 0.92,
         search_keywords: ['loss aversion', 'fear loss', 'value gain', 'preventing loss', 'providing gain']
       },
       {
         id: 'chunk_003',
-        content: 'Labeling: Name emotions to diffuse tension. Say "It sounds like you\'re frustrated" to acknowledge their feeling.',
+        content: 'TECHNIQUE: Labeling - Name emotions to diffuse tension. "It seems like you\'re concerned about making the wrong decision" validates their feelings and reduces defensive reactions.',
         content_type: 'technique',
+        priority: 'STANDARD',
         similarity_score: 0.76,
-        search_keywords: ['labeling', 'frustrated', 'tension', 'emotions', 'defensive']
+        search_keywords: ['labeling', 'concerned', 'wrong decision', 'validates feelings', 'defensive reactions'],
+        coaching_trigger: 'When customer shows hesitation, concern, or defensiveness',
+        expected_outcome: 'Tension decreases and customer opens up'
       }
     ];
 

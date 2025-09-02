@@ -8,7 +8,6 @@ import {
   Play, 
   Square, 
   Layout, 
-  Mic,
   Clock, 
   Target, 
   Brain, 
@@ -18,23 +17,22 @@ import {
   ChevronDown,
   Settings,
   Database,
-  MessageSquare,
   BarChart3,
-  TrendingUp,
-  FileText
+  TrendingUp
 } from 'lucide-react';
 
 // Modular imports
 import { useCoachingSession } from '../hooks/useCoachingSession';
 import { useResizablePanels } from '../hooks/useResizablePanels';
 import { useSalesScript } from '../hooks/useSalesScript';
-import { VolumeIndicator } from './common/VolumeIndicator';
+import { DualVolumeIndicator } from './common/DualVolumeIndicator';
 import { CoachingPanel } from './coaching/CoachingPanel';
 import { SalesScriptPanel } from './coaching/SalesScriptPanel';
 import { TranscriptionPanel } from './coaching/TranscriptionPanel';
 import { CollapsedPanel } from './common/CollapsedPanel';
 import { KnowledgeBaseHub } from './KnowledgeBaseHub';
 import SettingsModal from './modals/SettingsModal';
+import { AudioCaptureSelector, AudioCaptureMode } from './coaching/AudioCaptureSelector';
 import { BreadcrumbTrail } from '../lib/breadcrumb-system';
 
 interface SplitViewCoachingProps {
@@ -69,9 +67,14 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
   const [showKnowledgeBaseHub, setShowKnowledgeBaseHub] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [currentView, setCurrentView] = useState('Split View');
-  const [selectedMicrophone, setSelectedMicrophone] = useState('System Default');
+  const [audioCaptureMode, setAudioCaptureMode] = useState<AudioCaptureMode>('microphone');
   const [showViewDropdown, setShowViewDropdown] = useState(false);
-  const [showMicrophoneDropdown, setShowMicrophoneDropdown] = useState(false);
+  
+  // Model selection state
+  const [availableModels, setAvailableModels] = useState<any[]>([]);
+  const [selectedModel, setSelectedModel] = useState('llama3.1:8b-instruct-q4_K_M');
+  const [showModelDropdown, setShowModelDropdown] = useState(false);
+  const [modelLoading, setModelLoading] = useState(false);
   
   // Component lifecycle and microphone change event tracking
   React.useEffect(() => {
@@ -79,36 +82,34 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
       component_mount: 'SplitViewCoaching',
       initial_state: {
         view: currentView,
-        microphone: selectedMicrophone,
+        audio_mode: audioCaptureMode,
         modals_closed: true
       }
     });
     
-    // Enhanced microphone change event listener
-    const handleMicrophoneChange = (event: CustomEvent) => {
-      const { deviceId, label } = event.detail;
+    // Enhanced audio mode change event listener
+    const handleAudioModeChange = (event: CustomEvent) => {
+      const { mode } = event.detail;
       trail.light(7108, {
-        microphone_event: 'external_change_detected',
-        from_device: selectedMicrophone,
-        to_device: label,
-        device_id: deviceId,
+        audio_mode_event: 'external_change_detected',
+        from_mode: audioCaptureMode,
+        to_mode: mode,
         source: 'settings_modal'
       });
       
-      setSelectedMicrophone(label);
+      setAudioCaptureMode(mode === 'full-conversation' ? 'full-conversation' : 'microphone');
       
       trail.light(7109, {
-        microphone_update: 'ui_synchronized',
-        new_display_name: label,
-        device_id: deviceId
+        audio_mode_update: 'ui_synchronized',
+        new_mode: mode
       });
     };
     
-    window.addEventListener('microphoneChanged', handleMicrophoneChange as EventListener);
+    window.addEventListener('audioModeChanged', handleAudioModeChange as EventListener);
     
     return () => {
       trail.light(7110, { component_unmount: 'SplitViewCoaching' });
-      window.removeEventListener('microphoneChanged', handleMicrophoneChange as EventListener);
+      window.removeEventListener('audioModeChanged', handleAudioModeChange as EventListener);
     };
   }, []);
   
@@ -136,6 +137,67 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
       trail.light(7114, { modal_state: 'knowledge_base_closed' });
     }
   }, [showKnowledgeBaseHub]);
+  
+  // Load models from app startup cache on component mount
+  React.useEffect(() => {
+    const loadCachedModels = () => {
+      try {
+        // Load from localStorage cache populated at app startup
+        const cachedModels = localStorage.getItem('voicecoach-ollama-models');
+        const savedModel = localStorage.getItem('voicecoach-selected-model');
+        
+        if (cachedModels) {
+          const models = JSON.parse(cachedModels);
+          setAvailableModels(models);
+          
+          trail.light(7120, {
+            model_load: 'from_cache',
+            models_count: models.length
+          });
+          
+          // Set saved model or default to first available
+          if (savedModel && models.some((m: any) => m.name === savedModel)) {
+            setSelectedModel(savedModel);
+          } else if (models.length > 0) {
+            setSelectedModel(models[0].name);
+          }
+        } else {
+          trail.light(7121, {
+            model_load: 'no_cache_found',
+            note: 'Models should be loaded at app startup'
+          });
+        }
+      } catch (error) {
+        console.error('Error loading cached models:', error);
+        trail.fail(8120, error as Error);
+      }
+    };
+    
+    loadCachedModels();
+  }, []);
+  
+  // Handle model selection changes
+  const handleModelChange = (modelName: string) => {
+    trail.light(7122, {
+      model_change: 'user_selection',
+      from_model: selectedModel,
+      to_model: modelName
+    });
+    
+    setSelectedModel(modelName);
+    setShowModelDropdown(false);
+    
+    // Persist the selection
+    localStorage.setItem('voicecoach-selected-model', modelName);
+    
+    trail.light(7123, {
+      model_change: 'completed',
+      new_model: modelName,
+      persisted: true
+    });
+    
+    console.log(`🎵 Model changed to: ${modelName}`);
+  };
 
   // Early return if not initialized
   if (!isInitialized || !sessionState) {
@@ -149,7 +211,7 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
     );
   }
 
-  const { isRecording, wsStatus, ollamaStatus, sessionData, coachingPrompts, transcriptions, liveTranscript, volumeState } = sessionState;
+  const { isRecording, wsStatus, ollamaStatus, sessionData, coachingPrompts, transcriptions, liveTranscript, volumeState, micVolumeState, tabVolumeState, captureMode } = sessionState;
 
   const formatDuration = (ms: number) => {
     const seconds = Math.floor(ms / 1000);
@@ -159,7 +221,6 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
 
 
   const viewOptions = ['Split View', 'Coaching Dashboard', 'Live Transcription', 'AI Coaching', 'Call Insights'];
-  const microphoneOptions = ['System Default', 'Microphone (CURRENT)', 'Video Call Audio', 'Complete Audio Mix'];
 
   return (
     <div className="full-screen-app bg-slate-950 text-white font-sans flex flex-col">
@@ -172,11 +233,11 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
         <span>Desktop: Enabled</span>
       </div>
 
-      {/* Main Navigation Bar */}
+      {/* Main Navigation Bar - Responsive */}
       <div className="bg-slate-800 border-b border-slate-700">
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between px-4 py-3 gap-3">
           {/* Left Side - Connection Status */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
             {/* WebSocket Status */}
             <div className="flex items-center space-x-2">
               <div className={`w-2 h-2 rounded-full ${
@@ -194,7 +255,7 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
               </span>
             </div>
             
-            {/* Ollama Status */}
+            {/* Ollama Status with Model Dropdown */}
             <div className="flex items-center space-x-2">
               <div className={`w-2 h-2 rounded-full ${
                 ollamaStatus?.includes('Ready') || ollamaStatus === 'Connected' ? 'bg-green-400 animate-pulse' : 
@@ -202,13 +263,56 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
                 ollamaStatus === 'Disconnected' || !ollamaStatus ? 'bg-red-400' :
                 'bg-yellow-400'
               }`}></div>
-              <span className={`text-sm font-medium ${
-                ollamaStatus?.includes('Ready') || ollamaStatus === 'Connected' ? 'text-green-400' :
-                ollamaStatus?.includes('Initializing') ? 'text-yellow-400' :
-                'text-red-400'
-              }`}>
-                Ollama: {ollamaStatus || 'Disconnected'}
-              </span>
+              
+              {/* Model Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowModelDropdown(!showModelDropdown)}
+                  className="flex items-center space-x-2 text-sm hover:bg-slate-700 px-2 py-1 rounded transition-colors"
+                  disabled={modelLoading || availableModels.length === 0}
+                >
+                  <span className={`font-medium ${
+                    ollamaStatus?.includes('Ready') || ollamaStatus === 'Connected' ? 'text-green-400' :
+                    ollamaStatus?.includes('Initializing') ? 'text-yellow-400' :
+                    'text-red-400'
+                  }`}>
+                    Ollama:
+                  </span>
+                  <span className="text-slate-300 max-w-[140px] truncate">
+                    {modelLoading ? 'Loading...' : 
+                     availableModels.length === 0 ? 'No models' :
+                     availableModels.find(m => m.name === selectedModel)?.displayName || selectedModel.split(':')[0]}
+                  </span>
+                  {availableModels.length > 0 && !modelLoading && (
+                    <ChevronDown className="w-3 h-3 text-slate-400" />
+                  )}
+                </button>
+                
+                {showModelDropdown && availableModels.length > 0 && (
+                  <div className="absolute top-full left-0 mt-1 bg-slate-800 border border-slate-700 rounded-md shadow-lg z-50 min-w-[220px] max-h-60 overflow-y-auto">
+                    <div className="px-3 py-2 text-xs text-slate-400 border-b border-slate-700">
+                      Select Ollama Model ({availableModels.length} available)
+                    </div>
+                    {availableModels.map((model) => (
+                      <button
+                        key={model.name}
+                        onClick={() => handleModelChange(model.name)}
+                        className={`block w-full text-left px-3 py-2 text-sm hover:bg-slate-700 ${
+                          model.name === selectedModel ? 'bg-primary-600 text-white' : 'text-slate-300'
+                        }`}
+                        title={`${model.name} (${(model.size / 1024 / 1024 / 1024).toFixed(1)}GB)`}
+                      >
+                        <div className="flex justify-between items-center">
+                          <span className="truncate">{model.displayName}</span>
+                          <span className="text-xs text-slate-400 ml-2">
+                            {(model.size / 1024 / 1024 / 1024).toFixed(1)}GB
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             
             {/* View Dropdown */}
@@ -243,8 +347,8 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
             </div>
           </div>
 
-          {/* Center - VoiceCoach Brand */}
-          <div className="flex items-center space-x-2">
+          {/* Center - VoiceCoach Brand - Hidden on small screens */}
+          <div className="hidden lg:flex items-center space-x-2 flex-shrink-0">
             <div className="w-8 h-8 bg-primary-600 rounded-md flex items-center justify-center">
               <span className="text-white font-bold text-sm">VC</span>
             </div>
@@ -252,14 +356,15 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
             <span className="text-sm text-slate-400">BETA</span>
           </div>
 
-          {/* Right Side - Controls */}
-          <div className="flex items-center space-x-4">
+          {/* Right Side - Controls - Responsive */}
+          <div className="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
+            {/* Icon buttons - Hidden on small screens except Settings */}
             <div className="flex items-center space-x-1">
-              <button className="p-1 hover:bg-slate-700 rounded"><Users className="w-4 h-4" /></button>
-              <button className="p-1 hover:bg-slate-700 rounded"><BarChart3 className="w-4 h-4" /></button>
-              <button className="p-1 hover:bg-slate-700 rounded"><TrendingUp className="w-4 h-4" /></button>
+              <button className="hidden md:block p-1 hover:bg-slate-700 rounded"><Users className="w-4 h-4" /></button>
+              <button className="hidden md:block p-1 hover:bg-slate-700 rounded"><BarChart3 className="w-4 h-4" /></button>
+              <button className="hidden md:block p-1 hover:bg-slate-700 rounded"><TrendingUp className="w-4 h-4" /></button>
               <button 
-                className="p-1 hover:bg-slate-700 rounded"
+                className="hidden md:block p-1 hover:bg-slate-700 rounded"
                 onClick={() => {
                   trail.light(7115, {
                     user_interaction: 'knowledge_base_button_clicked',
@@ -281,7 +386,7 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
                     app_context: {
                       recording: sessionState?.isRecording || false,
                       ws_status: sessionState?.wsStatus || 'Unknown',
-                      current_microphone: selectedMicrophone
+                      current_audio_mode: audioCaptureMode
                     },
                     action: 'open_settings'
                   });
@@ -294,62 +399,31 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
             </div>
             
             <div className="flex items-center space-x-3">
-              {/* Microphone Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowMicrophoneDropdown(!showMicrophoneDropdown)}
-                  className="flex items-center space-x-2 text-sm hover:bg-slate-700 px-3 py-2 rounded transition-colors"
-                >
-                  <Mic className="w-4 h-4 text-primary-400" />
-                  <span>{selectedMicrophone}</span>
-                  <ChevronDown className="w-3 h-3" />
-                </button>
-                
-                {showMicrophoneDropdown && (
-                  <div className="absolute top-full right-0 mt-1 bg-slate-800 border border-slate-700 rounded-md shadow-lg z-50 min-w-[200px]">
-                    {microphoneOptions.map((option) => (
-                      <button
-                        key={option}
-                        onClick={() => {
-                          trail.light(7117, {
-                            microphone_selection: 'dropdown_change',
-                            from_option: selectedMicrophone,
-                            to_option: option,
-                            interaction_type: 'dropdown_menu'
-                          });
-                          setSelectedMicrophone(option);
-                          setShowMicrophoneDropdown(false);
-                          trail.light(7118, {
-                            microphone_change: 'completed_via_dropdown',
-                            new_selection: option
-                          });
-                        }}
-                        className={`block w-full text-left px-4 py-2 text-sm hover:bg-slate-700 ${
-                          option === selectedMicrophone ? 'bg-primary-600 text-white' : 'text-slate-300'
-                        }`}
-                      >
-                        {option}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {/* Audio Capture Mode Selector */}
+              <AudioCaptureSelector
+                mode={audioCaptureMode}
+                onModeChange={setAudioCaptureMode}
+                disabled={false}
+                isRecording={isRecording}
+              />
               
               {!isRecording ? (
                 <button
-                  onClick={startSession}
-                  className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg font-medium transition-colors"
+                  onClick={() => startSession(audioCaptureMode)}
+                  className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 px-3 md:px-4 py-2 rounded-lg font-medium transition-colors"
                 >
-                  <Play className="w-4 h-4" />
-                  <span>Start Coaching Session</span>
+                  <Play className="w-4 h-4 flex-shrink-0" />
+                  <span className="hidden sm:inline">Start Coaching Session</span>
+                  <span className="sm:hidden">Start</span>
                 </button>
               ) : (
                 <button
                   onClick={stopSession}
-                  className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg font-medium transition-colors"
+                  className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 px-3 md:px-4 py-2 rounded-lg font-medium transition-colors"
                 >
-                  <Square className="w-4 h-4" />
-                  <span>Stop Session</span>
+                  <Square className="w-4 h-4 flex-shrink-0" />
+                  <span className="hidden sm:inline">Stop Session</span>
+                  <span className="sm:hidden">Stop</span>
                 </button>
               )}
             </div>
@@ -376,7 +450,11 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
         {/* Volume Meter Component */}
         {isRecording && (
           <div className="mt-4">
-            <VolumeIndicator volumeState={volumeState} />
+            <DualVolumeIndicator 
+              micVolumeState={micVolumeState || volumeState || { level: 0, isMonitoring: false, status: 'silent' }}
+              tabVolumeState={tabVolumeState || { level: 0, isMonitoring: false, status: 'silent' }}
+              captureMode={audioCaptureMode}
+            />
           </div>
         )}
       </div>
@@ -439,43 +517,19 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
             </div>
           </div>
         </div>
-        
-        {/* Panel Control Buttons */}
-        <div className="mt-4 flex justify-center">
-          <div className="panel-controls">
-            <span className="text-xs text-slate-400">View Panels:</span>
-            <button 
-              className={`p-2 rounded transition-colors ${
-                scriptPanel.isHidden 
-                  ? 'hover:bg-slate-700 text-slate-500 bg-slate-800' 
-                  : 'bg-primary-600 text-white hover:bg-primary-700'
-              }`}
-              onClick={toggleScriptVisibility}
-              title={scriptPanel.isHidden ? 'Show Sales Script Panel' : 'Hide Sales Script Panel'}
-            >
-              <FileText className="w-4 h-4" />
-            </button>
-            <button 
-              className={`p-2 rounded transition-colors ${
-                transcriptionPanel.isHidden 
-                  ? 'hover:bg-slate-700 text-slate-500 bg-slate-800' 
-                  : 'bg-primary-600 text-white hover:bg-primary-700'
-              }`}
-              onClick={toggleTranscriptionVisibility}
-              title={transcriptionPanel.isHidden ? 'Show Transcription Panel' : 'Hide Transcription Panel'}
-            >
-              <MessageSquare className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* Adaptive 3-Panel Split View Content */}
       <div className="flex-1 flex px-6 min-h-0 gap-0 three-panel-layout">
         {/* Left Panel: AI Coaching Assistant (Auto-width) */}
         <div 
-          className="flex-1 mr-3 h-full panel-responsive"
-          style={{ minWidth: '300px' }}
+          className="flex-1 mr-3 h-full panel-responsive overflow-hidden"
+          style={{ 
+            minWidth: '300px',
+            // Force separate compositing layer to prevent bleeding
+            transform: 'translateZ(0)',
+            isolation: 'isolate'
+          }}
         >
           <CoachingPanel 
             coachingPrompts={coachingPrompts}
@@ -495,11 +549,16 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
           ) : (
             <div 
               className="mr-3 relative group h-full"
-              style={{ width: `${getScriptWidth()}px` }}
+              style={{ 
+                width: `${getScriptWidth()}px`,
+                // Force separate compositing layer
+                transform: 'translateZ(0)',
+                isolation: 'isolate'
+              }}
             >
               {/* Invisible resize handle on left edge */}
               <div 
-                className="absolute top-0 left-0 w-2 h-full cursor-col-resize bg-transparent hover:bg-primary-500/20 transition-colors z-10"
+                className="absolute top-0 left-0 w-2 h-full cursor-col-resize bg-transparent hover:bg-blue-500/20 z-10"
                 onMouseDown={(e) => startResize('script', e.clientX)}
                 title="Drag to resize panel"
               />
@@ -524,11 +583,16 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
           ) : (
             <div 
               className="relative group h-full"
-              style={{ width: `${getTranscriptionWidth()}px` }}
+              style={{ 
+                width: `${getTranscriptionWidth()}px`,
+                // Force separate compositing layer
+                transform: 'translateZ(0)',
+                isolation: 'isolate'
+              }}
             >
               {/* Invisible resize handle on left edge */}
               <div 
-                className="absolute top-0 left-0 w-2 h-full cursor-col-resize bg-transparent hover:bg-primary-500/20 transition-colors z-10"
+                className="absolute top-0 left-0 w-2 h-full cursor-col-resize bg-transparent hover:bg-blue-500/20 z-10"
                 onMouseDown={(e) => startResize('transcription', e.clientX)}
                 title="Drag to resize panel"
               />
@@ -551,10 +615,10 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
           onClick={() => setShowViewDropdown(false)}
         />
       )}
-      {showMicrophoneDropdown && (
+      {showModelDropdown && (
         <div 
           className="fixed inset-0 z-40" 
-          onClick={() => setShowMicrophoneDropdown(false)}
+          onClick={() => setShowModelDropdown(false)}
         />
       )}
 
@@ -571,7 +635,7 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
           trail.light(7119, {
             settings_modal: 'close_requested',
             close_method: 'parent_close_handler',
-            final_microphone: selectedMicrophone
+            final_audio_mode: audioCaptureMode
           });
           setShowSettingsModal(false);
         }}
