@@ -111,6 +111,8 @@ class VoskNativeWebSocketServer:
         self.aggressive = self.config.get('aggressive', False)
         self.enable_partials = self.config.get('enable_partials', True)
         self.enable_word_timings = self.config.get('enable_word_timings', False)
+        self.set_words = self.config.get('set_words', False)
+        self.set_partial_words = self.config.get('set_partial_words', True)
         
         # Load Vosk model
         if model_path is None:
@@ -121,6 +123,8 @@ class VoskNativeWebSocketServer:
         print(f"  - Transcription mode: {self.mode}")
         print(f"  - Enable partials: {self.enable_partials}")
         print(f"  - Enable word timings: {self.enable_word_timings}")
+        print(f"  - SetWords: {self.set_words}")
+        print(f"  - SetPartialWords: {self.set_partial_words}")
         print(f"  - Partial timeout: {self.partial_timeout}s")
         print(f"  - Sentence gap: {self.sentence_gap}s")
         print(f"  - Min silence: {self.min_silence}s")
@@ -139,22 +143,14 @@ class VoskNativeWebSocketServer:
         
         # Configure recognizer based on settings
         print(f"[7314] 🎵 LED VOSK_CONFIG - Applying recognizer settings:")
-        if not self.enable_word_timings:
-            self.recognizer.SetWords(False)
-            self.recognizer.SetPartialWords(False)  # Also disable partial words for speed
-            print(f"  - SetWords: False (word timings disabled)")
-            print(f"  - SetPartialWords: False (for maximum speed)")
-        else:
-            self.recognizer.SetWords(True)
-            print(f"  - SetWords: True (word timings enabled)")
-            
-        # Only set partial words if we're showing partials
-        if self.enable_partials:
-            self.recognizer.SetPartialWords(True)
-            print(f"  - SetPartialWords: True (partial results enabled)")
-        else:
-            self.recognizer.SetPartialWords(False)
-            print(f"  - SetPartialWords: False (partial results disabled)")
+        
+        # Use the explicit SetWords setting from UI
+        self.recognizer.SetWords(self.set_words)
+        print(f"  - SetWords: {self.set_words} (from UI settings)")
+        
+        # Use the explicit SetPartialWords setting from UI
+        self.recognizer.SetPartialWords(self.set_partial_words)
+        print(f"  - SetPartialWords: {self.set_partial_words} (from UI settings)")
             
         print(f"[6002.2] Recognizer initialized for {self.sample_rate}Hz audio, mode={self.mode}")
         
@@ -455,6 +451,10 @@ if __name__ == "__main__":
                         help='Enable partial results (default: disabled for cleaner output)')
     parser.add_argument('--enable-word-timings', action='store_true', default=False,
                         help='Enable word-level timestamps (default: disabled)')
+    parser.add_argument('--set-words', type=lambda x: x.lower() == 'true', default=False,
+                        help='Vosk SetWords parameter (affects accuracy)')
+    parser.add_argument('--set-partial-words', type=lambda x: x.lower() == 'true', default=True,
+                        help='Vosk SetPartialWords parameter (reduces fragmentation)')
     parser.add_argument('--enable-recognizer-reset', action='store_true', default=False,
                         help='Enable periodic recognizer reset (default: disabled)')
     parser.add_argument('--recognizer-reset-interval', type=int, default=30,
@@ -480,6 +480,8 @@ if __name__ == "__main__":
         'aggressive': args.aggressive,
         'enable_partials': args.enable_partials,
         'enable_word_timings': args.enable_word_timings,
+        'set_words': args.set_words,
+        'set_partial_words': args.set_partial_words,
         'enable_recognizer_reset': args.enable_recognizer_reset,
         'recognizer_reset_interval': args.recognizer_reset_interval
     }

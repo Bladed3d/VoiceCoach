@@ -2036,6 +2036,12 @@ ipcMain.handle('start-transcription', async (event, voskConfigFromRenderer) => {
       if (config.transcription?.enableWordTimings) {
         voskConfigArgs.push('--enable-word-timings');
       }
+      if (config.transcription?.setWords !== undefined) {
+        voskConfigArgs.push('--set-words', String(config.transcription.setWords));
+      }
+      if (config.transcription?.setPartialWords !== undefined) {
+        voskConfigArgs.push('--set-partial-words', String(config.transcription.setPartialWords));
+      }
       
       // Add performance settings
       if (config.performance?.enableRecognizerReset) {

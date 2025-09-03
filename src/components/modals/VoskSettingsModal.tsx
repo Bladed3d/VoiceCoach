@@ -513,6 +513,50 @@ export const VoskSettingsModal: React.FC<VoskSettingsModalProps> = ({
                     </span>
                   </label>
                 </div>
+
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="setWords"
+                    checked={config.transcription.setWords}
+                    onChange={(e) => setConfig({
+                      ...config,
+                      transcription: {
+                        ...config.transcription,
+                        setWords: e.target.checked
+                      }
+                    })}
+                    className="rounded"
+                  />
+                  <label htmlFor="setWords" className="text-sm">
+                    Vosk SetWords
+                    <span className="text-xs text-slate-400 block">
+                      Enable word-level processing (affects accuracy)
+                    </span>
+                  </label>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="setPartialWords"
+                    checked={config.transcription.setPartialWords}
+                    onChange={(e) => setConfig({
+                      ...config,
+                      transcription: {
+                        ...config.transcription,
+                        setPartialWords: e.target.checked
+                      }
+                    })}
+                    className="rounded"
+                  />
+                  <label htmlFor="setPartialWords" className="text-sm">
+                    Vosk SetPartialWords
+                    <span className="text-xs text-slate-400 block">
+                      Reduce word fragmentation in partial results (recommended)
+                    </span>
+                  </label>
+                </div>
               </div>
             </div>
           )}

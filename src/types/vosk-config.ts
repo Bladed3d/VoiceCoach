@@ -25,6 +25,8 @@ export interface VoskConfig {
     minPhraseWords: number;        // Min words for phrase detection (default: 3)
     enablePartials: boolean;       // Show partial results
     enableWordTimings: boolean;    // Include word timestamps
+    setWords: boolean;             // Vosk SetWords parameter (affects accuracy)
+    setPartialWords: boolean;      // Vosk SetPartialWords parameter (reduces fragmentation)
   };
   
   // Performance Settings
@@ -53,7 +55,9 @@ export const defaultVoskConfig: VoskConfig = {
     mode: 'sentence',
     minPhraseWords: 3,
     enablePartials: true,
-    enableWordTimings: false
+    enableWordTimings: false,
+    setWords: false,        // Matches your accurate test script
+    setPartialWords: true   // Matches your accurate test script
   },
   performance: {
     debounceMs: 150,
@@ -85,7 +89,9 @@ export const voskPresets = {
         mode: 'phrase' as const,
         minPhraseWords: 2,
         enablePartials: true,
-        enableWordTimings: false
+        enableWordTimings: false,
+        setWords: false,
+        setPartialWords: true
       },
       performance: {
         debounceMs: 100,  // Faster debounce for quick phrases
@@ -96,7 +102,7 @@ export const voskPresets = {
   
   completeSentences: {
     name: 'Complete Sentences',
-    description: 'Wait for full sentences with proper punctuation',
+    description: 'Optimized for accuracy - matches test script settings',
     config: {
       silenceDetection: {
         partialTimeout: 2.0,
@@ -105,19 +111,23 @@ export const voskPresets = {
         aggressiveEndpointing: false
       },
       audio: {
-        sampleRate: 16000,
-        chunkSize: 4096,  // Larger chunk for complete sentences
-        channels: 1
+        sampleRate: 16000,      // Matches test script
+        chunkSize: 8000,        // Default chunk size for stability
+        channels: 1             // Mono, matches test script
       },
       transcription: {
         mode: 'sentence' as const,
-        minPhraseWords: 5,
-        enablePartials: false,
-        enableWordTimings: false
+        minPhraseWords: 3,
+        enablePartials: false,   // Only show finals for cleanest output
+        enableWordTimings: false, // Matches test script (SetWords=False)
+        setWords: false,         // CRITICAL: Matches test script for accuracy
+        setPartialWords: true    // CRITICAL: Matches test script to reduce fragmentation
       },
       performance: {
         debounceMs: 150,
-        enableRecognizerReset: false
+        enableRecognizerReset: false,
+        maxQueueSize: 100,
+        cpuThrottling: false
       }
     }
   },
@@ -141,7 +151,9 @@ export const voskPresets = {
         mode: 'word' as const,
         minPhraseWords: 1,
         enablePartials: true,
-        enableWordTimings: true
+        enableWordTimings: true,
+        setWords: true,         // For real-time words, we want timing
+        setPartialWords: true
       },
       performance: {
         debounceMs: 50,  // Minimal debounce for real-time
@@ -169,11 +181,45 @@ export const voskPresets = {
         mode: 'hybrid' as const,
         minPhraseWords: 3,
         enablePartials: true,
-        enableWordTimings: false
+        enableWordTimings: false,
+        setWords: false,
+        setPartialWords: true
       },
       performance: {
         debounceMs: 120,
         enableRecognizerReset: false
+      }
+    }
+  },
+
+  testScriptOptimized: {
+    name: 'Test Script Optimized',
+    description: 'Exact settings from your accurate test script',
+    config: {
+      silenceDetection: {
+        partialTimeout: 2.0,
+        sentenceGapThreshold: 0.5,
+        minTrailingSilence: 0.5,
+        aggressiveEndpointing: false
+      },
+      audio: {
+        sampleRate: 16000,      // Exact match to test script
+        chunkSize: 8000,        // Using default for stability
+        channels: 1             // Mono audio (explicit in test script)
+      },
+      transcription: {
+        mode: 'sentence' as const,
+        minPhraseWords: 3,
+        enablePartials: false,   // Show only final results (cleanest)
+        enableWordTimings: false, // Disabled in test script
+        setWords: false,         // TEST SCRIPT: recognizer.SetWords(False)
+        setPartialWords: true    // TEST SCRIPT: recognizer.SetPartialWords(True)
+      },
+      performance: {
+        debounceMs: 150,
+        enableRecognizerReset: false,
+        maxQueueSize: 100,
+        cpuThrottling: false
       }
     }
   }
