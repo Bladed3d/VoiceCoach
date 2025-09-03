@@ -11,12 +11,18 @@ interface ProcessingStatusProps {
   document: DocumentFile;
   questionnaire: any;
   onCompleted: (insights: any) => void;
+  phaseSettings?: {
+    phase1AEnabled: boolean;
+    phase1BEnabled: boolean;
+    phase1CEnabled: boolean;
+  };
 }
 
 const ProcessingStatus: React.FC<ProcessingStatusProps> = ({ 
   document, 
   questionnaire, 
-  onCompleted 
+  onCompleted,
+  phaseSettings 
 }) => {
   const trail = new BreadcrumbTrail('ProcessingStatus');
   
@@ -46,14 +52,67 @@ const ProcessingStatus: React.FC<ProcessingStatusProps> = ({
 
   const startProcessing = async () => {
     try {
-      // Phase 1A: Pure Document Analysis
-      await runPhase1A();
+      // Get settings or use defaults (all phases enabled if no settings provided)
+      const phases = phaseSettings || {
+        phase1AEnabled: true,
+        phase1BEnabled: true,
+        phase1CEnabled: true
+      };
+
+      trail.light(2500, { 
+        operation: 'processing_phases_check',
+        phase1A: phases.phase1AEnabled,
+        phase1B: phases.phase1BEnabled,
+        phase1C: phases.phase1CEnabled
+      });
+
+      // Phase 1A: Pure Document Analysis (only if enabled)
+      if (phases.phase1AEnabled) {
+        await runPhase1A();
+      } else {
+        trail.light(3000, { operation: 'phase_1a_skipped', reason: 'disabled_in_settings' });
+        setStatus('Phase 1A: Skipped (disabled in settings)');
+        // Create placeholder results
+        document.phase1AResults = {
+          high_impact_techniques: [],
+          objection_handlers: [],
+          skipped: true,
+          reason: 'Phase 1A disabled in Knowledge Base API settings'
+        };
+        setProgress(33);
+      }
       
-      // Phase 1B: Contextualized Analysis
-      await runPhase1B();
+      // Phase 1B: Contextualized Analysis (only if enabled)
+      if (phases.phase1BEnabled) {
+        await runPhase1B();
+      } else {
+        trail.light(4000, { operation: 'phase_1b_skipped', reason: 'disabled_in_settings' });
+        setStatus('Phase 1B: Skipped (disabled in settings)');
+        // Create placeholder results
+        document.phase1BResults = {
+          high_impact_techniques: [],
+          objection_handlers: [],
+          skipped: true,
+          reason: 'Phase 1B disabled in Knowledge Base API settings'
+        };
+        setProgress(66);
+      }
       
-      // Phase 1C: Synthesis
-      await runPhase1C();
+      // Phase 1C: Synthesis (only if enabled)
+      if (phases.phase1CEnabled) {
+        await runPhase1C();
+      } else {
+        trail.light(5000, { operation: 'phase_1c_skipped', reason: 'disabled_in_settings' });
+        setStatus('Phase 1C: Skipped (disabled in settings)');
+        // Create placeholder results
+        document.phase1CResults = {
+          coaching_prompts: [],
+          synthesis_method: 'none',
+          skipped: true,
+          reason: 'Phase 1C disabled in Knowledge Base API settings'
+        };
+        setProgress(100);
+      }
       
       // Complete
       completeProcessing();
@@ -279,31 +338,41 @@ ${document.content}
   const phaseDetails = {
     '1A': {
       title: 'Pure Document Analysis',
-      description: 'Extracting all actionable content from your document',
+      description: phaseSettings && !phaseSettings.phase1AEnabled 
+        ? 'Phase 1A skipped (disabled in settings)' 
+        : 'Extracting all actionable content from your document',
       icon: FileSearch,
       ledRange: '3000-3099',
-      estimatedTime: '2-3 minutes'
+      estimatedTime: phaseSettings && !phaseSettings.phase1AEnabled ? 'Skipped' : '2-3 minutes',
+      isDisabled: phaseSettings && !phaseSettings.phase1AEnabled
     },
     '1B': {
       title: 'Contextual Analysis', 
-      description: 'Prioritizing content based on your specific business needs',
+      description: phaseSettings && !phaseSettings.phase1BEnabled 
+        ? 'Phase 1B skipped (disabled in settings)' 
+        : 'Prioritizing content based on your specific business needs',
       icon: Target,
       ledRange: '4000-4099',
-      estimatedTime: '2-3 minutes'
+      estimatedTime: phaseSettings && !phaseSettings.phase1BEnabled ? 'Skipped' : '2-3 minutes',
+      isDisabled: phaseSettings && !phaseSettings.phase1BEnabled
     },
     '1C': {
       title: 'Synthesis & Preparation',
-      description: 'Creating coaching-ready insights for live applications',
+      description: phaseSettings && !phaseSettings.phase1CEnabled 
+        ? 'Phase 1C skipped (disabled in settings)' 
+        : 'Creating coaching-ready insights for live applications',
       icon: Brain,
       ledRange: '5000-5099',
-      estimatedTime: '1-2 minutes'
+      estimatedTime: phaseSettings && !phaseSettings.phase1CEnabled ? 'Skipped' : '1-2 minutes',
+      isDisabled: phaseSettings && !phaseSettings.phase1CEnabled
     },
     'complete': {
       title: 'Processing Complete',
       description: 'Your coaching insights are ready!',
       icon: CheckCircle2,
       ledRange: '5100',
-      estimatedTime: 'Done!'
+      estimatedTime: 'Done!',
+      isDisabled: false
     }
   };
 

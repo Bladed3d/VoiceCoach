@@ -33,6 +33,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
   const [loadingDevices, setLoadingDevices] = useState(false);
   const [deviceError, setDeviceError] = useState<string | null>(null);
   
+  // State for instruction files
+  const [instructionFiles, setInstructionFiles] = useState<{ filename: string; displayName: string; }[]>([]);
+  
   // Load saved settings from localStorage
   const savedMicId = localStorage.getItem('selectedMicrophoneId') || 'default';
   const savedMicLabel = localStorage.getItem('selectedMicrophoneLabel') || 'System Default';
@@ -56,6 +59,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
     ollama: {
       baseUrl: 'http://localhost:11434',
       model: 'qwen2.5:14b-instruct-q4_k_m',
+      instructionFile: 'active-instructions.md',
       temperature: {
         value: 0.3,
         isLocked: true,
@@ -73,6 +77,32 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
       }
     }
   });
+
+  // Load settings from localStorage on component mount
+  useEffect(() => {
+    const loadedSettings = localStorage.getItem('voicecoach-settings');
+    if (loadedSettings) {
+      try {
+        const parsed = JSON.parse(loadedSettings);
+        setSettings(prev => ({
+          ...prev,
+          ...parsed,
+          // Ensure nested objects are properly merged
+          knowledgeBase: {
+            ...prev.knowledgeBase,
+            ...parsed.knowledgeBase
+          },
+          ollama: {
+            ...prev.ollama,
+            ...parsed.ollama
+          }
+        }));
+        console.log('📋 Settings loaded from localStorage, including instruction file:', parsed.ollama?.instructionFile);
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      }
+    }
+  }, []);
 
   // Enhanced LED tracking for modal lifecycle
   useEffect(() => {
@@ -117,6 +147,35 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
       enumerateAudioDevices();
     }
   }, [activeTab, isOpen]);
+  
+  // Load instruction files when AI tab is active
+  useEffect(() => {
+    if (activeTab === 'ai' && isOpen) {
+      loadInstructionFiles();
+    }
+  }, [activeTab, isOpen]);
+  
+  const loadInstructionFiles = async () => {
+    try {
+      if ((window as any).electronAPI?.listInstructionFiles) {
+        const files = await (window as any).electronAPI.listInstructionFiles();
+        setInstructionFiles(files || []);
+        trail.light(7090, { 
+          operation: 'instruction_files_loaded',
+          count: files?.length || 0,
+          files: files
+        });
+        console.log('📁 Loaded instruction files from directory:', files);
+      } else {
+        console.error('❌ electronAPI.listInstructionFiles not available');
+        setInstructionFiles([]);
+      }
+    } catch (error) {
+      console.error('Failed to load instruction files:', error);
+      trail.fail(8090, error as Error);
+      setInstructionFiles([]);
+    }
+  };
 
   const enumerateAudioDevices = async () => {
     setLoadingDevices(true);
@@ -271,8 +330,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
     );
   };
 
-  const saveSettings = () => {
+  const saveSettings = async () => {
     trail.light(7087, { save_operation: 'start', timestamp: Date.now() });
+    
+    // Save settings to localStorage
+    localStorage.setItem('voicecoach-settings', JSON.stringify(settings));
+    
+    // Update OllamaInstructionLoader if instruction file changed
+    const { ollamaInstructionLoader } = await import('../../services/coaching/OllamaInstructionLoader-Browser');
+    if (settings.ollama?.instructionFile) {
+      await ollamaInstructionLoader.setInstructionFile(settings.ollama.instructionFile);
+      console.log('✅ Instruction file updated to:', settings.ollama.instructionFile);
+    }
     
     // Enhanced settings persistence tracking
     trail.light(7057, {
@@ -281,6 +350,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
         microphone: settings.audioInputLabel,
         sensitivity: settings.micSensitivity,
         ai_model: settings.aiModel,
+        ollama_instruction_file: settings.ollama?.instructionFile,
         knowledge_base_phases: {
           phase1A: settings.knowledgeBase.phase1AEnabled,
           phase1B: settings.knowledgeBase.phase1BEnabled,
@@ -433,6 +503,38 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
                             placeholder="qwen2.5:14b-instruct-q4_k_m"
                             className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500"
                           />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Coaching Instructions</label>
+                          <select
+                            value={settings.ollama.instructionFile}
+                            onChange={(e) => {
+                              const newValue = e.target.value;
+                              handleSettingChange('ollama', {...settings.ollama, instructionFile: newValue});
+                              console.log('📝 Instruction file changed to:', newValue);
+                              trail.light(7093, { 
+                                instruction_file_changed: newValue,
+                                previous_file: settings.ollama.instructionFile
+                              });
+                            }}
+                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500"
+                          >
+                            {instructionFiles && instructionFiles.length > 0 ? (
+                              instructionFiles.map((file) => (
+                                <option key={file.filename} value={file.filename}>
+                                  {file.filename}
+                                </option>
+                              ))
+                            ) : (
+                              <option value={settings.ollama.instructionFile}>
+                                {settings.ollama.instructionFile}
+                              </option>
+                            )}
+                          </select>
+                          <p className="text-xs text-slate-400 mt-1">
+                            Select the coaching methodology for AI suggestions
+                            {instructionFiles.length === 0 && ' (Loading files...)'}
+                          </p>
                         </div>
                         {/* AI-Managed Parameters */}
                         <div className="border-t border-slate-700 pt-4">

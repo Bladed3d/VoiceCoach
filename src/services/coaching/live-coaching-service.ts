@@ -80,7 +80,20 @@ export class LiveCoachingService {
       if (transcript.type === 'final_transcript' && transcript.text.trim()) {
         console.log('📝 FINAL TRANSCRIPT RECEIVED:', transcript.text);
         this.addToConversationHistory('prospect', transcript.text, transcript.timestamp);
+        
+        // CRITICAL DEBUG: Track accumulation
+        const beforeLength = this.pendingTranscript?.length || 0;
         this.pendingTranscript += transcript.text + ' ';
+        const afterLength = this.pendingTranscript.length;
+        
+        console.log('🔴 TRANSCRIPT ACCUMULATION:', {
+          receivedText: transcript.text,
+          receivedLength: transcript.text.length,
+          beforeAccumulation: beforeLength,
+          afterAccumulation: afterLength,
+          pendingContent: this.pendingTranscript,
+          minRequired: this.config.coaching.minTranscriptLength
+        });
         
         console.log('📊 PENDING TRANSCRIPT LENGTH:', this.pendingTranscript.length, 'MIN REQUIRED:', this.config.coaching.minTranscriptLength);
         
@@ -303,6 +316,14 @@ export class LiveCoachingService {
         return;
       }
       
+      // CRITICAL DEBUG: What's in pendingTranscript?
+      console.log('🔴🔴🔴 PENDING TRANSCRIPT CHECK:', {
+        pendingTranscriptLength: this.pendingTranscript?.length || 0,
+        pendingTranscriptContent: this.pendingTranscript || '[EMPTY]',
+        pendingTranscriptFirst100: this.pendingTranscript?.substring(0, 100) || '[EMPTY]',
+        pendingTranscriptTrimmed: this.pendingTranscript?.trim() || '[EMPTY AFTER TRIM]'
+      });
+      
       const context: CoachingContext = {
         originalDocument: this.currentDocument.originalContent,
         processedInsights: this.currentDocument.documentContent || this.currentDocument,
@@ -314,7 +335,9 @@ export class LiveCoachingService {
         hasDocument: !!this.currentDocument,
         documentName: this.currentDocument.name,
         hasTechniques: !!(this.currentDocument.techniques || this.currentDocument.documentContent?.techniques || this.currentDocument.documentContent?.predictive_techniques),
-        transcriptLength: this.pendingTranscript.length
+        transcriptLength: this.pendingTranscript.length,
+        contextTranscriptLength: context.currentTranscript?.length || 0,
+        contextTranscriptContent: context.currentTranscript?.substring(0, 100) || '[EMPTY IN CONTEXT]'
       });
 
       // Get coaching suggestion from Ollama

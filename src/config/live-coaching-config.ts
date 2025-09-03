@@ -7,7 +7,7 @@ import { LiveCoachingConfig } from '../services/coaching/live-coaching-service';
 export const defaultLiveCoachingConfig: LiveCoachingConfig = {
   ollama: {
     baseUrl: 'http://localhost:11434',
-    model: 'qwen2.5:14b-instruct-q4_k_m',
+    model: 'qwen2.5:14b-instruct-q4_K_M',  // Default only - user selects in UI
     temperature: 0.3,
     topP: 0.9,
     maxTokens: 300

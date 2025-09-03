@@ -21,6 +21,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   loadRagDocument: (filename) => ipcRenderer.invoke('load-rag-document', filename),
   listRagDocuments: () => ipcRenderer.invoke('list-rag-documents'),
   
+  // Ollama instruction files
+  listInstructionFiles: () => ipcRenderer.invoke('list-instruction-files'),
+  
   // Desktop-native Ollama API
   ollamaTestConnection: () => ipcRenderer.invoke('ollama-test-connection'),
   ollamaGenerate: (data) => ipcRenderer.invoke('ollama-generate', data),

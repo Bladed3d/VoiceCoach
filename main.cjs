@@ -616,16 +616,24 @@ ipcMain.handle('select-multiple-files', async () => {
 
 ipcMain.handle('read-file', async (event, filePath) => {
   try {
-    const content = await fs.readFile(filePath, 'utf-8');
-    const stats = await fs.stat(filePath);
+    // Resolve relative paths from the app directory
+    let resolvedPath = filePath;
+    if (!path.isAbsolute(filePath)) {
+      resolvedPath = path.join(__dirname, filePath);
+      console.log(`📁 Resolving relative path: ${filePath} -> ${resolvedPath}`);
+    }
+    
+    const content = await fs.readFile(resolvedPath, 'utf-8');
+    const stats = await fs.stat(resolvedPath);
     
     return {
       content,
       size: stats.size,
-      name: path.basename(filePath),
-      path: filePath
+      name: path.basename(resolvedPath),
+      path: resolvedPath
     };
   } catch (error) {
+    console.error(`❌ Failed to read file: ${filePath}`, error);
     throw new Error(`Failed to read file: ${error.message}`);
   }
 });
@@ -1238,6 +1246,46 @@ ipcMain.handle('load-insights', async () => {
   } catch (error) {
     // Return null if file doesn't exist
     return null;
+  }
+});
+
+// List all Ollama instruction files
+ipcMain.handle('list-instruction-files', async () => {
+  try {
+    // Use __dirname for better path resolution in both dev and production
+    const instructionDir = path.join(__dirname, 'ollama-prompts');
+    
+    console.log('🎵 LED 2080: INSTRUCTION_FILES_LISTING - Directory:', instructionDir);
+    
+    const files = [];
+    
+    if (fs.existsSync(instructionDir)) {
+      const allFiles = fs.readdirSync(instructionDir);
+      
+      // Get all markdown files
+      const mdFiles = allFiles.filter(file => file.endsWith('.md'));
+      
+      console.log('🎵 LED 2081: INSTRUCTION_FILES_FOUND - Count:', mdFiles.length);
+      
+      for (const file of mdFiles) {
+        files.push({
+          filename: file,
+          displayName: file  // Use the full filename including .md
+        });
+      }
+      
+      // Sort files alphabetically
+      files.sort((a, b) => a.filename.localeCompare(b.filename));
+    } else {
+      console.log('⚠️ LED 2083: INSTRUCTION_FILES_DIR_NOT_FOUND - Directory does not exist:', instructionDir);
+    }
+    
+    console.log('🎵 LED 2082: INSTRUCTION_FILES_LISTED - Files:', files.map(f => f.filename));
+    return files;
+    
+  } catch (error) {
+    console.error('❌ LED 8080: Failed to list instruction files:', error);
+    return [];
   }
 });
 

@@ -77,9 +77,21 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
   const [audioCaptureMode, setAudioCaptureMode] = useState<AudioCaptureMode>('microphone');
   const [showViewDropdown, setShowViewDropdown] = useState(false);
   
-  // Model selection state
+  // Model selection state - synchronized with Settings
   const [availableModels, setAvailableModels] = useState<any[]>([]);
-  const [selectedModel, setSelectedModel] = useState('llama3.1:8b-instruct-q4_K_M');
+  const [selectedModel, setSelectedModel] = useState(() => {
+    // Load model from settings first, same as Settings modal
+    const savedSettings = localStorage.getItem('voicecoach-settings');
+    if (savedSettings) {
+      try {
+        const settings = JSON.parse(savedSettings);
+        return settings.ollama?.model || 'qwen2.5:14b-instruct-q4_k_m';
+      } catch (e) {
+        console.error('Failed to parse settings:', e);
+      }
+    }
+    return 'qwen2.5:14b-instruct-q4_k_m'; // Same default as Settings modal
+  });
   const [showModelDropdown, setShowModelDropdown] = useState(false);
   const [modelLoading, setModelLoading] = useState(false);
   
@@ -168,7 +180,6 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
       try {
         // Load from localStorage cache populated at app startup
         const cachedModels = localStorage.getItem('voicecoach-ollama-models');
-        const savedModel = localStorage.getItem('voicecoach-selected-model');
         
         if (cachedModels) {
           const models = JSON.parse(cachedModels);
@@ -179,11 +190,15 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
             models_count: models.length
           });
           
-          // Set saved model or default to first available
-          if (savedModel && models.some((m: any) => m.name === savedModel)) {
-            setSelectedModel(savedModel);
-          } else if (models.length > 0) {
-            setSelectedModel(models[0].name);
+          // The model is already set from settings in the state initialization
+          // Just verify it exists in available models
+          if (!models.some((m: any) => m.name === selectedModel) && models.length > 0) {
+            // If selected model doesn't exist, update to first available
+            const firstModel = models[0].name;
+            setSelectedModel(firstModel);
+            
+            // Also update settings to keep in sync
+            handleModelChange(firstModel);
           }
         } else {
           trail.light(7121, {
@@ -200,7 +215,7 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
     loadCachedModels();
   }, []);
   
-  // Handle model selection changes
+  // Handle model selection changes - sync with Settings
   const handleModelChange = async (modelName: string) => {
     trail.light(7122, {
       model_change: 'user_selection',
@@ -211,8 +226,28 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
     setSelectedModel(modelName);
     setShowModelDropdown(false);
     
-    // Persist the selection
-    localStorage.setItem('voicecoach-selected-model', modelName);
+    // Update the settings structure to sync with Settings modal
+    const savedSettings = localStorage.getItem('voicecoach-settings');
+    let settings = {};
+    if (savedSettings) {
+      try {
+        settings = JSON.parse(savedSettings);
+      } catch (e) {
+        console.error('Failed to parse settings:', e);
+      }
+    }
+    
+    // Update the Ollama model in settings
+    const updatedSettings = {
+      ...settings,
+      ollama: {
+        ...(settings as any).ollama,
+        model: modelName
+      }
+    };
+    
+    localStorage.setItem('voicecoach-settings', JSON.stringify(updatedSettings));
+    console.log('✅ Model synchronized with Settings:', modelName);
     
     // Update the Ollama service configuration with the new model
     try {

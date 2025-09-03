@@ -13,6 +13,9 @@ export class OllamaInstructionLoaderBrowser {
   constructor() {
     this.trail = new BreadcrumbTrail('OllamaInstructionLoader');
     
+    // Check for saved instruction file preference
+    this.loadInstructionFilePreference();
+    
     // Load instructions on initialization
     this.loadInstructions();
     
@@ -21,6 +24,24 @@ export class OllamaInstructionLoaderBrowser {
       instruction_file: this.instructionFilePath,
       browser_mode: true
     });
+  }
+  
+  /**
+   * Load instruction file preference from localStorage
+   */
+  private loadInstructionFilePreference(): void {
+    try {
+      const savedSettings = localStorage.getItem('voicecoach-settings');
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        if (settings.ollama?.instructionFile) {
+          this.instructionFilePath = `ollama-prompts/${settings.ollama.instructionFile}`;
+          console.log('📂 Using saved instruction file:', this.instructionFilePath);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load instruction file preference:', error);
+    }
   }
   
   /**
@@ -70,14 +91,14 @@ export class OllamaInstructionLoaderBrowser {
       console.error('   Expected file at:', this.instructionFilePath);
       console.error('   This means AI coaching prompts are NOT configured properly!');
       
-      // Still set default but warn loudly
+      // Set FAILED state instructions
       this.instructionTemplate = this.getDefaultInstructions();
-      console.warn('⚠️ WARNING: Using FALLBACK Ollama instructions - coaching may not work as expected!');
+      console.error('🔴 FAILED: System in FAILED state - cannot provide coaching!');
       
-      // Show user-visible warning
+      // Show user-visible FAILED state
       if (typeof window !== 'undefined') {
         setTimeout(() => {
-          alert('⚠️ AI Coaching Configuration Issue!\n\nOllama instruction file not found.\nUsing default instructions - coaching quality may be reduced.\n\nPlease check ollama-prompts/active-instructions.md');
+          alert('🔴 AI COACHING FAILED!\n\nOllama instruction file not found.\nSystem is in FAILED state - cannot provide coaching.\n\nPlease check ollama-prompts/active-instructions.md');
         }, 2000);
       }
       
@@ -86,14 +107,14 @@ export class OllamaInstructionLoaderBrowser {
     } catch (error) {
       this.trail.fail(8401, error as Error);
       console.error('❌ CRITICAL ERROR loading instructions:', error);
-      console.error('   Using FALLBACK instructions - coaching will be degraded!');
+      console.error('🔴 FAILED: System in FAILED state - cannot provide coaching!');
       
       this.instructionTemplate = this.getDefaultInstructions();
       
       // Make the error visible to user
       if (typeof window !== 'undefined') {
         setTimeout(() => {
-          alert(`⚠️ AI Coaching Error!\n\nFailed to load instructions: ${error}\n\nUsing fallback - reduced coaching quality.`);
+          alert(`🔴 AI COACHING FAILED!\n\nFailed to load instructions: ${error}\n\nSystem is in FAILED state - cannot provide coaching.`);
         }, 2000);
       }
       
@@ -114,10 +135,20 @@ export class OllamaInstructionLoaderBrowser {
     sentiment?: string;
   }): string {
     
+    // DEBUG: Log what we received
+    console.log('🔧 INSTRUCTION LOADER - buildPrompt() called with:', {
+      transcriptLength: context.transcript?.length || 0,
+      transcriptContent: context.transcript || '[EMPTY]',
+      hasKnowledge: !!context.knowledge,
+      knowledgeLength: context.knowledge?.length || 0
+    });
+    
     // If template is empty, load it
     if (!this.instructionTemplate) {
+      console.warn('⚠️ Template is empty, loading instructions...');
       this.loadInstructions();
       if (!this.instructionTemplate) {
+        console.error('❌ Failed to load template, using default FAILED state');
         this.instructionTemplate = this.getDefaultInstructions();
       }
     }
@@ -125,10 +156,26 @@ export class OllamaInstructionLoaderBrowser {
     // Start with the template
     let prompt = this.instructionTemplate;
     
+    // DEBUG: Check if template has the placeholder
+    const hasTranscriptPlaceholder = prompt.includes('{TRANSCRIPT}');
+    console.log('📝 TEMPLATE CHECK:', {
+      hasTranscriptPlaceholder,
+      templateLength: prompt.length,
+      templatePreview: prompt.substring(0, 200)
+    });
+    
     // Replace variables with actual values
+    const transcriptValue = context.transcript || '[NO TRANSCRIPT AVAILABLE]';
+    const knowledgeValue = context.knowledge || 'No specific knowledge loaded';
+    
+    console.log('🔄 REPLACEMENT VALUES:', {
+      transcript: transcriptValue.substring(0, 100),
+      knowledge: knowledgeValue.substring(0, 100)
+    });
+    
     prompt = prompt
-      .replace(/{TRANSCRIPT}/g, context.transcript)
-      .replace(/{KNOWLEDGE_BASE}/g, context.knowledge || 'No specific knowledge loaded')
+      .replace(/{TRANSCRIPT}/g, transcriptValue)
+      .replace(/{KNOWLEDGE_BASE}/g, knowledgeValue)
       .replace(/{SALES_STAGE}/g, context.salesStage || this.detectSalesStage(context.transcript))
       .replace(/{DURATION}/g, (context.callDuration || 0).toString())
       .replace(/{OBJECTIONS}/g, context.objections?.join(', ') || this.detectObjections(context.transcript).join(', '))
@@ -136,10 +183,19 @@ export class OllamaInstructionLoaderBrowser {
       .replace(/{SENTIMENT}/g, context.sentiment || 'neutral')
       .replace(/{TIMESTAMP}/g, new Date().toISOString());
     
+    // DEBUG: Check if replacement worked
+    const stillHasPlaceholder = prompt.includes('{TRANSCRIPT}');
+    console.log('✅ AFTER REPLACEMENT:', {
+      stillHasPlaceholder,
+      promptLength: prompt.length,
+      promptPreview: prompt.substring(prompt.indexOf('CURRENT CONVERSATION:'), prompt.indexOf('CURRENT CONVERSATION:') + 200)
+    });
+    
     this.trail.light(6403, {
       prompt_built: true,
       variables_replaced: 8,
-      final_length: prompt.length
+      final_length: prompt.length,
+      transcript_was_empty: !context.transcript || context.transcript.trim().length === 0
     });
     
     return prompt;
@@ -184,35 +240,35 @@ export class OllamaInstructionLoaderBrowser {
   }
   
   /**
-   * Get default instructions with Never Split the Difference focus
+   * Get default instructions - FAILURE STATE
    */
   private getDefaultInstructions(): string {
-    return `You are VoiceCoach, an expert sales coach specializing in Chris Voss techniques.
+    return `FAILED: Ollama instruction loading failed.
 
 CURRENT CONTEXT:
-- Sales Stage: {SALES_STAGE}
-- Call Duration: {DURATION} minutes
-- Objections: {OBJECTIONS}
+- Sales Stage: FAILED
+- Call Duration: FAILED
+- Objections: FAILED
 
-KNOWLEDGE: {KNOWLEDGE_BASE}
+KNOWLEDGE: FAILED - No knowledge base loaded
 
 CONVERSATION: "{TRANSCRIPT}"
 
-Apply Never Split the Difference techniques:
-1. Mirroring - Repeat last 3 words for elaboration
-2. Labeling - "It sounds like..." to acknowledge emotions
-3. Calibrated Questions - "How/What" questions for control
+ERROR: Unable to load coaching instructions. Please check:
+1. Ollama service is running
+2. Instruction file exists at ollama-prompts/active-instructions.md
+3. File permissions are correct
 
 RESPONSE FORMAT (JSON):
 {
-  "suggestion": "Exact words to say",
-  "priority": "HIGH|MEDIUM|LOW",
-  "category": "objection_handling|discovery|closing|value_prop",
-  "technique": "Which Voss technique you're using",
-  "confidence": 0.0-1.0
+  "suggestion": "FAILED: Cannot provide coaching - instruction loading failed",
+  "priority": "HIGH",
+  "category": "error",
+  "technique": "FAILED",
+  "confidence": 0.0
 }
 
-Provide ONE specific action the salesperson should take RIGHT NOW.`;
+System is in FAILED state - cannot provide coaching suggestions.`;
   }
   
   /**
@@ -222,6 +278,32 @@ Provide ONE specific action the salesperson should take RIGHT NOW.`;
     localStorage.removeItem('ollama_instructions_cache');
     await this.loadInstructions();
     console.log('🔄 Ollama instructions reloaded');
+  }
+  
+  /**
+   * Set a new instruction file and reload
+   */
+  async setInstructionFile(fileName: string): Promise<void> {
+    this.instructionFilePath = `ollama-prompts/${fileName}`;
+    console.log('🔀 Switching instruction file to:', this.instructionFilePath);
+    
+    // Clear cache and reload
+    localStorage.removeItem('ollama_instructions_cache');
+    await this.loadInstructions();
+    
+    // LED tracking for instruction file change
+    this.trail.light(6405, {
+      operation: 'instruction_file_changed',
+      new_file: fileName,
+      path: this.instructionFilePath
+    });
+  }
+  
+  /**
+   * Get current instruction file name
+   */
+  getInstructionFileName(): string {
+    return this.instructionFilePath.replace('ollama-prompts/', '');
   }
 }
 

@@ -150,8 +150,32 @@ export class OllamaCoachingService {
     this.promptCount++;
     console.log(`\n🔢 PROMPT #${this.promptCount} BEING BUILT`);
     
+    // DEBUG: Log exactly what we received
+    console.log('🔴 CRITICAL DEBUG - RAW CONTEXT:', {
+      currentTranscriptLength: context.currentTranscript?.length || 0,
+      currentTranscriptFirst100: context.currentTranscript?.substring(0, 100) || '[EMPTY]',
+      conversationHistoryLength: context.conversationHistory?.length || 0,
+      lastHistoryItem: context.conversationHistory?.[context.conversationHistory.length - 1] || null
+    });
+    
     const insights = context.processedInsights;
     const recentTranscript = context.currentTranscript.slice(-500); // Last 500 chars
+    
+    // DEBUG: What transcript are we actually using?
+    console.log('🎯 TRANSCRIPT DEBUG:', {
+      originalLength: context.currentTranscript?.length || 0,
+      slicedLength: recentTranscript?.length || 0,
+      slicedContent: recentTranscript || '[EMPTY TRANSCRIPT]',
+      isEmpty: !recentTranscript || recentTranscript.trim().length === 0
+    });
+    
+    // CRITICAL: Log what we're passing to buildPrompt
+    console.log('🔴🔴 CRITICAL - recentTranscript being passed to buildPrompt:', {
+      length: recentTranscript?.length || 0,
+      content: recentTranscript || '[EMPTY]',
+      first50: recentTranscript?.substring(0, 50) || '[EMPTY]',
+      last50: recentTranscript?.substring(recentTranscript.length - 50) || '[EMPTY]'
+    });
     
     // Check for documentContent wrapper
     const actualInsights = insights?.documentContent || insights;
@@ -254,12 +278,28 @@ export class OllamaCoachingService {
       console.log('📋 First 500 chars of knowledge:', knowledgeBase.substring(0, 500));
     }
     
+    // LOG what we're about to send to buildPrompt
+    console.log('🎨 ABOUT TO CALL buildPrompt with:', {
+      transcriptLength: promptContext.transcript?.length || 0,
+      transcriptContent: promptContext.transcript || '[EMPTY]',
+      knowledgeLength: promptContext.knowledge?.length || 0
+    });
+    
     const finalPrompt = ollamaInstructionLoader.buildPrompt(promptContext);
     console.log('🚀 Final prompt length:', finalPrompt.length);
     
     // CRITICAL: Show what we're actually sending to Ollama
     console.log('🔴 ACTUAL PROMPT BEING SENT (first 1000 chars):');
     console.log(finalPrompt.substring(0, 1000));
+    
+    // Also show the part around "CURRENT CONVERSATION:"
+    const conversationIndex = finalPrompt.indexOf('CURRENT CONVERSATION:');
+    if (conversationIndex >= 0) {
+      console.log('📍 CURRENT CONVERSATION section (200 chars after marker):');
+      console.log(finalPrompt.substring(conversationIndex, conversationIndex + 200));
+    } else {
+      console.log('❌ NO "CURRENT CONVERSATION:" FOUND IN PROMPT!');
+    }
     
     // Check if prompt contains predictive instructions
     if (!finalPrompt.includes('predictive') && !finalPrompt.includes('PREDICT') && !finalPrompt.includes('forward')) {
@@ -302,11 +342,56 @@ export class OllamaCoachingService {
       // Extract JSON from response (Ollama sometimes adds extra text)
       const jsonMatch = ollamaResponse.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        console.log('❌ NO JSON FOUND IN RESPONSE');
-        return null;
+        console.error('❌❌❌ FAILED: NO JSON FOUND IN OLLAMA RESPONSE!');
+        console.error('OLLAMA IS NOT FOLLOWING INSTRUCTIONS - RETURNING PLAIN TEXT INSTEAD OF JSON!');
+        
+        // Return FAILED state - NO FALLBACK!
+        return {
+          suggestion: 'FAILED: Ollama not returning JSON format. Check instruction template and model.',
+          priority: 'HIGH',
+          category: 'objection_handling',
+          trigger: 'FAILED',
+          context: 'JSON_PARSE_ERROR',
+          confidence: 0.0
+        };
       }
 
-      const parsed = JSON.parse(jsonMatch[0]);
+      let parsed;
+      try {
+        parsed = JSON.parse(jsonMatch[0]);
+      } catch (jsonError) {
+        console.error('❌❌❌ FAILED: INVALID JSON FROM OLLAMA!');
+        console.error('JSON PARSE ERROR:', jsonError);
+        console.error('Attempted to parse:', jsonMatch[0]);
+        
+        // Return FAILED state - NO FALLBACK!
+        return {
+          suggestion: 'FAILED: Ollama returned malformed JSON. Check model and instructions.',
+          priority: 'HIGH',
+          category: 'objection_handling',
+          trigger: 'FAILED',
+          context: 'JSON_MALFORMED',
+          confidence: 0.0
+        };
+      }
+      
+      // Handle simple JSON format from old app
+      if (parsed.urgency && parsed.suggestion && parsed.next_action) {
+        const priorityMap: { [key: string]: 'HIGH' | 'MEDIUM' | 'LOW' } = {
+          'high': 'HIGH',
+          'medium': 'MEDIUM', 
+          'low': 'LOW'
+        };
+        
+        return {
+          suggestion: `${parsed.suggestion}\n➡️ ${parsed.next_action}`,
+          priority: priorityMap[parsed.urgency] || 'MEDIUM',
+          category: 'discovery', // Default category
+          trigger: parsed.reasoning || 'conversation_analysis',
+          context: parsed.reasoning || 'contextual_guidance',
+          confidence: parsed.urgency === 'high' ? 0.9 : parsed.urgency === 'medium' ? 0.7 : 0.5
+        };
+      }
       
       // Handle predictive format
       if (parsed.say_now) {
@@ -325,7 +410,18 @@ export class OllamaCoachingService {
       
       // Handle legacy format
       if (!parsed.suggestion || parsed.suggestion === null) {
-        return null;
+        console.error('❌❌❌ FAILED: JSON MISSING REQUIRED FIELDS!');
+        console.error('Parsed JSON:', parsed);
+        
+        // Return FAILED state - NO FALLBACK!
+        return {
+          suggestion: 'FAILED: Ollama JSON missing required fields. Model not following instructions.',
+          priority: 'HIGH',
+          category: 'objection_handling',
+          trigger: 'FAILED',
+          context: 'MISSING_FIELDS',
+          confidence: 0.0
+        };
       }
 
       return {
@@ -339,7 +435,18 @@ export class OllamaCoachingService {
 
     } catch (error) {
       this.trail.fail(8111, error as Error);
-      return null;
+      console.error('❌❌❌ FAILED: PARSING ERROR IN parseCoachingResponse!');
+      console.error('Error:', error);
+      
+      // Return FAILED state - NO FALLBACK!
+      return {
+        suggestion: `FAILED: ${(error as Error).message}`,
+        priority: 'HIGH',
+        category: 'objection_handling',
+        trigger: 'FAILED',
+        context: 'PARSE_EXCEPTION',
+        confidence: 0.0
+      };
     }
   }
   

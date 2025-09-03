@@ -426,6 +426,28 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({
               document={processingDocument}
               questionnaire={processingQuestionnaire}
               onCompleted={handleProcessingComplete}
+              phaseSettings={(() => {
+                // Get settings from localStorage
+                const settingsStr = localStorage.getItem('voicecoach-settings');
+                if (settingsStr) {
+                  try {
+                    const settings = JSON.parse(settingsStr);
+                    return {
+                      phase1AEnabled: settings.knowledgeBase?.phase1AEnabled || false,
+                      phase1BEnabled: settings.knowledgeBase?.phase1BEnabled || false,
+                      phase1CEnabled: settings.knowledgeBase?.phase1CEnabled || false
+                    };
+                  } catch (e) {
+                    console.error('Failed to parse settings:', e);
+                  }
+                }
+                // Default to all phases disabled if no settings found
+                return {
+                  phase1AEnabled: false,
+                  phase1BEnabled: false,
+                  phase1CEnabled: false
+                };
+              })()}
             />
           </div>
         </div>

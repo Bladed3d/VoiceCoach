@@ -383,17 +383,17 @@ class VoskNativeWebSocketServer:
         try:
             print(f"[6050] Analyzing transcript for coaching: '{transcript[:50]}...'")
             
-            # Simple keyword-based coaching triggers
+            # FAILED STATE - No real coaching available
             coaching_triggers = {
-                "price": "That's a valid concern. Let's discuss the value this brings...",
-                "budget": "I understand budget is important. What budget range were you thinking?",
-                "expensive": "I hear your concern about cost. Let me show you the ROI...",
-                "timing": "When would be a better time to revisit this?",
-                "think about it": "What specific concerns do you have that we should address?",
-                "challenge": "Tell me more about that challenge...",
-                "goal": "What would success look like for you?",
-                "problem": "How is this problem impacting your business?",
-                "decision": "Who else is involved in this decision?"
+                "price": "FAILED: Coaching system offline - cannot provide price objection handling",
+                "budget": "FAILED: Coaching system offline - cannot provide budget guidance",
+                "expensive": "FAILED: Coaching system offline - cannot provide ROI guidance",
+                "timing": "FAILED: Coaching system offline - cannot provide timing guidance",
+                "think about it": "FAILED: Coaching system offline - cannot provide decision guidance",
+                "challenge": "FAILED: Coaching system offline - cannot provide challenge exploration",
+                "goal": "FAILED: Coaching system offline - cannot provide goal exploration",
+                "problem": "FAILED: Coaching system offline - cannot provide problem analysis",
+                "decision": "FAILED: Coaching system offline - cannot provide decision mapping"
             }
             
             transcript_lower = transcript.lower()
