@@ -16,6 +16,7 @@ import {
 } from '../../types/coaching';
 // Simple file-based Ollama instruction loader (browser version for Electron)
 import { ollamaInstructionLoader } from './OllamaInstructionLoader-Browser';
+import { LiveCoachingManager } from './live-coaching-manager';
 
 // Conversation analyzers for rich context detection
 import { conversationAnalyzer } from './analyzers/ConversationAnalyzer';
@@ -30,6 +31,7 @@ export class SessionManagerService {
   private stateCallback?: (state: SessionState) => void;
   private sessionTimer: NodeJS.Timeout | null = null;
   private ragDocument: any = null;
+  private liveCoachingManager: LiveCoachingManager | null = null;
   private useSemanticSearch: boolean = true;
   private lastSearchResults: SemanticSearchResult[] = []; // Store results for priority mapping
   private callStartTime: Date | null = null; // Track call start for enhanced Ollama
@@ -43,6 +45,9 @@ export class SessionManagerService {
     this.wsClient = new VoiceCoachWebSocketClient('ws://127.0.0.1:5000');
     this.volumeService = new DualVolumeMonitoringService();
     this.chromaDBService = new ChromaDBService('universal_neversplit');
+    
+    // Initialize live coaching manager
+    this.liveCoachingManager = new LiveCoachingManager();
     
     // Initialize session state
     this.sessionState = this.createInitialState();
@@ -115,20 +120,15 @@ export class SessionManagerService {
           timestamp: Date.now()
         });
         
-        // Try to load the NeverSplit document automatically
-        const documentLoaded = await this.loadRagDocument('NeverSplit');
+        // Skip auto-loading - documents will be selected manually in Split View
+        // const documentLoaded = await this.loadRagDocument('NeverSplit');
         
-        // Initialize ChromaDB in parallel
-        const chromaDBReady = await this.initializeChromaDB();
+        // Skip ChromaDB when turned off
+        // const chromaDBReady = await this.initializeChromaDB();
         
-        // Determine final status based on both RAG and ChromaDB
+        // Simple ready status - documents loaded from Split View
         let status = 'Ready (Llama 3.1 8B)';
-        if (documentLoaded && chromaDBReady) {
-          status = 'Ready (Llama 3.1 8B + ChromaDB)';
-          this.useSemanticSearch = true;
-        } else if (documentLoaded) {
-          status = 'Ready (Llama 3.1 8B + Document)';
-        }
+        // this.useSemanticSearch = false; // Disabled when ChromaDB is off
         
         this.updateSessionState({
           ollamaStatus: status
@@ -137,15 +137,22 @@ export class SessionManagerService {
         // LED 6305: Initialization complete success
         this.trail.light(6305, {
           operation: 'ollama_initialization_success',
-          document_loaded: documentLoaded,
-          final_status: documentLoaded ? 'Ready (Document Loaded)' : 'Ready',
+          document_loaded: false, // Documents will be loaded from Split View
+          final_status: 'Ready',
           timestamp: Date.now()
         });
         console.log('🎵 LED 6305: Ollama initialization completed successfully');
 
         console.log('✅ Ollama models loaded successfully from cache');
-        if (documentLoaded) {
-          console.log('✅ NeverSplit document loaded for coaching');
+        
+        // Initialize LiveCoachingManager
+        if (this.liveCoachingManager) {
+          const liveCoachingInitialized = await this.liveCoachingManager.initialize();
+          if (liveCoachingInitialized) {
+            console.log('✅ LiveCoachingManager initialized successfully');
+          } else {
+            console.warn('⚠️ LiveCoachingManager initialization failed - coaching may not work');
+          }
         }
       } else {
         throw new Error('No Ollama models found in cache - models should be loaded at app startup');
@@ -165,7 +172,74 @@ export class SessionManagerService {
   }
 
   /**
-   * Load RAG document for coaching
+   * Load selected documents for coaching
+   */
+  private async loadSelectedDocuments(documentPaths: string[]): Promise<boolean> {
+    try {
+      this.trail.light(6319, {
+        operation: 'loading_selected_documents',
+        count: documentPaths.length,
+        documents: documentPaths
+      });
+
+      const electronAPI = (window as any).electronAPI;
+      if (!electronAPI) {
+        throw new Error('Electron API not available');
+      }
+
+      // Load the first selected document (can be enhanced to merge multiple)
+      if (documentPaths.length > 0) {
+        const docPath = documentPaths[0];
+        console.log(`📖 Loading document: ${docPath}`);
+        
+        // Read the document file
+        const response = await electronAPI.readFile(`rag/${docPath}`);
+        if (response && response.content) {
+          const documentContent = JSON.parse(response.content);
+          
+          // Store the loaded document
+          this.ragDocument = documentContent;
+          
+          // Pass to live coaching manager - use document directly, no phases
+          if (this.liveCoachingManager) {
+            const processedDoc = {
+              name: docPath,
+              originalContent: JSON.stringify(documentContent),
+              documentContent: documentContent, // Direct document content
+              techniques: documentContent.techniques || [],
+              response_patterns: documentContent.response_patterns || {},
+              loadedTimestamp: new Date().toISOString()
+            };
+            
+            const loaded = this.liveCoachingManager.loadDocument(processedDoc);
+            if (loaded) {
+              console.log('✅ Document loaded into live coaching manager');
+              console.log('📄 Document has', documentContent.techniques?.length || 0, 'techniques');
+            }
+          }
+          
+          this.trail.light(6320, {
+            operation: 'document_loaded_successfully',
+            document: docPath,
+            has_techniques: !!documentContent.techniques,
+            has_patterns: !!documentContent.response_patterns
+          });
+          
+          console.log('✅ Document loaded successfully');
+          return true;
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      this.trail.fail(8321, error as Error);
+      console.error('❌ Failed to load selected documents:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Load RAG document for coaching (direct document loading without phases)
    */
   private async loadRagDocument(documentName: string): Promise<boolean> {
     try {
@@ -180,19 +254,19 @@ export class SessionManagerService {
         throw new Error('Electron API not available');
       }
 
-      // Load Phase 1A results
-      const phase1AResponse = await electronAPI.loadRagDocument(`${documentName}-phase1a.json`);
-      if (!phase1AResponse.success) {
-        throw new Error(`Phase 1A file not found: ${phase1AResponse.error}`);
+      // Load the document directly (no phases)
+      const documentResponse = await electronAPI.loadRagDocument(`${documentName}.json`);
+      if (!documentResponse.success) {
+        throw new Error(`Document file not found: ${documentResponse.error}`);
       }
 
-      this.ragDocument = JSON.parse(phase1AResponse.content);
+      this.ragDocument = JSON.parse(documentResponse.content);
 
       this.trail.light(6321, {
         operation: 'rag_document_loaded_successfully',
         document_name: documentName,
-        techniques_count: this.ragDocument?.high_impact_techniques?.length || 0,
-        objection_handlers_count: this.ragDocument?.objection_handlers?.length || 0
+        techniques_count: this.ragDocument?.techniques?.length || 0,
+        has_conversation_paths: !!this.ragDocument?.techniques?.[0]?.conversation_paths
       });
 
       return true;
@@ -414,7 +488,14 @@ export class SessionManagerService {
   /**
    * Start coaching session
    */
-  async startSession(captureMode: 'microphone' | 'full-conversation' = 'microphone'): Promise<boolean> {
+  async startSession(captureMode: 'microphone' | 'full-conversation' = 'microphone', selectedDocuments: string[] = []): Promise<boolean> {
+    console.log('🚀 STARTING SESSION WITH:', {
+      captureMode,
+      selectedDocuments,
+      liveCoachingManager: !!this.liveCoachingManager,
+      webSocketClient: !!this.webSocketClient
+    });
+    
     const sessionStartTime = Date.now();
     this.callStartTime = new Date(); // Track for call duration
     
@@ -423,6 +504,12 @@ export class SessionManagerService {
     
     // Store capture mode in state
     this.updateSessionState({ captureMode });
+    
+    // Load selected documents if provided
+    if (selectedDocuments && selectedDocuments.length > 0) {
+      console.log('📄 Loading selected documents:', selectedDocuments);
+      await this.loadSelectedDocuments(selectedDocuments);
+    }
     
     // LED 6301: Session start initiation
     this.trail.light(6301, {
@@ -462,7 +549,27 @@ export class SessionManagerService {
         wsStatus: 'Connecting...'
       });
 
-      const serverResult = await (window as any).electronAPI?.startTranscription();
+      // Load Vosk config from localStorage and pass to server
+      console.log('🎵 LED 7303: VOSK_CONFIG - Loading config from localStorage');
+      const voskConfigStr = localStorage.getItem('voicecoach-vosk-config');
+      const voskConfig = voskConfigStr ? JSON.parse(voskConfigStr) : null;
+      
+      if (voskConfig) {
+        console.log('🎵 LED 7304: VOSK_CONFIG - Config loaded successfully', {
+          mode: voskConfig?.transcription?.mode,
+          enablePartials: voskConfig?.transcription?.enablePartials,
+          enableWordTimings: voskConfig?.transcription?.enableWordTimings,
+          debounceMs: voskConfig?.performance?.debounceMs,
+          enableRecognizerReset: voskConfig?.performance?.enableRecognizerReset,
+          recognizerResetInterval: voskConfig?.performance?.recognizerResetInterval,
+          chunkSize: voskConfig?.audio?.chunkSize,
+          sampleRate: voskConfig?.audio?.sampleRate
+        });
+      } else {
+        console.log('🎵 LED 7305: VOSK_CONFIG - No saved config found, using defaults');
+      }
+
+      const serverResult = await (window as any).electronAPI?.startTranscription(voskConfig);
       if (!serverResult?.success) {
         throw new Error(`Server startup failed: ${serverResult?.error || 'Unknown server error'}`);
       }
@@ -475,6 +582,16 @@ export class SessionManagerService {
       
       // Start transcription with capture mode
       if (await this.wsClient.startTranscription(captureMode)) {
+        // Start live coaching if available
+        if (this.liveCoachingManager) {
+          const coachingStarted = await this.liveCoachingManager.startLiveCoaching();
+          if (coachingStarted) {
+            console.log('✅ Live coaching started successfully');
+          } else {
+            console.warn('⚠️ Live coaching failed to start');
+          }
+        }
+        
         // Start session timer
         this.startSessionTimer();
         
@@ -535,6 +652,12 @@ export class SessionManagerService {
     try {
       // Stop session timer
       this.stopSessionTimer();
+      
+      // Stop live coaching if active
+      if (this.liveCoachingManager) {
+        await this.liveCoachingManager.stopLiveCoaching();
+        console.log('🛑 Live coaching stopped');
+      }
       
       // Stop volume monitoring
       this.volumeService.stopMonitoring();

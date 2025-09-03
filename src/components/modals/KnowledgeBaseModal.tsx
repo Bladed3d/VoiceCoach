@@ -5,6 +5,8 @@
 import React, { useState, useEffect } from 'react';
 import { Database, ChevronDown } from 'lucide-react';
 import { QuestionnaireAnswers, QuestionnaireState, QuestionStatus } from '../../types/questionnaire';
+import { automatedDocumentProcessor } from '../../services/document/AutomatedDocumentProcessor';
+import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
 
 interface KnowledgeBaseModalProps {
   isOpen: boolean;
@@ -39,6 +41,81 @@ export const KnowledgeBaseModal: React.FC<KnowledgeBaseModalProps> = ({
 
   // Test console logging
   console.log('🚀 KnowledgeBaseModal component loaded, console is working!');
+
+  const trail = new BreadcrumbTrail('KnowledgeBaseModal');
+
+  /**
+   * Handle RAG Process button click - automated document processing
+   */
+  const handleRAGProcess = async () => {
+    // Check if files are already selected
+    if (!questionnaireState.selectedFiles || questionnaireState.selectedFiles.length === 0) {
+      alert('Please select a document first using "Choose Files"');
+      return;
+    }
+
+    trail.light(2100, { operation: 'rag_process_initiated' });
+    console.log('⚡ RAG Process started - automated document processing');
+
+    try {
+      // Process the first selected file (usually the Never Split document)
+      const filePath = questionnaireState.selectedFiles[0];
+      const fileName = filePath.split('\\').pop() || filePath.split('/').pop() || 'document';
+      
+      console.log(`📄 Processing document: ${fileName}`);
+      trail.light(2101, { 
+        operation: 'document_selected',
+        filename: fileName,
+        filepath: filePath
+      });
+
+      // Read file content using Electron API
+      console.log('📖 Reading file content from RAG folder...');
+      let fileContent: string;
+      
+      if ((window as any).electronAPI?.readFile) {
+        // Use Electron API to read the file
+        const fileData = await (window as any).electronAPI.readFile(filePath);
+        fileContent = fileData.content;
+        console.log(`📊 File loaded: ${fileData.size} bytes`);
+      } else {
+        // Fallback: try to fetch from the file system (won't work in production)
+        alert('File reading requires Electron API. Please ensure the app is running in Electron.');
+        return;
+      }
+
+      // Start automated processing with file content
+      console.log('🔄 Starting automated pipeline...');
+      const result = await automatedDocumentProcessor.processDocumentContent(
+        fileContent,
+        fileName,
+        {
+          enableChromaDB: true,
+          enableOllamaIntegration: true,
+          chunkSize: 512,
+          chunkOverlap: 50
+        },
+        filePath // Pass original file path for tracking
+      );
+
+      if (result.success) {
+        trail.light(2102, {
+          operation: 'rag_process_complete',
+          chunks: result.totalChunks,
+          chromadb: result.chromaDBStatus,
+          ollama: result.ollamaReady
+        });
+
+        alert(`✅ RAG Process Complete!\n\nDocument: ${fileName}\nChunks created: ${result.totalChunks}\nChromaDB: ${result.chromaDBStatus ? 'Ready' : 'Not configured'}\nOllama: ${result.ollamaReady ? 'Ready' : 'Not configured'}\nTime: ${(result.processingTime / 1000).toFixed(2)}s`);
+      } else {
+        throw new Error(result.errors?.join(', ') || 'Processing failed');
+      }
+    } catch (error) {
+      trail.fail(8102, error as Error);
+      console.error('❌ RAG Process failed:', error);
+      alert(`RAG Process failed: ${error.message}`);
+    }
+  };
 
   const loadSavedAnswers = async () => {
     console.log('🔄 Load button clicked - starting loadSavedAnswers function'); // Debug log
@@ -232,9 +309,12 @@ export const KnowledgeBaseModal: React.FC<KnowledgeBaseModalProps> = ({
               <span>✓</span>
               <span>Validate Knowledge Base</span>
             </button>
-            <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 text-sm font-medium transition-colors">
-              <span>🧠</span>
-              <span>Research Document</span>
+            <button 
+              onClick={handleRAGProcess}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 text-sm font-medium transition-colors"
+            >
+              <span>⚡</span>
+              <span>RAG Process</span>
             </button>
             <button className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 text-sm font-medium transition-colors">
               <span>💡</span>

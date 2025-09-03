@@ -24,7 +24,16 @@ export class LiveCoachingManager {
 
   constructor() {
     this.trail = new BreadcrumbTrail('LiveCoachingManager');
-    this.liveCoachingService = new LiveCoachingService(defaultLiveCoachingConfig);
+    
+    // Check for saved model preference and update config
+    const savedModel = localStorage.getItem('voicecoach-selected-model');
+    const config = { ...defaultLiveCoachingConfig };
+    if (savedModel) {
+      config.ollama.model = savedModel;
+      console.log(`🎯 Using saved model preference: ${savedModel}`);
+    }
+    
+    this.liveCoachingService = new LiveCoachingService(config);
     
     this.trail.light(6400, {
       operation: 'live_coaching_manager_created',
@@ -109,6 +118,39 @@ export class LiveCoachingManager {
     });
   }
 
+  /**
+   * Load a pre-processed document directly (no phases)
+   */
+  loadDocument(processedDoc: any): boolean {
+    try {
+      // Create a simplified document structure without phases
+      const simplifiedDoc = {
+        name: processedDoc.name,
+        originalContent: processedDoc.originalContent,
+        documentContent: processedDoc.documentContent || processedDoc,
+        techniques: processedDoc.techniques,
+        response_patterns: processedDoc.response_patterns,
+        loadedTimestamp: processedDoc.loadedTimestamp || new Date().toISOString()
+      };
+      
+      const success = this.liveCoachingService.loadProcessedDocument(simplifiedDoc);
+      if (success) {
+        this.currentDocumentName = processedDoc.name;
+        this.trail.light(6419, {
+          operation: 'document_loaded_directly',
+          document_name: processedDoc.name,
+          has_techniques: !!processedDoc.techniques,
+          technique_count: processedDoc.techniques?.length || 0
+        });
+        console.log('✅ Document loaded directly:', processedDoc.name);
+      }
+      return success;
+    } catch (error) {
+      this.trail.fail(8419, error as Error);
+      return false;
+    }
+  }
+
   async loadDocumentFromRag(documentName: string): Promise<boolean> {
     try {
       this.trail.light(6420, {
@@ -123,13 +165,13 @@ export class LiveCoachingManager {
         throw new Error('Electron API not available');
       }
 
-      // Load Phase 1A results
-      const phase1AResponse = await electronAPI.loadRagDocument(`${documentName}-phase1a.json`);
-      if (!phase1AResponse.success) {
-        throw new Error(`Phase 1A file not found: ${phase1AResponse.error}`);
+      // Load the document directly (no phases)
+      const documentResponse = await electronAPI.loadRagDocument(`${documentName}.json`);
+      if (!documentResponse.success) {
+        throw new Error(`Document file not found: ${documentResponse.error}`);
       }
 
-      const phase1AResults = JSON.parse(phase1AResponse.content);
+      const documentData = JSON.parse(documentResponse.content);
 
       // Try to load original document (optional)
       let originalContent = '';
@@ -138,11 +180,13 @@ export class LiveCoachingManager {
         originalContent = originalResponse.content;
       }
 
-      // Create ProcessedDocument object
+      // Create ProcessedDocument object with direct document structure
       const processedDoc: ProcessedDocument = {
         name: documentName,
-        originalContent: originalContent,
-        phase1AResults: phase1AResults,
+        originalContent: originalContent || '',
+        documentContent: documentData,
+        techniques: documentData.techniques,
+        response_patterns: documentData.response_patterns,
         loadedTimestamp: new Date().toISOString()
       };
 
@@ -155,13 +199,13 @@ export class LiveCoachingManager {
         this.trail.light(6421, {
           operation: 'rag_document_loaded_successfully',
           document_name: documentName,
-          has_phase1a: !!phase1AResults,
-          has_original: !!originalContent,
-          techniques_count: phase1AResults?.high_impact_techniques?.length || 0,
-          objection_handlers_count: phase1AResults?.objection_handlers?.length || 0
+          has_techniques: !!documentData?.techniques,
+          has_conversation_paths: !!documentData?.techniques?.[0]?.conversation_paths,
+          techniques_count: documentData?.techniques?.length || 0,
+          response_patterns_count: Object.keys(documentData?.response_patterns || {}).length
         });
 
-        console.log(`✅ Document loaded: ${documentName} (${phase1AResults?.high_impact_techniques?.length || 0} techniques)`);
+        console.log(`✅ Document loaded: ${documentName} (${documentData?.techniques?.length || 0} techniques)`);
       }
 
       return success;

@@ -1,0 +1,467 @@
+{
+  "document_analysis": {
+    "techniques_found": 8,
+    "actionable_prompts_created": 52,
+    "sales_stages_covered": 4
+  },
+  "techniques": [
+    {
+      "technique_name": "Mirroring",
+      "description": "Repeat last 1-3 words as a question",
+      "when_to_use": [
+        {
+          "trigger": "This seems really expensive",
+          "prospect_says": "This seems really expensive for our budget",
+          "coach_prompt": "Mirror: 'Really expensive?'",
+          "salesperson_says": "Really expensive?",
+          "expected_result": "Prospect elaborates on budget concerns"
+        },
+        {
+          "trigger": "I don't think this will work",
+          "prospect_says": "I don't think this will work for our team",
+          "coach_prompt": "Mirror: 'Work for your team?'",
+          "salesperson_says": "Work for your team?",
+          "expected_result": "Prospect explains specific concerns"
+        },
+        {
+          "trigger": "We need more time",
+          "prospect_says": "We need more time to decide",
+          "coach_prompt": "Mirror: 'More time?'",
+          "salesperson_says": "More time?",
+          "expected_result": "Prospect reveals decision timeline"
+        }
+      ],
+      "implementation": {
+        "max_words": 5,
+        "action": "Repeat their last 3 words with questioning tone",
+        "timing": "Immediately after they finish speaking"
+      },
+      "common_mistakes": [
+        "Mirroring too frequently",
+        "Repeating entire sentences",
+        "Using flat tone instead of questioning"
+      ],
+      "urgency_level": "medium"
+    },
+    {
+      "technique_name": "Tactical Empathy",
+      "description": "Understand and articulate their emotions",
+      "when_to_use": [
+        {
+          "trigger": "This is frustrating",
+          "prospect_says": "This whole process is frustrating",
+          "coach_prompt": "Show empathy: 'I hear your frustration'",
+          "salesperson_says": "I hear your frustration with this process",
+          "expected_result": "Prospect feels understood and opens up"
+        },
+        {
+          "trigger": "I'm worried about",
+          "prospect_says": "I'm worried about the implementation",
+          "coach_prompt": "Acknowledge: 'Your concern is valid'",
+          "salesperson_says": "Your concern about implementation is completely valid",
+          "expected_result": "Prospect shares specific worries"
+        },
+        {
+          "trigger": "We've been burned before",
+          "prospect_says": "We've been burned by vendors before",
+          "coach_prompt": "Empathize: 'Past experiences matter'",
+          "salesperson_says": "I understand past experiences have made you cautious",
+          "expected_result": "Prospect explains previous failures"
+        }
+      ],
+      "implementation": {
+        "max_words": 15,
+        "action": "Acknowledge their emotional state directly",
+        "timing": "When emotional cues are detected"
+      },
+      "common_mistakes": [
+        "Dismissing their emotions",
+        "Moving too quickly to solutions",
+        "Fake or insincere empathy"
+      ],
+      "urgency_level": "high"
+    },
+    {
+      "technique_name": "Labeling",
+      "description": "Name emotions to diffuse tension",
+      "when_to_use": [
+        {
+          "trigger": "This doesn't make sense",
+          "prospect_says": "This pricing doesn't make any sense",
+          "coach_prompt": "Label: 'Seems like you're confused'",
+          "salesperson_says": "It seems like the pricing structure is confusing",
+          "expected_result": "Prospect clarifies confusion points"
+        },
+        {
+          "trigger": "I don't trust",
+          "prospect_says": "I don't trust these numbers",
+          "coach_prompt": "Label: 'Sounds like skepticism'",
+          "salesperson_says": "It sounds like you're skeptical about the ROI",
+          "expected_result": "Prospect explains trust issues"
+        },
+        {
+          "trigger": "We can't afford",
+          "prospect_says": "We can't afford this right now",
+          "coach_prompt": "Label: 'Seems like budget pressure'",
+          "salesperson_says": "It seems like budget is a real pressure point",
+          "expected_result": "Prospect discusses financial constraints"
+        }
+      ],
+      "implementation": {
+        "max_words": 10,
+        "action": "Start with 'It seems like' or 'It sounds like'",
+        "timing": "When emotions are evident but unspoken"
+      },
+      "common_mistakes": [
+        "Mislabeling emotions",
+        "Being too direct or blunt",
+        "Using 'I think you feel' instead of 'It seems'"
+      ],
+      "urgency_level": "high"
+    },
+    {
+      "technique_name": "Calibrated Questions",
+      "description": "Ask open-ended 'How' and 'What' questions",
+      "when_to_use": [
+        {
+          "trigger": "That won't work",
+          "prospect_says": "That solution won't work for us",
+          "coach_prompt": "Ask: 'What would work better?'",
+          "salesperson_says": "What would work better for your situation?",
+          "expected_result": "Prospect reveals ideal solution"
+        },
+        {
+          "trigger": "Price is too high",
+          "prospect_says": "The price is way too high",
+          "coach_prompt": "Ask: 'How can we make this work?'",
+          "salesperson_says": "How can we make this work within your budget?",
+          "expected_result": "Prospect suggests alternatives"
+        },
+        {
+          "trigger": "I need to think",
+          "prospect_says": "I need to think about it",
+          "coach_prompt": "Ask: 'What concerns you most?'",
+          "salesperson_says": "What specifically concerns you most?",
+          "expected_result": "Prospect identifies key objections"
+        }
+      ],
+      "implementation": {
+        "max_words": 12,
+        "action": "Use 'How' or 'What' to shift control",
+        "timing": "When facing objections or resistance"
+      },
+      "common_mistakes": [
+        "Using 'Why' questions (feels accusatory)",
+        "Asking closed-ended questions",
+        "Multiple questions at once"
+      ],
+      "urgency_level": "critical"
+    },
+    {
+      "technique_name": "Accusation Audit",
+      "description": "Address objections upfront",
+      "when_to_use": [
+        {
+          "trigger": "Starting price discussion",
+          "prospect_says": "Let's talk about pricing",
+          "coach_prompt": "Audit: 'You probably think we're expensive'",
+          "salesperson_says": "You probably think we're expensive",
+          "expected_result": "Prospect denies or softens stance"
+        },
+        {
+          "trigger": "Comparing to competitors",
+          "prospect_says": "How do you compare to X?",
+          "coach_prompt": "Audit: 'You might think they're better'",
+          "salesperson_says": "You might think they offer more value",
+          "expected_result": "Prospect reveals true priorities"
+        },
+        {
+          "trigger": "Hesitation detected",
+          "prospect_says": "I'm not sure about this",
+          "coach_prompt": "Audit: 'This probably seems risky'",
+          "salesperson_says": "This probably seems like a big risk",
+          "expected_result": "Prospect clarifies risk concerns"
+        }
+      ],
+      "implementation": {
+        "max_words": 12,
+        "action": "List their likely negative thoughts first",
+        "timing": "Early in discussion or before bad news"
+      },
+      "common_mistakes": [
+        "Being too negative",
+        "Overdoing the audit",
+        "Not following up properly"
+      ],
+      "urgency_level": "medium"
+    },
+    {
+      "technique_name": "Dynamic Silence",
+      "description": "Use strategic pauses",
+      "when_to_use": [
+        {
+          "trigger": "After making offer",
+          "prospect_says": "[silence after your price]",
+          "coach_prompt": "Stay silent - let them process",
+          "salesperson_says": "[remain silent]",
+          "expected_result": "Prospect fills silence with information"
+        },
+        {
+          "trigger": "Prospect pauses mid-sentence",
+          "prospect_says": "Well, the thing is... [pause]",
+          "coach_prompt": "Wait - don't fill the silence",
+          "salesperson_says": "[remain silent]",
+          "expected_result": "Prospect reveals hidden concern"
+        },
+        {
+          "trigger": "After tough question",
+          "prospect_says": "[silence after your question]",
+          "coach_prompt": "Count to 5 silently",
+          "salesperson_says": "[remain silent]",
+          "expected_result": "Prospect provides thoughtful answer"
+        }
+      ],
+      "implementation": {
+        "max_words": 0,
+        "action": "Count to 5 before speaking",
+        "timing": "After questions or important statements"
+      },
+      "common_mistakes": [
+        "Breaking silence too quickly",
+        "Appearing uncomfortable",
+        "Using silence too often"
+      ],
+      "urgency_level": "medium"
+    },
+    {
+      "technique_name": "Black Swan Discovery",
+      "description": "Uncover hidden factors",
+      "when_to_use": [
+        {
+          "trigger": "Something feels off",
+          "prospect_says": "It's complicated",
+          "coach_prompt": "Probe: 'What aren't you telling me?'",
+          "salesperson_says": "What else should I know about your situation?",
+          "expected_result": "Prospect reveals hidden factor"
+        },
+        {
+          "trigger": "Unexpected resistance",
+          "prospect_says": "I just can't do this",
+          "coach_prompt": "Dig: 'What's really blocking this?'",
+          "salesperson_says": "What's the real challenge here?",
+          "expected_result": "Prospect shares true obstacle"
+        },
+        {
+          "trigger": "Timeline urgency",
+          "prospect_says": "We need this by Friday",
+          "coach_prompt": "Explore: 'What happens Friday?'",
+          "salesperson_says": "What specifically happens on Friday?",
+          "expected_result": "Prospect reveals critical deadline"
+        }
+      ],
+      "implementation": {
+        "max_words": 10,
+        "action": "Probe for information they're not sharing",
+        "timing": "When something doesn't add up"
+      },
+      "common_mistakes": [
+        "Being too aggressive",
+        "Missing subtle cues",
+        "Not following up on discoveries"
+      ],
+      "urgency_level": "critical"
+    },
+    {
+      "technique_name": "Bargaining/Anchoring",
+      "description": "Use precise numbers and ranges",
+      "when_to_use": [
+        {
+          "trigger": "Price negotiation starts",
+          "prospect_says": "What's your best price?",
+          "coach_prompt": "Anchor: 'Range is $4,827 to $5,243'",
+          "salesperson_says": "Our range is $4,827 to $5,243",
+          "expected_result": "Prospect anchors on lower number"
+        },
+        {
+          "trigger": "Discount requested",
+          "prospect_says": "Can you do better on price?",
+          "coach_prompt": "Precise: 'I can do $4,917'",
+          "salesperson_says": "I can do exactly $4,917",
+          "expected_result": "Precise number seems calculated"
+        },
+        {
+          "trigger": "Making counteroffer",
+          "prospect_says": "How about $5000?",
+          "coach_prompt": "Counter: '$5,127 is my limit'",
+          "salesperson_says": "$5,127 is absolutely my limit",
+          "expected_result": "Odd number appears firm"
+        }
+      ],
+      "implementation": {
+        "max_words": 8,
+        "action": "Use odd, precise numbers not round ones",
+        "timing": "During price discussions"
+      },
+      "common_mistakes": [
+        "Using round numbers",
+        "Moving in large increments",
+        "Not having rationale ready"
+      ],
+      "urgency_level": "high"
+    }
+  ],
+  "stage_guidance": {
+    "discovery": {
+      "focus": "Uncover pain points",
+      "top_techniques": ["Calibrated Questions", "Mirroring"],
+      "quick_prompts": [
+        "Ask: 'What's your biggest challenge?'",
+        "Say: 'Tell me more about that'",
+        "Mirror their last concern",
+        "Ask: 'How are you handling this now?'",
+        "Label: 'Seems like a real pain point'"
+      ]
+    },
+    "objection_handling": {
+      "focus": "Address concerns without defensiveness",
+      "top_techniques": ["Labeling", "Accusation Audit"],
+      "quick_prompts": [
+        "Say: 'It seems like price is a concern'",
+        "Ask: 'What specifically worries you?'",
+        "Label: 'You're concerned about ROI'",
+        "Audit: 'You probably think this is risky'",
+        "Ask: 'How can we solve this together?'"
+      ]
+    },
+    "negotiation": {
+      "focus": "Find mutually beneficial terms",
+      "top_techniques": ["Bargaining/Anchoring", "Calibrated Questions"],
+      "quick_prompts": [
+        "Use precise numbers like $4,827",
+        "Ask: 'How can we make this work?'",
+        "Say: 'What would need to change?'",
+        "Offer: 'Range is X to Y'",
+        "Ask: 'What's your ideal outcome?'"
+      ]
+    },
+    "closing": {
+      "focus": "Secure commitment",
+      "top_techniques": ["Dynamic Silence", "Black Swan Discovery"],
+      "quick_prompts": [
+        "Ask: 'What stops us from moving forward?'",
+        "Use silence after your offer",
+        "Probe: 'What aren't you telling me?'",
+        "Ask: 'How do we implement this?'",
+        "Say: 'Seems like we're aligned'"
+      ]
+    }
+  },
+  "quick_reference": {
+    "most_useful_prompts": [
+      "Mirror: '[last 3 words]?'",
+      "Label: 'It seems like...'",
+      "Ask: 'How can we solve this together?'",
+      "Ask: 'What would make this work?'",
+      "Audit: 'You probably think...'",
+      "Say: 'Tell me more about that'",
+      "Use silence - count to 5",
+      "Ask: 'What's the real challenge?'",
+      "Precise: 'Exactly $X,XXX'",
+      "Ask: 'What aren't you telling me?'"
+    ]
+  },
+  "urgency_triggers": {
+    "critical": [
+      "I need to think about it",
+      "We're going with competitor",
+      "This isn't going to work",
+      "I don't have authority",
+      "We're not interested anymore",
+      "The deal is off"
+    ],
+    "high": [
+      "Price is too high",
+      "Not sure about ROI",
+      "Need manager approval",
+      "Timing isn't right",
+      "Budget isn't approved",
+      "Too risky for us"
+    ],
+    "medium": [
+      "Tell me more about features",
+      "How does this work?",
+      "What makes you different?",
+      "Can you send information?",
+      "We're evaluating options",
+      "Need to check with team"
+    ]
+  },
+  "response_patterns": {
+    "price_objections": {
+      "triggers": ["too expensive", "can't afford", "over budget", "too much"],
+      "responses": [
+        "Label: 'Seems like budget is tight'",
+        "Ask: 'What would work for you?'",
+        "Mirror: 'Too expensive?'",
+        "Ask: 'How far apart are we?'"
+      ]
+    },
+    "trust_issues": {
+      "triggers": ["don't believe", "skeptical", "prove it", "not convinced"],
+      "responses": [
+        "Label: 'You're skeptical, I get it'",
+        "Audit: 'You think I'm overselling'",
+        "Ask: 'What would convince you?'",
+        "Say: 'Fair enough. What concerns you?'"
+      ]
+    },
+    "timing_delays": {
+      "triggers": ["not now", "next quarter", "need time", "too soon"],
+      "responses": [
+        "Ask: 'What changes next quarter?'",
+        "Mirror: 'Next quarter?'",
+        "Ask: 'What needs to happen first?'",
+        "Label: 'Timing feels rushed'"
+      ]
+    },
+    "authority_issues": {
+      "triggers": ["check with boss", "not my decision", "need approval", "committee decides"],
+      "responses": [
+        "Ask: 'Who else should we include?'",
+        "Ask: 'How does approval work?'",
+        "Say: 'What would they want to know?'",
+        "Ask: 'When do they meet?'"
+      ]
+    }
+  },
+  "advanced_combinations": {
+    "discovery_to_pain": [
+      "Mirror to get elaboration",
+      "Label the emotion",
+      "Ask calibrated question to deepen"
+    ],
+    "objection_to_solution": [
+      "Accusation audit first",
+      "Use tactical empathy",
+      "Offer precise alternative"
+    ],
+    "stall_to_close": [
+      "Black swan discovery",
+      "Dynamic silence",
+      "Calibrated question to move forward"
+    ]
+  },
+  "coaching_rules": {
+    "max_prompt_length": 25,
+    "response_time": "under_2_seconds",
+    "clarity": "exact_words_to_say",
+    "format": "conversational_phone_appropriate",
+    "avoid": [
+      "Complex explanations",
+      "Multiple options",
+      "Theory or background",
+      "Long sentences",
+      "Jargon or acronyms"
+    ]
+  }
+}

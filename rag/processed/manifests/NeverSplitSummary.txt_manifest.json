@@ -1,0 +1,56 @@
+{
+  "documentName": "NeverSplitSummary.txt",
+  "originalPath": "D:\\Projects\\Ai\\VoiceCoach\\RAG\\NeverSplit\\NeverSplitSummary.txt",
+  "versions": [
+    {
+      "id": "v_1756833312961",
+      "fileName": "NeverSplitSummary.txt_standard-semantic_1756833312959.json",
+      "originalPath": "D:\\Projects\\Ai\\VoiceCoach\\RAG\\NeverSplit\\NeverSplitSummary.txt",
+      "processedDate": "2025-09-02T17:15:12.961Z",
+      "configuration": {
+        "maxWords": 25,
+        "methodology": "Chris Voss",
+        "chunkSize": 512,
+        "chunkOverlap": 50,
+        "compressionEnabled": true,
+        "techniques": [
+          "tactical empathy",
+          "mirroring",
+          "labeling",
+          "calibrated questions",
+          "accusation audit",
+          "black swan",
+          "that's right"
+        ]
+      },
+      "isActive": false,
+      "description": "25w | Chris Voss | 512tok | compressed"
+    },
+    {
+      "id": "v_1756833487612",
+      "fileName": "NeverSplitSummary.txt_standard-semantic_1756833487610.json",
+      "originalPath": "D:\\Projects\\Ai\\VoiceCoach\\RAG\\NeverSplit\\NeverSplitSummary.txt",
+      "processedDate": "2025-09-02T17:18:07.612Z",
+      "configuration": {
+        "maxWords": 25,
+        "methodology": "Chris Voss",
+        "chunkSize": 512,
+        "chunkOverlap": 50,
+        "compressionEnabled": true,
+        "techniques": [
+          "tactical empathy",
+          "mirroring",
+          "labeling",
+          "calibrated questions",
+          "accusation audit",
+          "black swan",
+          "that's right"
+        ]
+      },
+      "isActive": true,
+      "description": "25w | Chris Voss | 512tok | compressed"
+    }
+  ],
+  "activeVersionId": "v_1756833487612",
+  "lastModified": "2025-09-02T17:18:07.612Z"
+}

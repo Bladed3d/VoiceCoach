@@ -3,7 +3,7 @@
  * Real-time configuration for transcription optimization
  */
 import React, { useState, useEffect } from 'react';
-import { X, Mic, Zap, Clock, Cpu, RotateCcw, Save } from 'lucide-react';
+import { X, Mic, Zap, Clock, Cpu, RotateCcw, Save, AlertCircle, CheckCircle } from 'lucide-react';
 import { VoskConfig, defaultVoskConfig, voskPresets } from '../../types/vosk-config';
 import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
 
@@ -24,10 +24,57 @@ export const VoskSettingsModal: React.FC<VoskSettingsModalProps> = ({
   const [config, setConfig] = useState<VoskConfig>(currentConfig);
   const [activeTab, setActiveTab] = useState<'silence' | 'audio' | 'transcription' | 'performance'>('silence');
   const [selectedPreset, setSelectedPreset] = useState<string>('');
+  const [lastAppliedPreset, setLastAppliedPreset] = useState<string>('');
+  const [isModified, setIsModified] = useState<boolean>(false);
+
+  // Helper function to check if config matches a preset
+  const checkPresetMatch = (config: VoskConfig): string => {
+    for (const [key, preset] of Object.entries(voskPresets)) {
+      const presetConfig = preset.config;
+      // Check key settings that define each preset
+      if (
+        config.transcription?.mode === presetConfig.transcription?.mode &&
+        config.transcription?.enablePartials === presetConfig.transcription?.enablePartials &&
+        config.audio?.chunkSize === presetConfig.audio?.chunkSize &&
+        config.silenceDetection?.partialTimeout === presetConfig.silenceDetection?.partialTimeout &&
+        config.performance?.debounceMs === presetConfig.performance?.debounceMs
+      ) {
+        return key;
+      }
+    }
+    return '';
+  };
+
+  // Check if current config is modified from the selected preset
+  const checkIfModified = () => {
+    if (!selectedPreset || !voskPresets[selectedPreset as keyof typeof voskPresets]) {
+      return false;
+    }
+    const presetConfig = voskPresets[selectedPreset as keyof typeof voskPresets].config;
+    return JSON.stringify(config) !== JSON.stringify({ ...config, ...presetConfig });
+  };
 
   useEffect(() => {
     setConfig(currentConfig);
+    // Load last applied preset from localStorage
+    const savedPreset = localStorage.getItem('voicecoach-vosk-last-preset');
+    if (savedPreset) {
+      setLastAppliedPreset(savedPreset);
+    }
+    // Check which preset matches on load
+    const matchingPreset = checkPresetMatch(currentConfig);
+    if (matchingPreset) {
+      setSelectedPreset(matchingPreset);
+      if (!savedPreset) {
+        setLastAppliedPreset(matchingPreset);
+      }
+    }
   }, [currentConfig]);
+
+  useEffect(() => {
+    // Check if config has been modified whenever it changes
+    setIsModified(checkIfModified());
+  }, [config, selectedPreset]);
 
   if (!isOpen) return null;
 
@@ -44,17 +91,36 @@ export const VoskSettingsModal: React.FC<VoskSettingsModalProps> = ({
         ...preset.config
       });
       setSelectedPreset(presetKey);
+      setLastAppliedPreset(presetKey);
+      setIsModified(false); // Reset modified flag when preset is applied
+      // Save last applied preset to localStorage
+      localStorage.setItem('voicecoach-vosk-last-preset', presetKey);
     }
   };
 
   const handleSave = () => {
     trail.light(7301, {
-      operation: 'vosk_config_saved',
-      config
+      operation: 'vosk_config_save_initiated',
+      mode: config.transcription?.mode,
+      enablePartials: config.transcription?.enablePartials,
+      enableWordTimings: config.transcription?.enableWordTimings,
+      debounceMs: config.performance?.debounceMs,
+      enableRecognizerReset: config.performance?.enableRecognizerReset,
+      recognizerResetInterval: config.performance?.recognizerResetInterval,
+      partialTimeout: config.silenceDetection?.partialTimeout,
+      sampleRate: config.audio?.sampleRate,
+      chunkSize: config.audio?.chunkSize
     });
     
     // Save to localStorage for persistence
-    localStorage.setItem('voicecoach-vosk-config', JSON.stringify(config));
+    const configStr = JSON.stringify(config);
+    localStorage.setItem('voicecoach-vosk-config', configStr);
+    
+    trail.light(7302, {
+      operation: 'vosk_config_saved_to_localStorage',
+      configSize: configStr.length,
+      timestamp: Date.now()
+    });
     
     onSave(config);
     onClose();
@@ -66,6 +132,8 @@ export const VoskSettingsModal: React.FC<VoskSettingsModalProps> = ({
     });
     setConfig(defaultVoskConfig);
     setSelectedPreset('');
+    setLastAppliedPreset('');
+    setIsModified(false);
   };
 
   return (
@@ -87,22 +155,48 @@ export const VoskSettingsModal: React.FC<VoskSettingsModalProps> = ({
 
         {/* Presets Bar */}
         <div className="px-6 py-3 bg-slate-800/50 border-b border-slate-700">
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-slate-400">Presets:</span>
-            {Object.entries(voskPresets).map(([key, preset]) => (
-              <button
-                key={key}
-                onClick={() => handlePresetSelect(key)}
-                className={`px-3 py-1 text-xs rounded-lg transition-colors ${
-                  selectedPreset === key
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
-                }`}
-                title={preset.description}
-              >
-                {preset.name}
-              </button>
-            ))}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-slate-400">Presets:</span>
+              {Object.entries(voskPresets).map(([key, preset]) => (
+                <button
+                  key={key}
+                  onClick={() => handlePresetSelect(key)}
+                  className={`px-3 py-1 text-xs rounded-lg transition-colors ${
+                    selectedPreset === key
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                  }`}
+                  title={preset.description}
+                >
+                  {preset.name}
+                </button>
+              ))}
+            </div>
+            
+            {/* Active Preset Indicator */}
+            <div className="flex items-center space-x-2">
+              {lastAppliedPreset && (
+                <div className="flex items-center space-x-2 text-sm">
+                  <span className="text-slate-500">Active:</span>
+                  <span className="text-primary-400 font-medium">
+                    {voskPresets[lastAppliedPreset as keyof typeof voskPresets]?.name || 'Custom'}
+                  </span>
+                  {isModified && (
+                    <span className="flex items-center text-yellow-400" title="Settings have been modified from preset">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      <span className="text-xs">Modified</span>
+                    </span>
+                  )}
+                  {!isModified && selectedPreset && (
+                    <CheckCircle className="w-4 h-4 text-green-400" title="Using preset defaults" />
+                  )}
+                </div>
+              )}
+              {!lastAppliedPreset && (
+                <span className="text-sm text-slate-500 italic">No preset selected</span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -296,14 +390,14 @@ export const VoskSettingsModal: React.FC<VoskSettingsModalProps> = ({
                 <label className="block text-sm font-medium mb-2">
                   Chunk Size (samples)
                   <span className="text-xs text-slate-400 ml-2">
-                    ({config.audio.chunkSize})
+                    ({config.audio.chunkSize} samples = {Math.round(config.audio.chunkSize / config.audio.sampleRate * 1000)}ms)
                   </span>
                 </label>
                 <input
                   type="range"
-                  min="2000"
-                  max="16000"
-                  step="1000"
+                  min="256"
+                  max="8192"
+                  step="256"
                   value={config.audio.chunkSize}
                   onChange={(e) => setConfig({
                     ...config,
@@ -314,9 +408,11 @@ export const VoskSettingsModal: React.FC<VoskSettingsModalProps> = ({
                   })}
                   className="w-full"
                 />
-                <p className="text-xs text-slate-400 mt-1">
-                  Smaller chunks = lower latency, higher CPU
-                </p>
+                <div className="flex justify-between text-xs text-slate-400 mt-1">
+                  <span>256 (16ms)</span>
+                  <span>Smaller = lower latency</span>
+                  <span>8192 (512ms)</span>
+                </div>
               </div>
             </div>
           )}
@@ -424,6 +520,7 @@ export const VoskSettingsModal: React.FC<VoskSettingsModalProps> = ({
           {/* Performance Tab */}
           {activeTab === 'performance' && (
             <div className="space-y-6">
+
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Debounce Delay
@@ -433,7 +530,7 @@ export const VoskSettingsModal: React.FC<VoskSettingsModalProps> = ({
                 </label>
                 <input
                   type="range"
-                  min="50"
+                  min="0"
                   max="500"
                   step="50"
                   value={config.performance.debounceMs}
@@ -447,57 +544,80 @@ export const VoskSettingsModal: React.FC<VoskSettingsModalProps> = ({
                   className="w-full"
                 />
                 <p className="text-xs text-slate-400 mt-1">
-                  Delay before processing rapid updates
+                  Delay before processing rapid updates (0 = disabled)
                 </p>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Max Queue Size
-                  <span className="text-xs text-slate-400 ml-2">
-                    ({config.performance.maxQueueSize})
-                  </span>
-                </label>
-                <input
-                  type="range"
-                  min="50"
-                  max="500"
-                  step="50"
-                  value={config.performance.maxQueueSize}
-                  onChange={(e) => setConfig({
-                    ...config,
-                    performance: {
-                      ...config.performance,
-                      maxQueueSize: parseInt(e.target.value)
-                    }
-                  })}
-                  className="w-full"
-                />
-                <p className="text-xs text-slate-400 mt-1">
-                  Maximum audio chunks in processing queue
-                </p>
-              </div>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="recognizerReset"
+                    checked={config.performance.enableRecognizerReset}
+                    onChange={(e) => setConfig({
+                      ...config,
+                      performance: {
+                        ...config.performance,
+                        enableRecognizerReset: e.target.checked
+                      }
+                    })}
+                    className="rounded"
+                  />
+                  <label htmlFor="recognizerReset" className="text-sm">
+                    Enable Recognizer Reset
+                    <span className="text-xs text-slate-400 block">
+                      Periodically reset recognizer (NOT recommended - causes delays)
+                    </span>
+                  </label>
+                </div>
 
-              <div className="flex items-center space-x-3">
-                <input
-                  type="checkbox"
-                  id="throttle"
-                  checked={config.performance.cpuThrottling}
-                  onChange={(e) => setConfig({
-                    ...config,
-                    performance: {
-                      ...config.performance,
-                      cpuThrottling: e.target.checked
-                    }
-                  })}
-                  className="rounded"
-                />
-                <label htmlFor="throttle" className="text-sm">
-                  CPU Throttling
-                  <span className="text-xs text-slate-400 block">
-                    Reduce CPU usage at the cost of latency
-                  </span>
-                </label>
+                {config.performance.enableRecognizerReset && (
+                  <div className="ml-6">
+                    <label className="block text-sm font-medium mb-2">
+                      Reset Interval
+                      <span className="text-xs text-slate-400 ml-2">
+                        ({config.performance.recognizerResetInterval}s)
+                      </span>
+                    </label>
+                    <input
+                      type="range"
+                      min="10"
+                      max="120"
+                      step="10"
+                      value={config.performance.recognizerResetInterval}
+                      onChange={(e) => setConfig({
+                        ...config,
+                        performance: {
+                          ...config.performance,
+                          recognizerResetInterval: parseInt(e.target.value)
+                        }
+                      })}
+                      className="w-full"
+                    />
+                  </div>
+                )}
+
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="throttle"
+                    checked={config.performance.cpuThrottling}
+                    onChange={(e) => setConfig({
+                      ...config,
+                      performance: {
+                        ...config.performance,
+                        cpuThrottling: e.target.checked
+                      }
+                    })}
+                    className="rounded"
+                  />
+                  <label htmlFor="throttle" className="text-sm">
+                    CPU Throttling
+                    <span className="text-xs text-slate-400 block">
+                      Reduce CPU usage at the cost of latency
+                    </span>
+                  </label>
+                </div>
               </div>
             </div>
           )}

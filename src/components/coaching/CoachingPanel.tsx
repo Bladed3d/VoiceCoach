@@ -1,11 +1,12 @@
 /**
  * VoiceCoach V2 - Coaching Panel Component
- * Displays AI coaching suggestions and prompts
+ * Displays AI coaching suggestions and prompts with rich interactive UI
  */
 import React from 'react';
-import { Brain } from 'lucide-react';
+import { Brain, Lightbulb, Database } from 'lucide-react';
 import { CoachingPrompt } from '../../types/coaching';
 import { SimpleLiquidGrid } from '../common/SimpleLiquidGrid';
+import { CoachingCard } from './CoachingCard';
 import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
 
 interface CoachingPanelProps {
@@ -21,6 +22,11 @@ export const CoachingPanel: React.FC<CoachingPanelProps> = ({
 }) => {
   const trail = new BreadcrumbTrail('CoachingPanel');
   const [showAnimation, setShowAnimation] = React.useState(true);
+  const [dismissedPrompts, setDismissedPrompts] = React.useState<Set<string>>(new Set());
+  const [usedPrompts, setUsedPrompts] = React.useState<Set<string>>(new Set());
+  
+  // Filter out dismissed prompts
+  const visiblePrompts = coachingPrompts.filter(p => !dismissedPrompts.has(p.id));
   
   // Auto-disable animation after coaching session ends
   React.useEffect(() => {
@@ -72,6 +78,20 @@ export const CoachingPanel: React.FC<CoachingPanelProps> = ({
     trail.light(7196, { event: 'ANIMATION_CLICK_IN_PANEL' });
     console.log('Animation clicked in CoachingPanel');
   };
+  
+  const handlePromptUsed = (promptId: string) => {
+    trail.light(7340, { operation: 'prompt_used', promptId });
+    setUsedPrompts(prev => new Set(prev).add(promptId));
+  };
+  
+  const handlePromptDismissed = (promptId: string) => {
+    trail.light(7341, { operation: 'prompt_dismissed', promptId });
+    setDismissedPrompts(prev => new Set(prev).add(promptId));
+  };
+  
+  const handleCopy = (text: string) => {
+    trail.light(7342, { operation: 'prompt_copied', textLength: text.length });
+  };
   return (
     <div className="h-full glass-panel p-6 flex flex-col min-h-0 overflow-hidden">
       <div className="flex items-center justify-between mb-4">
@@ -107,73 +127,38 @@ export const CoachingPanel: React.FC<CoachingPanelProps> = ({
       
       <div className="flex-1 space-y-4 overflow-y-auto relative"
            style={{ isolation: 'isolate', position: 'relative' }}>
-        {/* Always show prompts underneath */}
-        <div className="space-y-4">
-          {coachingPrompts.slice().reverse().map((prompt, index) => (
-              <div 
-                key={prompt.id}
-                className={`p-4 rounded-lg border-l-4 transition-all hover:shadow-lg ${
-                  prompt.priority === 'critical' 
-                    ? 'bg-error-500/10 border-error-500 hover:bg-error-500/15' 
-                    : prompt.priority === 'high'
-                    ? 'bg-warning-500/10 border-warning-500 hover:bg-warning-500/15'
-                    : 'bg-info-500/10 border-info-500 hover:bg-info-500/15'
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  {/* Numbered Circle */}
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                    prompt.priority === 'critical' 
-                      ? 'bg-error-500 text-white' 
-                      : prompt.priority === 'high'
-                      ? 'bg-warning-500 text-white'
-                      : 'bg-info-500 text-white'
-                  }`}>
-                    {coachingPrompts.length - index}
-                  </div>
-                  
-                  <div className="flex-1">
-                    {/* Header with Priority Badge and Category */}
-                    <div className="flex items-center space-x-2 mb-3">
-                      <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
-                        prompt.priority === 'critical' 
-                          ? 'bg-error-500 text-white' 
-                          : prompt.priority === 'high'
-                          ? 'bg-warning-500 text-white'
-                          : 'bg-info-500 text-white'
-                      }`}>
-                        {prompt.priority === 'critical' ? '🚨 CRITICAL' : 
-                         prompt.priority === 'high' ? '⚠️ HIGH' : '💡 STANDARD'}
-                      </span>
-                      <span className="text-xs px-2 py-1 bg-neutral-700 text-neutral-300 rounded capitalize">
-                        {prompt.category}
-                      </span>
-                    </div>
-                    
-                    {/* Main Prompt Text */}
-                    <p className={`text-sm leading-relaxed mb-3 ${
-                      prompt.priority === 'critical' ? 'text-error-100 font-medium' :
-                      prompt.priority === 'high' ? 'text-warning-100' : 'text-neutral-200'
-                    }`}>
-                      {prompt.text}
-                    </p>
-                    
-                    {/* Action Buttons */}
-                    <div className="flex space-x-2">
-                      <button className="text-xs bg-success-600 hover:bg-success-700 text-white px-3 py-1 rounded transition-colors">
-                        📋 Copy
-                      </button>
-                      <button className="text-xs bg-primary-600 hover:bg-primary-700 text-white px-3 py-1 rounded transition-colors">
-                        ✅ Used
-                      </button>
-                      <button className="text-xs bg-neutral-600 hover:bg-neutral-700 text-neutral-200 px-3 py-1 rounded transition-colors">
-                        ❌ Dismiss
-                      </button>
-                    </div>
-                  </div>
-                </div>
+        {/* Show empty state when no prompts */}
+        {visiblePrompts.length === 0 && (
+          <div className="text-center text-slate-400 mt-12">
+            {isRecording ? (
+              <div>
+                <div className="w-8 h-8 mx-auto mb-2 rounded-full border-2 border-primary-400 border-t-transparent animate-spin"></div>
+                <p>AI analyzing conversation...</p>
+                <p className="text-sm mt-1">Smart coaching prompts will appear here</p>
               </div>
-            ))}
+            ) : (
+              <div>
+                <Lightbulb className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>Start coaching session for AI insights</p>
+                <p className="text-sm mt-1">Get real-time suggestions from knowledge base</p>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Display coaching prompts using enhanced CoachingCard */}
+        <div className="space-y-4">
+          {visiblePrompts.slice().reverse().map((prompt, index) => (
+            <CoachingCard
+              key={prompt.id}
+              prompt={prompt}
+              index={index}
+              totalCount={visiblePrompts.length}
+              onUsed={handlePromptUsed}
+              onDismissed={handlePromptDismissed}
+              onCopy={handleCopy}
+            />
+          ))}
         </div>
         
         {/* Show animation overlay when not recording and animation is enabled */}

@@ -1,0 +1,142 @@
+{
+  "display": {
+    "maxPromptsVisible": 1,
+    "animationDuration": 300,
+    "autoHideDelay": 30000,
+    "position": "right",
+    "width": "380px"
+  },
+  "cards": {
+    "types": {
+      "objection": {
+        "label": "OBJECTION DETECTED",
+        "color": "#ef4444",
+        "backgroundColor": "rgba(239, 68, 68, 0.1)",
+        "borderColor": "#ef4444",
+        "icon": "alert-circle",
+        "priority": 4
+      },
+      "opportunity": {
+        "label": "CLOSING OPPORTUNITY",
+        "color": "#f59e0b",
+        "backgroundColor": "rgba(245, 158, 11, 0.1)",
+        "borderColor": "#f59e0b",
+        "icon": "trending-up",
+        "priority": 3
+      },
+      "discovery": {
+        "label": "DISCOVERY",
+        "color": "#3b82f6",
+        "backgroundColor": "rgba(59, 130, 246, 0.1)",
+        "borderColor": "#3b82f6",
+        "icon": "search",
+        "priority": 2
+      },
+      "rapport": {
+        "label": "RAPPORT",
+        "color": "#10b981",
+        "backgroundColor": "rgba(16, 185, 129, 0.1)",
+        "borderColor": "#10b981",
+        "icon": "users",
+        "priority": 1
+      },
+      "general": {
+        "label": "SUGGESTION",
+        "color": "#6b7280",
+        "backgroundColor": "rgba(107, 114, 128, 0.1)",
+        "borderColor": "#6b7280",
+        "icon": "lightbulb",
+        "priority": 0
+      }
+    },
+    "layout": {
+      "padding": "16px",
+      "borderRadius": "8px",
+      "borderWidth": "2px",
+      "boxShadow": "0 4px 6px rgba(0, 0, 0, 0.1)",
+      "spacing": "12px"
+    },
+    "typography": {
+      "labelSize": "12px",
+      "labelWeight": "700",
+      "titleSize": "16px",
+      "titleWeight": "600",
+      "contentSize": "14px",
+      "contentWeight": "400",
+      "fontFamily": "Inter, system-ui, sans-serif"
+    },
+    "actions": {
+      "primaryButton": {
+        "label": "Use This",
+        "color": "#ffffff",
+        "backgroundColor": "#3b82f6",
+        "hoverColor": "#2563eb"
+      },
+      "secondaryButton": {
+        "label": "Dismiss",
+        "color": "#6b7280",
+        "backgroundColor": "transparent",
+        "borderColor": "#d1d5db"
+      },
+      "showButtons": true,
+      "autoAction": false
+    }
+  },
+  "urgency": {
+    "critical": {
+      "pulseAnimation": true,
+      "soundAlert": false,
+      "autoExpand": true,
+      "glowEffect": true
+    },
+    "high": {
+      "pulseAnimation": false,
+      "soundAlert": false,
+      "autoExpand": true,
+      "glowEffect": false
+    },
+    "medium": {
+      "pulseAnimation": false,
+      "soundAlert": false,
+      "autoExpand": false,
+      "glowEffect": false
+    },
+    "low": {
+      "pulseAnimation": false,
+      "soundAlert": false,
+      "autoExpand": false,
+      "glowEffect": false
+    }
+  },
+  "animations": {
+    "cardEntrance": "slideInRight",
+    "cardExit": "fadeOut",
+    "urgentPulse": "pulse 2s infinite",
+    "glow": "glow 1.5s ease-in-out infinite alternate"
+  },
+  "responsive": {
+    "breakpoints": {
+      "small": 640,
+      "medium": 768,
+      "large": 1024,
+      "xlarge": 1280
+    },
+    "smallScreen": {
+      "position": "bottom",
+      "width": "100%",
+      "maxHeight": "200px",
+      "fontSize": "12px"
+    }
+  },
+  "accessibility": {
+    "announceNewPrompts": true,
+    "keyboardShortcuts": {
+      "dismiss": "Escape",
+      "use": "Enter",
+      "next": "ArrowDown",
+      "previous": "ArrowUp"
+    },
+    "highContrast": false,
+    "reducedMotion": false
+  }
+}

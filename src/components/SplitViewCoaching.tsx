@@ -32,6 +32,7 @@ import { TranscriptionPanel } from './coaching/TranscriptionPanel';
 import { CollapsedPanel } from './common/CollapsedPanel';
 import { KnowledgeBaseHub } from './KnowledgeBaseHub';
 import SettingsModal from './modals/SettingsModal';
+import DocumentSelectorModal from './modals/DocumentSelectorModal';
 import { AudioCaptureSelector, AudioCaptureMode } from './coaching/AudioCaptureSelector';
 import { BreadcrumbTrail } from '../lib/breadcrumb-system';
 
@@ -66,6 +67,12 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
   // Local UI state only
   const [showKnowledgeBaseHub, setShowKnowledgeBaseHub] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showDocumentSelector, setShowDocumentSelector] = useState(false);
+  const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
+  const [useChromaDB, setUseChromaDB] = useState(() => {
+    // Load saved preference
+    return localStorage.getItem('voicecoach-use-chromadb') === 'true';
+  });
   const [currentView, setCurrentView] = useState('Split View');
   const [audioCaptureMode, setAudioCaptureMode] = useState<AudioCaptureMode>('microphone');
   const [showViewDropdown, setShowViewDropdown] = useState(false);
@@ -138,6 +145,23 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
     }
   }, [showKnowledgeBaseHub]);
   
+  // Load persisted document selection
+  React.useEffect(() => {
+    const savedDocs = localStorage.getItem('voicecoach-selected-documents');
+    if (savedDocs) {
+      try {
+        const docs = JSON.parse(savedDocs);
+        setSelectedDocuments(docs);
+        trail.light(7208, {
+          operation: 'loaded_saved_documents',
+          count: docs.length
+        });
+      } catch (error) {
+        console.error('Failed to load saved documents:', error);
+      }
+    }
+  }, []);
+
   // Load models from app startup cache on component mount
   React.useEffect(() => {
     const loadCachedModels = () => {
@@ -177,7 +201,7 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
   }, []);
   
   // Handle model selection changes
-  const handleModelChange = (modelName: string) => {
+  const handleModelChange = async (modelName: string) => {
     trail.light(7122, {
       model_change: 'user_selection',
       from_model: selectedModel,
@@ -189,6 +213,53 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
     
     // Persist the selection
     localStorage.setItem('voicecoach-selected-model', modelName);
+    
+    // Update the Ollama service configuration with the new model
+    try {
+      // Access the LiveCoachingManager through SessionManager
+      const liveCoachingManager = sessionManager?.getLiveCoachingManager();
+      if (liveCoachingManager) {
+        // Get the LiveCoachingService
+        const liveCoachingService = liveCoachingManager.getService();
+        if (liveCoachingService) {
+          // Access the OllamaService through the LiveCoachingService
+          const ollamaService = (liveCoachingService as any).ollamaService;
+          if (ollamaService && ollamaService.updateConfig) {
+            ollamaService.updateConfig({ model: modelName });
+            
+            trail.light(7124, {
+              ollama_config_updated: modelName,
+              service_updated: true,
+              timestamp: Date.now()
+            });
+            
+            console.log(`✅ Ollama service updated to use model: ${modelName}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to update Ollama service configuration:', error);
+      trail.fail(8122, error as Error);
+    }
+    
+    // Pull the model if not already present
+    try {
+      const response = await fetch('http://localhost:11434/api/pull', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: modelName })
+      });
+      
+      if (response.ok) {
+        trail.light(7125, {
+          model_pull_started: modelName,
+          timestamp: Date.now()
+        });
+        console.log(`📥 Pulling model: ${modelName}`);
+      }
+    } catch (error) {
+      console.error('Failed to pull model:', error);
+    }
     
     trail.light(7123, {
       model_change: 'completed',
@@ -409,7 +480,7 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
               
               {!isRecording ? (
                 <button
-                  onClick={() => startSession(audioCaptureMode)}
+                  onClick={() => startSession(audioCaptureMode, selectedDocuments)}
                   className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 px-3 md:px-4 py-2 rounded-lg font-medium transition-colors"
                 >
                   <Play className="w-4 h-4 flex-shrink-0" />
@@ -443,6 +514,56 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
             <div className="flex items-center space-x-1 text-sm">
               <div className="w-2 h-2 rounded-full bg-green-400"></div>
               <span className="text-green-400">RAG: Ready for coaching session</span>
+            </div>
+            <button
+              onClick={() => {
+                trail.light(7206, {
+                  operation: 'document_selector_opened',
+                  current_selection_count: selectedDocuments.length
+                });
+                setShowDocumentSelector(true);
+              }}
+              className="flex items-center space-x-1 text-sm hover:text-primary-400 transition-colors cursor-pointer"
+            >
+              <Database className="w-4 h-4" />
+              <span className="underline">
+                Documents ({selectedDocuments.length})
+              </span>
+            </button>
+            
+            {/* ChromaDB Toggle */}
+            <div className="flex items-center space-x-2 text-sm">
+              <span className="text-slate-400">ChromaDB:</span>
+              <button
+                onClick={() => {
+                  const newValue = !useChromaDB;
+                  setUseChromaDB(newValue);
+                  localStorage.setItem('voicecoach-use-chromadb', String(newValue));
+                  trail.light(7209, {
+                    operation: 'chromadb_toggle',
+                    enabled: newValue
+                  });
+                  // Emit event for services to react
+                  window.dispatchEvent(new CustomEvent('chromaDBToggled', { 
+                    detail: { enabled: newValue } 
+                  }));
+                }}
+                className={`
+                  relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+                  ${useChromaDB ? 'bg-primary-600' : 'bg-slate-600'}
+                `}
+              >
+                <span className="sr-only">Use ChromaDB semantic search</span>
+                <span
+                  className={`
+                    inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                    ${useChromaDB ? 'translate-x-6' : 'translate-x-1'}
+                  `}
+                />
+              </button>
+              <span className={`text-xs ${useChromaDB ? 'text-primary-400' : 'text-slate-500'}`}>
+                {useChromaDB ? 'Semantic' : 'Keyword'}
+              </span>
             </div>
           </div>
         </div>
@@ -645,6 +766,23 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
           currentCall: null,
           audioLevels: volumeState
         }}
+      />
+
+      {/* Document Selector Modal */}
+      <DocumentSelectorModal
+        isOpen={showDocumentSelector}
+        onClose={() => setShowDocumentSelector(false)}
+        onSelectionChange={(docs) => {
+          setSelectedDocuments(docs);
+          trail.light(7207, {
+            operation: 'documents_selected',
+            count: docs.length,
+            documents: docs
+          });
+          // Store selection in localStorage for persistence
+          localStorage.setItem('voicecoach-selected-documents', JSON.stringify(docs));
+        }}
+        currentSelection={selectedDocuments}
       />
     </div>
   );

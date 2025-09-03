@@ -1,0 +1,54 @@
+{
+  "compression": {
+    "enabled": true,
+    "maxTotalChars": 3800,
+    "maxTokenEstimate": 4096,
+    "tokenEstimationRatio": 4,
+    "components": {
+      "principles": {
+        "maxChars": 150,
+        "compressionStrategy": "essential-only",
+        "fallback": "NEVER end calls. ALWAYS advance the sale."
+      },
+      "stageGuidance": {
+        "maxChars": 200,
+        "compressionStrategy": "stage-specific",
+        "includeExamples": false
+      },
+      "knowledgeBase": {
+        "maxChars": 800,
+        "compressionStrategy": "relevance-scoring",
+        "minRelevanceScore": 0.7,
+        "maxChunks": 3,
+        "prioritizeByStage": true
+      },
+      "context": {
+        "maxChars": 500,
+        "maxMessages": 2,
+        "compressionStrategy": "recent-only",
+        "includeTimestamps": false
+      },
+      "currentText": {
+        "maxChars": 300,
+        "truncationStrategy": "end-ellipsis"
+      }
+    }
+  },
+  "emergencyFallback": {
+    "enabled": true,
+    "triggerTokenCount": 4000,
+    "maxChars": 500,
+    "useMinimalTemplate": true
+  },
+  "monitoring": {
+    "logTokenCounts": true,
+    "warnOnCompression": true,
+    "trackCompressionRatio": true,
+    "ledCodes": {
+      "compressionStart": 401,
+      "compressionComplete": 402,
+      "emergencyFallback": 403,
+      "tokenWarning": 404
+    }
+  }
+}

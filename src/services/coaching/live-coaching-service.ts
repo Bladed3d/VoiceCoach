@@ -22,9 +22,9 @@ export interface LiveCoachingConfig {
 export interface ProcessedDocument {
   name: string;
   originalContent: string;
-  phase1AResults?: any;
-  phase1BResults?: any;
-  phase1CResults?: any;
+  documentContent?: any;
+  techniques?: any[];
+  response_patterns?: any;
   loadedTimestamp: string;
 }
 
@@ -78,12 +78,18 @@ export class LiveCoachingService {
 
       // Add to conversation history and trigger real-time analysis
       if (transcript.type === 'final_transcript' && transcript.text.trim()) {
+        console.log('📝 FINAL TRANSCRIPT RECEIVED:', transcript.text);
         this.addToConversationHistory('prospect', transcript.text, transcript.timestamp);
         this.pendingTranscript += transcript.text + ' ';
         
+        console.log('📊 PENDING TRANSCRIPT LENGTH:', this.pendingTranscript.length, 'MIN REQUIRED:', this.config.coaching.minTranscriptLength);
+        
         // Trigger IMMEDIATE coaching analysis for live coaching
         if (this.config.coaching.enableRealTimeAnalysis && this.pendingTranscript.length >= this.config.coaching.minTranscriptLength) {
+          console.log('🎯 TRIGGERING REAL-TIME ANALYSIS!');
           this.triggerRealTimeAnalysis(transcript.text);
+        } else {
+          console.log('⏳ NOT ENOUGH TEXT YET OR ANALYSIS DISABLED');
         }
       }
     });
@@ -111,21 +117,22 @@ export class LiveCoachingService {
       this.trail.light(6201, { operation: 'live_coaching_initialization_start' });
 
       // Test Ollama connection
+      console.log('🔌 Testing Ollama connection...');
       const ollamaConnected = await this.ollamaService.testConnection();
       if (!ollamaConnected) {
+        console.error('❌ Ollama connection failed');
         throw new Error('Failed to connect to Ollama service');
       }
+      console.log('✅ Ollama connected');
 
-      // Connect WebSocket
-      const websocketConnected = await this.webSocketClient.connect();
-      if (!websocketConnected) {
-        throw new Error('Failed to connect to transcription service');
-      }
+      // REMOVED WebSocket connection here - it will connect when coaching starts
+      // WebSocket should only connect when user presses Start button, not during initialization
+      console.log('📝 WebSocket will connect when coaching session starts (not during init)');
 
       this.trail.light(6202, {
         operation: 'live_coaching_initialization_complete',
         ollamaConnected,
-        websocketConnected,
+        websocketDelayed: true, // WebSocket connection delayed until start
         timestamp: Date.now()
       });
 
@@ -139,17 +146,24 @@ export class LiveCoachingService {
     }
   }
 
-  loadProcessedDocument(document: ProcessedDocument): boolean {
+  loadProcessedDocument(document: any): boolean {
     try {
       this.trail.light(6220, {
         operation: 'document_loading',
         documentName: document.name,
-        hasPhase1A: !!document.phase1AResults,
-        hasPhase1B: !!document.phase1BResults,
-        hasPhase1C: !!document.phase1CResults
+        hasTechniques: !!document.techniques || !!document.documentContent?.techniques,
+        hasPatterns: !!document.response_patterns || !!document.documentContent?.response_patterns
       });
 
-      this.currentDocument = document;
+      // Store the document with simplified structure
+      this.currentDocument = {
+        name: document.name,
+        originalContent: document.originalContent,
+        documentContent: document.documentContent || document,
+        techniques: document.techniques || document.documentContent?.techniques,
+        response_patterns: document.response_patterns || document.documentContent?.response_patterns
+      };
+      
       this.conversationHistory = []; // Reset conversation when loading new document
       this.pendingTranscript = '';
 
@@ -157,7 +171,7 @@ export class LiveCoachingService {
       
       this.trail.light(6221, {
         operation: 'document_loaded_successfully',
-        availableInsights: Object.keys(document).filter(k => k.includes('Results')).length
+        techniqueCount: this.currentDocument.techniques?.length || 0
       });
 
       return true;
@@ -180,6 +194,15 @@ export class LiveCoachingService {
       if (!this.currentDocument) {
         throw new Error('No document loaded for coaching');
       }
+
+      // Connect WebSocket first (delayed from initialization to actual start)
+      console.log('🔌 Connecting to WebSocket transcription service...');
+      const websocketConnected = await this.webSocketClient.connect();
+      if (!websocketConnected) {
+        console.error('❌ WebSocket connection failed');
+        throw new Error('Failed to connect to transcription service');
+      }
+      console.log('✅ WebSocket connected');
 
       // Start transcription
       const transcriptionStarted = await this.webSocketClient.startTranscription();
@@ -274,13 +297,25 @@ export class LiveCoachingService {
         historyLength: this.conversationHistory.length
       });
 
-      // Build coaching context
+      // Build coaching context - use document directly, no phases
+      if (!this.currentDocument) {
+        console.log('❌❌❌ NO DOCUMENT LOADED IN LIVE COACHING SERVICE!');
+        return;
+      }
+      
       const context: CoachingContext = {
         originalDocument: this.currentDocument.originalContent,
-        processedInsights: this.currentDocument.phase1CResults || this.currentDocument.phase1AResults,
+        processedInsights: this.currentDocument.documentContent || this.currentDocument,
         conversationHistory: this.conversationHistory.slice(-this.config.coaching.maxHistoryLength),
         currentTranscript: this.pendingTranscript
       };
+      
+      console.log('📊 Context being sent:', {
+        hasDocument: !!this.currentDocument,
+        documentName: this.currentDocument.name,
+        hasTechniques: !!(this.currentDocument.techniques || this.currentDocument.documentContent?.techniques || this.currentDocument.documentContent?.predictive_techniques),
+        transcriptLength: this.pendingTranscript.length
+      });
 
       // Get coaching suggestion from Ollama
       const suggestion = await this.ollamaService.generateCoachingSuggestion(context);

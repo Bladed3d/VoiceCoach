@@ -19,22 +19,30 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // RAG document loading
   loadRagDocument: (filename) => ipcRenderer.invoke('load-rag-document', filename),
+  listRagDocuments: () => ipcRenderer.invoke('list-rag-documents'),
   
   // Desktop-native Ollama API
   ollamaTestConnection: () => ipcRenderer.invoke('ollama-test-connection'),
   ollamaGenerate: (data) => ipcRenderer.invoke('ollama-generate', data),
   ollamaListModels: () => ipcRenderer.invoke('ollama-list-models'),
+  generateOllamaCoaching: (data) => ipcRenderer.invoke('generate-ollama-coaching', data),
   
   // Processed Documents Storage
-  saveProcessedDocument: (document) => ipcRenderer.invoke('save-processed-document', document),
+  saveProcessedDocument: (relativePath, content) => ipcRenderer.invoke('save-processed-document', relativePath, content),
   loadProcessedDocuments: () => ipcRenderer.invoke('load-processed-documents'),
   deleteProcessedDocument: (documentId) => ipcRenderer.invoke('delete-processed-document', documentId),
+  calculateFileHash: (filePath) => ipcRenderer.invoke('calculate-file-hash', filePath),
+  
+  // Version Management
+  saveVersionManifest: (documentName, manifestContent) => ipcRenderer.invoke('save-version-manifest', documentName, manifestContent),
+  loadVersionManifest: (documentName) => ipcRenderer.invoke('load-version-manifest', documentName),
+  saveProcessedVersion: (versionData) => ipcRenderer.invoke('save-processed-version', versionData),
   
   // System info
   getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
   
   // VoiceCoach Transcription
-  startTranscription: () => ipcRenderer.invoke('start-transcription'),
+  startTranscription: (voskConfig) => ipcRenderer.invoke('start-transcription', voskConfig),
   stopTranscription: () => ipcRenderer.invoke('stop-transcription'),
   updateVoskConfig: (config) => ipcRenderer.invoke('update-vosk-config', config),
   getConversationHistory: () => ipcRenderer.invoke('get-conversation-history'),

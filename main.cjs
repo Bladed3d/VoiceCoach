@@ -2,7 +2,7 @@
 
 const { app, BrowserWindow, ipcMain, dialog, systemPreferences, shell, net, desktopCapturer } = require('electron');
 const path = require('path');
-const fs = require('fs').promises;
+const fs = require('fs-extra');
 const fsSync = require('fs');
 const { spawn } = require('child_process');
 
@@ -630,6 +630,28 @@ ipcMain.handle('read-file', async (event, filePath) => {
   }
 });
 
+// REMOVED DUPLICATE HANDLERS - Using phase-based versions at lines 1264+ instead
+
+// Calculate file hash for change detection
+ipcMain.handle('calculate-file-hash', async (event, filePath) => {
+  try {
+    const crypto = require('crypto');
+    const content = await fs.readFile(filePath);
+    const hash = crypto.createHash('sha256').update(content).digest('hex');
+    
+    return {
+      success: true,
+      hash
+    };
+  } catch (error) {
+    return {
+      success: false,
+      hash: '',
+      error: error.message
+    };
+  }
+});
+
 // Document processing (mock for now - will integrate with subagents and Ollama)
 ipcMain.handle('process-document', async (event, { content, questionnaire }) => {
   console.log('🧠 Processing document with questionnaire:', {
@@ -939,6 +961,80 @@ ipcMain.handle('process-with-ollama', async (event, { combinedAnalysis, task, mo
 });
 
 // Desktop-native Ollama API calls using Electron's net module
+// Generate Ollama coaching for More Info and Ask features
+ipcMain.handle('generate-ollama-coaching', async (event, { prompt, context }) => {
+  try {
+    console.log('🎯 LED 1095: Generating Ollama coaching response...');
+    
+    return new Promise((resolve, reject) => {
+      const postData = JSON.stringify({
+        model: 'qwen2.5:14b-instruct-q4_K_M',
+        prompt: prompt,
+        stream: false,
+        options: {
+          temperature: 0.3,
+          top_p: 0.9,
+          num_predict: 500
+        }
+      });
+
+      const request = net.request({
+        method: 'POST',
+        url: 'http://localhost:11434/api/generate',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData)
+        }
+      });
+
+      let responseData = '';
+
+      request.on('response', (response) => {
+        console.log(`🎯 LED 1096: Ollama response status: ${response.statusCode}`);
+        
+        response.on('data', (chunk) => {
+          responseData += chunk.toString();
+        });
+
+        response.on('end', () => {
+          try {
+            const parsed = JSON.parse(responseData);
+            
+            // Parse response for coaching content
+            const responseText = parsed.response || '';
+            
+            // Extract definition and steps if available
+            const definitionMatch = responseText.match(/definition[:\s]+(.*?)(?=\n\n|\n##|$)/is);
+            const stepsMatch = responseText.match(/steps?[:\s]+(.*?)(?=\n\n|$)/is);
+            
+            resolve({
+              success: true,
+              definition: definitionMatch ? definitionMatch[1].trim() : responseText.substring(0, 200),
+              steps: stepsMatch ? stepsMatch[1].trim() : '1. Apply the technique\n2. Listen for response\n3. Follow up',
+              answer: responseText,
+              raw: parsed
+            });
+          } catch (error) {
+            console.error('🔴 LED 8096: Failed to parse Ollama response:', error);
+            reject(error);
+          }
+        });
+      });
+
+      request.on('error', (error) => {
+        console.error('🔴 LED 8097: Ollama request error:', error);
+        reject(error);
+      });
+
+      request.write(postData);
+      request.end();
+    });
+  } catch (error) {
+    console.error('🔴 LED 8098: Ollama coaching generation error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 ipcMain.handle('ollama-test-connection', async () => {
   try {
     console.log('🔍 IPC Handler: Testing Ollama connection using Electron net module...');
@@ -1145,17 +1241,73 @@ ipcMain.handle('load-insights', async () => {
   }
 });
 
+// List all RAG documents
+ipcMain.handle('list-rag-documents', async () => {
+  try {
+    // Use app.getAppPath() for correct project root
+    const projectRoot = app.getAppPath();
+    console.log('🎵 LED 2070: DOCUMENT_LISTING - Project root:', projectRoot);
+    
+    // Only check the main rag folder, not subfolders
+    const ragDir = path.join(projectRoot, 'rag');
+    
+    console.log('🎵 LED 2071: DOCUMENT_LISTING - Checking directory:', ragDir);
+    
+    const documents = [];
+    
+    console.log('🎵 LED 2072: DOCUMENT_LISTING - Directory exists:', fs.existsSync(ragDir));
+    
+    if (fs.existsSync(ragDir)) {
+      const files = fs.readdirSync(ragDir);
+      console.log('🎵 LED 2073: DOCUMENT_LISTING - Found items in rag folder:', files);
+      
+      for (const file of files) {
+        const filePath = path.join(ragDir, file);
+        const stats = fs.statSync(filePath);
+        
+        // Only include files, skip directories
+        if (stats.isFile()) {
+          const ext = path.extname(file).toLowerCase();
+          let type = 'other';
+          
+          if (file.includes('original')) type = 'original';
+          else if (file.includes('Processed') || file.includes('processed') || file.includes('ChromaDB')) type = 'processed';
+          else if (ext === '.json') type = 'json';
+          else if (ext === '.txt') type = 'original';
+          
+          const doc = {
+            name: file,
+            path: path.relative(projectRoot, filePath).replace(/\\/g, '/'),
+            type,
+            size: stats.size
+          };
+          
+          documents.push(doc);
+          console.log('🎵 LED 2074: DOCUMENT_LISTING - Added document:', doc.name, 'Type:', doc.type);
+        }
+      }
+    }
+    
+    console.log('🎵 LED 2075: DOCUMENT_LISTING - Total documents found:', documents.length);
+    return documents;
+  } catch (error) {
+    console.error('🎵 LED 8070: DOCUMENT_LISTING_ERROR:', error);
+    return [];
+  }
+});
+
 // Load RAG document by filename
 ipcMain.handle('load-rag-document', async (event, filename) => {
   try {
-    const projectRoot = path.join(__dirname);
+    const projectRoot = app.getAppPath();
     const ragDir = path.join(projectRoot, 'rag');
+    console.log('🎵 LED 2076: LOAD_DOCUMENT - Loading:', filename, 'from:', ragDir);
     
     // Check if exact filename exists
     let filePath = path.join(ragDir, filename);
-    if (!fsSync.existsSync(filePath)) {
+    if (!fs.existsSync(filePath)) {
       // Try glob pattern for wildcard matches (e.g., *original.txt)
-      const files = fsSync.readdirSync(ragDir);
+      const files = fs.readdirSync(ragDir);
       const matchingFiles = files.filter(file => {
         if (filename.includes('*')) {
           const pattern = filename.replace(/\*/g, '.*');
@@ -1391,6 +1543,105 @@ ipcMain.handle('load-processed-documents', async () => {
   }
 });
 
+// Version Management IPC Handlers
+// LED Range: 3300-3399 (Version management)
+
+// Save version manifest for processed documents
+ipcMain.handle('save-version-manifest', async (event, documentName, manifestContent) => {
+  try {
+    console.log('🎵 LED 3310: VERSION_MANAGEMENT - Saving manifest for:', documentName);
+    
+    const ragPath = path.join(__dirname, 'rag', 'processed', 'manifests');
+    await fs.ensureDir(ragPath);
+    
+    const manifestFile = path.join(ragPath, `${documentName}_manifest.json`);
+    await fs.writeFile(manifestFile, manifestContent, 'utf-8');
+    
+    console.log('🎵 LED 3311: VERSION_MANAGEMENT - Manifest saved:', manifestFile);
+    
+    return {
+      success: true,
+      path: manifestFile
+    };
+  } catch (error) {
+    console.error('🎵 LED 8310: VERSION_MANAGEMENT - Failed to save manifest:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+// Load version manifest for a document
+ipcMain.handle('load-version-manifest', async (event, documentName) => {
+  try {
+    console.log('🎵 LED 3320: VERSION_MANAGEMENT - Loading manifest for:', documentName);
+    
+    const manifestFile = path.join(__dirname, 'rag', 'processed', 'manifests', `${documentName}_manifest.json`);
+    
+    if (await fs.pathExists(manifestFile)) {
+      const content = await fs.readFile(manifestFile, 'utf-8');
+      const manifest = JSON.parse(content);
+      
+      console.log('🎵 LED 3321: VERSION_MANAGEMENT - Manifest loaded, versions:', manifest.versions.length);
+      
+      return {
+        success: true,
+        manifest
+      };
+    } else {
+      console.log('🎵 LED 3322: VERSION_MANAGEMENT - No manifest found for:', documentName);
+      
+      return {
+        success: false,
+        manifest: null
+      };
+    }
+  } catch (error) {
+    console.error('🎵 LED 8320: VERSION_MANAGEMENT - Failed to load manifest:', error);
+    return {
+      success: false,
+      error: error.message,
+      manifest: null
+    };
+  }
+});
+
+// Save processed document with version info
+ipcMain.handle('save-processed-version', async (event, versionData) => {
+  try {
+    console.log('🎵 LED 3330: VERSION_MANAGEMENT - Saving processed version:', {
+      document: versionData.documentName,
+      version: versionData.versionName
+    });
+    
+    const ragPath = path.join(__dirname, 'rag', 'processed');
+    await fs.ensureDir(ragPath);
+    
+    // Generate filename with version info
+    const timestamp = Date.now();
+    const fileName = `${versionData.documentName}_${versionData.versionName}_${timestamp}.json`;
+    const filePath = path.join(ragPath, fileName);
+    
+    // Save the processed document
+    await fs.writeFile(filePath, JSON.stringify(versionData, null, 2), 'utf-8');
+    
+    console.log('🎵 LED 3331: VERSION_MANAGEMENT - Version saved:', fileName);
+    
+    return {
+      success: true,
+      fileName,
+      path: filePath
+    };
+  } catch (error) {
+    console.error('🎵 LED 8330: VERSION_MANAGEMENT - Failed to save version:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
 ipcMain.handle('delete-processed-document', async (event, phaseFileId) => {
   try {
     const projectRoot = path.join(__dirname);
@@ -1533,6 +1784,19 @@ ipcMain.handle('get-desktop-sources', async () => {
   }
 });
 
+// Load Vosk Configuration from localStorage on startup
+ipcMain.handle('load-vosk-config', async () => {
+  try {
+    // This will be called by the renderer process to load saved config
+    // The renderer will pass the config from localStorage
+    console.log('🎵 LED 1008: VOSK_CONFIG - Loading saved Vosk configuration');
+    return { success: true };
+  } catch (error) {
+    console.log('❌ LED 8008: VOSK_CONFIG - Failed to load config:', error.message);
+    return { success: false, error: error.message };
+  }
+});
+
 // Vosk Configuration Update Handler
 ipcMain.handle('update-vosk-config', async (event, config) => {
   try {
@@ -1571,18 +1835,53 @@ ipcMain.handle('update-vosk-config', async (event, config) => {
 });
 
 // VoiceCoach WebSocket Transcription Service IPC Handlers  
-ipcMain.handle('start-transcription', async () => {
+ipcMain.handle('start-transcription', async (event, voskConfigFromRenderer) => {
   const serverStartTime = Date.now();
   
   try {
+    // Load Vosk config from renderer if provided (from localStorage)
+    if (voskConfigFromRenderer) {
+      global.voskConfig = voskConfigFromRenderer;
+      console.log('🎵 LED 7306: VOSK_CONFIG - Received config from renderer process', {
+        mode: voskConfigFromRenderer?.transcription?.mode,
+        enablePartials: voskConfigFromRenderer?.transcription?.enablePartials,
+        enableWordTimings: voskConfigFromRenderer?.transcription?.enableWordTimings,
+        debounceMs: voskConfigFromRenderer?.performance?.debounceMs,
+        enableRecognizerReset: voskConfigFromRenderer?.performance?.enableRecognizerReset,
+        recognizerResetInterval: voskConfigFromRenderer?.performance?.recognizerResetInterval,
+        partialTimeout: voskConfigFromRenderer?.silenceDetection?.partialTimeout,
+        chunkSize: voskConfigFromRenderer?.audio?.chunkSize,
+        sampleRate: voskConfigFromRenderer?.audio?.sampleRate
+      });
+    } else if (!global.voskConfig) {
+      console.log('🎵 LED 7307: VOSK_CONFIG - No config received from renderer, will use defaults');
+    }
+    
     // LED Breadcrumb 1010: Start Python WebSocket server
     console.log('🎵 LED 1010: APP_LIFECYCLE - Starting Python WebSocket server {"operation":"websocket_server_start","port":5000,"timestamp":' + serverStartTime + '} ElectronMain_1010');
+    
+    // Kill any existing Python server first (ensure clean state)
+    if (pythonWebSocketServer) {
+      console.log('🎵 LED 1026: APP_LIFECYCLE - Killing existing server before starting new one {"pid":' + pythonWebSocketServer.pid + '}');
+      try {
+        if (process.platform === 'win32' && pythonWebSocketServer.pid) {
+          const { execSync } = require('child_process');
+          execSync(`taskkill /F /PID ${pythonWebSocketServer.pid}`, { stdio: 'ignore' });
+        } else {
+          pythonWebSocketServer.kill('SIGKILL');
+        }
+      } catch (e) {
+        // Ignore errors, process might already be dead
+      }
+      pythonWebSocketServer = null;
+      await new Promise(resolve => setTimeout(resolve, 500)); // Wait for cleanup
+    }
     
     // LED 1027: Automatic port cleanup to prevent conflicts
     console.log('🎵 LED 1027: APP_LIFECYCLE - Port cleanup initiation {"operation":"port_cleanup_start","port":5000,"timestamp":' + Date.now() + '} ElectronMain_1027');
     
     try {
-      // Find and kill any processes using port 5000
+      // Find and kill any processes using port 5000 (including orphaned Python servers)
       const netstatResult = spawn('netstat', ['-ano'], { shell: true });
       let netstatOutput = '';
       
@@ -1597,11 +1896,15 @@ ipcMain.handle('start-transcription', async () => {
           
           console.log('🎵 LED 1027.1: APP_LIFECYCLE - Port scan results {"operation":"port_scan","port5000_processes":' + port5000Lines.length + '} ElectronMain_1027.1');
           
+          if (port5000Lines.length > 0) {
+            console.log('⚠️ LED 1027.2: APP_LIFECYCLE - Found orphaned processes on port 5000, cleaning up...');
+          }
+          
           port5000Lines.forEach(line => {
             const parts = line.trim().split(/\s+/);
             const pid = parts[parts.length - 1];
             if (pid && pid !== '0' && !isNaN(pid)) {
-              console.log('🎵 LED 1027.2: APP_LIFECYCLE - Killing port blocker {"operation":"kill_port_blocker","pid":' + pid + ',"port":5000} ElectronMain_1027.2');
+              console.log('🎵 LED 1027.3: APP_LIFECYCLE - Killing port blocker {"operation":"kill_port_blocker","pid":' + pid + ',"port":5000} ElectronMain_1027.3');
               try {
                 spawn('taskkill', ['/F', '/PID', pid], { shell: true });
               } catch (killError) {
@@ -1612,7 +1915,7 @@ ipcMain.handle('start-transcription', async () => {
           
           // Wait a moment for processes to be killed
           setTimeout(() => {
-            console.log('🎵 LED 1027.3: APP_LIFECYCLE - Port cleanup complete {"operation":"port_cleanup_complete","wait_time":500} ElectronMain_1027.3');
+            console.log('🎵 LED 1027.4: APP_LIFECYCLE - Port cleanup complete {"operation":"port_cleanup_complete","wait_time":500} ElectronMain_1027.4');
             resolve();
           }, 500);
         });
@@ -1659,6 +1962,12 @@ ipcMain.handle('start-transcription', async () => {
     const voskConfigArgs = [];
     if (global.voskConfig) {
       const config = global.voskConfig;
+      
+      console.log('🎵 LED 7308: VOSK_CONFIG - Preparing config arguments for Python server', {
+        hasConfig: true,
+        configKeys: Object.keys(config)
+      });
+      
       // Pass key configuration parameters as command-line arguments
       voskConfigArgs.push(
         '--partial-timeout', String(config.silenceDetection?.partialTimeout || 2.0),
@@ -1679,6 +1988,21 @@ ipcMain.handle('start-transcription', async () => {
       if (config.transcription?.enableWordTimings) {
         voskConfigArgs.push('--enable-word-timings');
       }
+      
+      // Add performance settings
+      if (config.performance?.enableRecognizerReset) {
+        voskConfigArgs.push('--enable-recognizer-reset');
+      }
+      if (config.performance?.recognizerResetInterval) {
+        voskConfigArgs.push('--recognizer-reset-interval', String(config.performance.recognizerResetInterval));
+      }
+      
+      console.log('🎵 LED 7309: VOSK_CONFIG - Config arguments prepared', {
+        argCount: voskConfigArgs.length,
+        args: voskConfigArgs.join(' ')
+      });
+    } else {
+      console.log('🎵 LED 7310: VOSK_CONFIG - No config available, Python server will use defaults');
     }
     
     // Determine Python executable path - Windows cmd.exe wrapper approach
@@ -1879,13 +2203,29 @@ ipcMain.handle('stop-transcription', async () => {
       const serverPid = pythonWebSocketServer ? pythonWebSocketServer.pid : null;
       
       // LED 1042: Server stop signal sent
-      console.log('🎵 LED 1042: APP_LIFECYCLE - Server stop signal sent {"operation":"stop_signal","signal":"SIGINT","pid":' + serverPid + ',"timestamp":' + Date.now() + '} ElectronMain_1042');
+      console.log('🎵 LED 1042: APP_LIFECYCLE - Server stop signal sent {"operation":"stop_signal","signal":"SIGTERM","pid":' + serverPid + ',"timestamp":' + Date.now() + '} ElectronMain_1042');
       
-      if (pythonWebSocketServer) {
-        pythonWebSocketServer.kill('SIGINT');
+      // On Windows, use taskkill for reliable termination
+      if (process.platform === 'win32' && serverPid) {
+        try {
+          // Use taskkill to ensure the process is terminated
+          const { exec } = require('child_process');
+          exec(`taskkill /F /PID ${serverPid}`, (error, stdout, stderr) => {
+            if (error) {
+              console.log('🎵 LED 8046: ERROR_HANDLING - Taskkill error (may be already stopped): ' + error.message);
+            } else {
+              console.log('🎵 LED 1042.1: APP_LIFECYCLE - Server terminated via taskkill {"pid":' + serverPid + '}');
+            }
+          });
+        } catch (killError) {
+          console.log('🎵 LED 8047: ERROR_HANDLING - Failed to use taskkill: ' + killError.message);
+        }
+      } else if (pythonWebSocketServer) {
+        // For non-Windows, use SIGTERM then SIGKILL
+        pythonWebSocketServer.kill('SIGTERM');
       }
       
-      // Wait brief moment for graceful shutdown
+      // Wait brief moment for termination
       await new Promise(resolve => setTimeout(resolve, 500));
       
       pythonWebSocketServer = null;

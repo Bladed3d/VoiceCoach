@@ -42,8 +42,10 @@ export class OllamaInstructionLoaderBrowser {
       
       // If we have electronAPI, try to read the file
       if ((window as any).electronAPI?.readFile) {
-        const fileContent = await (window as any).electronAPI.readFile(this.instructionFilePath);
-        if (fileContent) {
+        const fileData = await (window as any).electronAPI.readFile(this.instructionFilePath);
+        if (fileData && fileData.content) {
+          // Access the content property of the returned object
+          const fileContent = fileData.content;
           // Extract the prompt section
           const promptMatch = fileContent.match(/```prompt\s*([\s\S]*?)\s*```/);
           if (promptMatch) {
@@ -63,15 +65,38 @@ export class OllamaInstructionLoaderBrowser {
         }
       }
       
-      // Fallback to default instructions
+      // NO SILENT FALLBACK - Make it visible!
+      console.error('❌ INSTRUCTION LOADING FAILED: No Ollama instructions file found!');
+      console.error('   Expected file at:', this.instructionFilePath);
+      console.error('   This means AI coaching prompts are NOT configured properly!');
+      
+      // Still set default but warn loudly
       this.instructionTemplate = this.getDefaultInstructions();
-      console.log('📝 Using default Ollama instructions');
-      return true;
+      console.warn('⚠️ WARNING: Using FALLBACK Ollama instructions - coaching may not work as expected!');
+      
+      // Show user-visible warning
+      if (typeof window !== 'undefined') {
+        setTimeout(() => {
+          alert('⚠️ AI Coaching Configuration Issue!\n\nOllama instruction file not found.\nUsing default instructions - coaching quality may be reduced.\n\nPlease check ollama-prompts/active-instructions.md');
+        }, 2000);
+      }
+      
+      return false; // Return false to indicate failure
       
     } catch (error) {
       this.trail.fail(8401, error as Error);
-      console.error('❌ Failed to load instructions:', error);
+      console.error('❌ CRITICAL ERROR loading instructions:', error);
+      console.error('   Using FALLBACK instructions - coaching will be degraded!');
+      
       this.instructionTemplate = this.getDefaultInstructions();
+      
+      // Make the error visible to user
+      if (typeof window !== 'undefined') {
+        setTimeout(() => {
+          alert(`⚠️ AI Coaching Error!\n\nFailed to load instructions: ${error}\n\nUsing fallback - reduced coaching quality.`);
+        }, 2000);
+      }
+      
       return false;
     }
   }

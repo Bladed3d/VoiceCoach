@@ -1,37 +1,43 @@
-VoiceCoach Test Sales Script
+Never Split the Difference - Key Sales Techniques
 
-Product Overview:
-Our enterprise software solution helps companies streamline their workflow processes and increase productivity by 40%. Key features include automated task management, real-time collaboration tools, and advanced analytics dashboard.
+TACTICAL EMPATHY
+The foundation of all negotiation. Understanding the feelings and mindset of another in the moment and hearing what is behind those feelings so you increase your influence in all the moments that follow.
 
-Customer Pain Points:
-- Manual processes taking too much time
-- Lack of visibility into project status
-- Poor team communication and coordination
-- Difficulty tracking ROI on initiatives
+MIRRORING
+Simply repeating the last three words (or the critical one to three words) of what someone has just said. This encourages them to keep talking and reveals more information.
+Example: Customer: "The price seems really high for what we're getting."
+Response: "For what you're getting?"
 
-Value Proposition:
-- Reduce manual work by 60% through intelligent automation
-- Increase team productivity with seamless collaboration
-- Get real-time insights with customizable dashboards
-- Proven ROI within 6 months for 95% of customers
+LABELING
+Spotting the other person's feelings and turning them into words. Use phrases like "It seems like..." or "It sounds like..." or "It looks like..."
+Example: "It sounds like you're concerned about the implementation timeline."
 
-Competitive Advantages:
-- #1 rated user experience in industry
-- 99.9% uptime guarantee
-- Enterprise-grade security and compliance
-- 24/7 customer support with <2 hour response time
+CALIBRATED QUESTIONS
+Open-ended questions that begin with "How" or "What" that give the other side the illusion of control while you're gathering crucial information.
+Example: "What's the biggest challenge you face?" or "How can we solve this problem together?"
 
-Pricing Strategy:
-- Basic Plan: $50/user/month (up to 10 users)
-- Professional Plan: $100/user/month (unlimited users)
-- Enterprise Plan: Custom pricing with dedicated support
+THE ACCUSATION AUDIT
+List every terrible thing your counterpart could say about you at the beginning of the negotiation. This disarms them and takes the sting out of potential objections.
+Example: "You probably think we're just another software company trying to sell you something you don't need..."
 
-Common Objections & Responses:
-Q: "This seems expensive compared to our current solution"
-A: "Let me show you the ROI calculator - most customers save $200,000+ annually through efficiency gains"
+NO-ORIENTED QUESTIONS
+People are more comfortable saying "no" than "yes." Frame questions to get a "no" that actually means "yes."
+Example: "Would it be a ridiculous idea if we looked at how this could save you time?"
 
-Q: "How long does implementation take?"
-A: "Our typical deployment is 2-4 weeks with our white-glove onboarding service"
+THE 7-38-55 RULE
+Only 7% of a message is based on words, 38% comes from tone of voice, and 55% from body language and face. Focus on HOW things are said, not just what is said.
 
-Q: "What if the team doesn't adopt it?"
-A: "We have a 97% user adoption rate thanks to our intuitive design and comprehensive training program"
+DEADLINES
+Deadlines are often arbitrary and almost never trigger the consequences we think. Don't be pushed by false urgency.
+
+BLACK SWANS
+Hidden pieces of information that, if uncovered, would change everything. There are always at least three Black Swans in every negotiation.
+
+THE ACKERMAN MODEL
+A systematic bargaining approach:
+1. Set your target price (your goal)
+2. Set your first offer at 65% of target
+3. Calculate three raises of decreasing increments (85%, 95%, 100%)
+4. Use lots of empathy and different ways of saying "No" before increasing offer
+5. On final number, use precise, non-round numbers
+6. On final number, throw in a non-monetary item to show you're at your limit

@@ -1,0 +1,119 @@
+{
+  "stages": {
+    "discovery": {
+      "keywords": [
+        "tell me about",
+        "what do you",
+        "help me understand",
+        "current",
+        "challenge",
+        "problem",
+        "pain point",
+        "struggle",
+        "difficulty",
+        "issue",
+        "concern"
+      ],
+      "guidance": "Ask open-ended questions to uncover pain points and business impact",
+      "suggestedQuestions": [
+        "What's your biggest challenge with [current situation]?",
+        "How is this impacting your team?",
+        "What happens if nothing changes?"
+      ],
+      "focusAreas": ["pain identification", "impact analysis", "current state"],
+      "urgencyModifier": 0
+    },
+    "demo": {
+      "keywords": [
+        "how does",
+        "show me",
+        "can you demonstrate",
+        "features",
+        "capabilities",
+        "functionality",
+        "what can it do",
+        "walk me through",
+        "explain how"
+      ],
+      "guidance": "Connect features directly to their stated pain points",
+      "suggestedActions": [
+        "Tie each feature back to their specific need",
+        "Check for understanding: 'Does this address your concern about X?'",
+        "Get micro-commitments: 'Can you see how this would help?'"
+      ],
+      "focusAreas": ["value connection", "understanding checks", "micro-commitments"],
+      "urgencyModifier": 0.2
+    },
+    "objection_handling": {
+      "keywords": [
+        "expensive",
+        "cost",
+        "budget",
+        "concern",
+        "worried",
+        "not sure",
+        "think about it",
+        "need to check",
+        "competitor",
+        "already have",
+        "but",
+        "however"
+      ],
+      "guidance": "Acknowledge, isolate, and address the specific concern",
+      "framework": {
+        "acknowledge": "I understand [restate concern]",
+        "isolate": "If we could address [specific concern], would you move forward?",
+        "value": "Let me show you how [solution addresses concern]"
+      },
+      "focusAreas": ["empathy", "clarification", "value reframing"],
+      "urgencyModifier": 0.5
+    },
+    "closing": {
+      "keywords": [
+        "next steps",
+        "move forward",
+        "get started",
+        "when can we",
+        "contract",
+        "agreement",
+        "pricing",
+        "timeline",
+        "implementation",
+        "decision"
+      ],
+      "guidance": "Secure specific commitment and clear next steps",
+      "closingTechniques": [
+        "Assumptive: 'When would you like to get started?'",
+        "Alternative: 'Would Tuesday or Thursday work better?'",
+        "Direct: 'Are you ready to move forward?'"
+      ],
+      "focusAreas": ["commitment", "timeline", "specific actions"],
+      "urgencyModifier": 0.8
+    },
+    "unknown": {
+      "keywords": [],
+      "guidance": "Focus on understanding their needs and advancing the conversation",
+      "defaultActions": [
+        "Ask clarifying questions",
+        "Explore their current situation",
+        "Identify potential pain points"
+      ],
+      "focusAreas": ["discovery", "rapport building"],
+      "urgencyModifier": 0
+    }
+  },
+  "detection": {
+    "strategy": "keyword-matching",
+    "caseSensitive": false,
+    "minKeywordMatches": 1,
+    "priorityOrder": ["closing", "objection_handling", "demo", "discovery", "unknown"],
+    "contextWindow": 100,
+    "useConversationHistory": true
+  },
+  "stageTransitions": {
+    "discovery_to_demo": ["show me", "how does", "features"],
+    "demo_to_objection": ["but", "concern", "expensive"],
+    "objection_to_closing": ["makes sense", "I see", "that helps"],
+    "any_to_closing": ["next steps", "move forward", "get started"]
+  }
+}

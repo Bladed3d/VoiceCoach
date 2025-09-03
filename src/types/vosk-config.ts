@@ -32,6 +32,8 @@ export interface VoskConfig {
     debounceMs: number;            // Debounce rapid updates (default: 150)
     maxQueueSize: number;          // Max audio queue size (default: 100)
     cpuThrottling: boolean;        // Reduce CPU usage
+    enableRecognizerReset: boolean; // Reset recognizer periodically (default: false)
+    recognizerResetInterval: number; // Seconds between resets (default: 30)
   };
 }
 
@@ -56,7 +58,9 @@ export const defaultVoskConfig: VoskConfig = {
   performance: {
     debounceMs: 150,
     maxQueueSize: 100,
-    cpuThrottling: false
+    cpuThrottling: false,
+    enableRecognizerReset: false,
+    recognizerResetInterval: 30
   }
 };
 
@@ -72,11 +76,20 @@ export const voskPresets = {
         minTrailingSilence: 0.2,
         aggressiveEndpointing: true
       },
+      audio: {
+        sampleRate: 16000,
+        chunkSize: 512,  // Small chunk for fast phrase detection
+        channels: 1
+      },
       transcription: {
         mode: 'phrase' as const,
         minPhraseWords: 2,
         enablePartials: true,
         enableWordTimings: false
+      },
+      performance: {
+        debounceMs: 100,  // Faster debounce for quick phrases
+        enableRecognizerReset: false
       }
     }
   },
@@ -91,11 +104,20 @@ export const voskPresets = {
         minTrailingSilence: 0.5,
         aggressiveEndpointing: false
       },
+      audio: {
+        sampleRate: 16000,
+        chunkSize: 4096,  // Larger chunk for complete sentences
+        channels: 1
+      },
       transcription: {
         mode: 'sentence' as const,
         minPhraseWords: 5,
         enablePartials: false,
         enableWordTimings: false
+      },
+      performance: {
+        debounceMs: 150,
+        enableRecognizerReset: false
       }
     }
   },
@@ -110,11 +132,20 @@ export const voskPresets = {
         minTrailingSilence: 0.1,
         aggressiveEndpointing: true
       },
+      audio: {
+        sampleRate: 16000,
+        chunkSize: 256,  // Minimum chunk size for real-time
+        channels: 1
+      },
       transcription: {
         mode: 'word' as const,
         minPhraseWords: 1,
         enablePartials: true,
         enableWordTimings: true
+      },
+      performance: {
+        debounceMs: 50,  // Minimal debounce for real-time
+        enableRecognizerReset: false
       }
     }
   },
@@ -129,11 +160,20 @@ export const voskPresets = {
         minTrailingSilence: 0.3,
         aggressiveEndpointing: false
       },
+      audio: {
+        sampleRate: 16000,
+        chunkSize: 2048,  // Balanced chunk size
+        channels: 1
+      },
       transcription: {
         mode: 'hybrid' as const,
         minPhraseWords: 3,
         enablePartials: true,
         enableWordTimings: false
+      },
+      performance: {
+        debounceMs: 120,
+        enableRecognizerReset: false
       }
     }
   }

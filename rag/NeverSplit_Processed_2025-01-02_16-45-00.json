@@ -1,0 +1,761 @@
+{
+  "document_metadata": {
+    "title": "Never Split the Difference - Negotiating As If Your Life Depended On It",
+    "methodology": "Chris Voss - Never Split the Difference",
+    "processed_date": "2025-01-02T16:45:00",
+    "total_principles": 8
+  },
+  "key_principles": [
+    {
+      "name": "Mirroring",
+      "description": "Mirroring is the practice of repeating the last 1-3 critical words someone just said to encourage them to elaborate further without feeling interrogated.",
+      "when_to_use": "When you want the prospect to continue talking and reveal more information, especially when they mention concerns, objections, or important details",
+      "why_it_works": "Creates a subconscious connection and makes the speaker feel heard, triggering them to naturally expand on their thoughts without defensive reactions",
+      "sales_application": "Use mirroring to get prospects to elaborate on pain points, budget constraints, decision criteria, or any concern they briefly mention",
+      "specific_examples": [
+        {
+          "scenario": "A SaaS prospect mentions they're concerned about implementation time",
+          "dialogue_example": "Prospect: 'We're worried the implementation will take too long and disrupt our team.'\nSalesperson: 'Disrupt your team?'\nProspect: 'Yes, last time we implemented a new system, it took 3 months and our productivity dropped 40%.'"
+        },
+        {
+          "scenario": "An insurance client discusses coverage concerns",
+          "dialogue_example": "Prospect: 'The deductible seems quite high for our situation.'\nSalesperson: 'High for your situation?'\nProspect: 'Well, we have multiple properties and if we had claims on several, it would be expensive.'"
+        },
+        {
+          "scenario": "A real estate buyer mentions location issues",
+          "dialogue_example": "Prospect: 'The location might not work for our employees.'\nSalesperson: 'Not work for your employees?'\nProspect: 'Most of them live on the other side of town, adding 30 minutes to their commute.'"
+        }
+      ],
+      "real_world_scenarios": [
+        {
+          "industry": "SaaS",
+          "scenario": "During a demo when the prospect expresses concern about features or integration"
+        },
+        {
+          "industry": "Real Estate",
+          "scenario": "When a buyer mentions issues with property price, location, or condition"
+        },
+        {
+          "industry": "Insurance",
+          "scenario": "When discussing coverage limits, deductibles, or premium costs"
+        }
+      ],
+      "implementation_guide": [
+        "Listen actively and identify the 1-3 most critical words in their statement",
+        "Repeat those words with an upward inflection, making it a question",
+        "Remain silent and maintain eye contact (or pause on phone), allowing them to elaborate",
+        "Take notes on the additional information they provide",
+        "Use the new information to ask deeper calibrated questions"
+      ],
+      "common_mistakes_to_avoid": [
+        "Mirroring too frequently - it becomes obvious and annoying",
+        "Repeating entire sentences instead of just key words",
+        "Using a mocking or sarcastic tone instead of genuine curiosity",
+        "Breaking the silence too quickly after mirroring"
+      ],
+      "coaching_prompts": [
+        {
+          "trigger": "worried about|concerned about|problem with",
+          "coach_prompt": "💡 Mirror their concern to get more details",
+          "salesperson_says": "[Repeat their last 2-3 words as a question]",
+          "priority": "HIGH"
+        },
+        {
+          "trigger": "too expensive|over budget|can't afford",
+          "coach_prompt": "💡 Mirror the price objection",
+          "salesperson_says": "Too expensive?",
+          "priority": "HIGH"
+        },
+        {
+          "trigger": "not sure|don't know|maybe",
+          "coach_prompt": "💡 Mirror their uncertainty",
+          "salesperson_says": "Not sure?",
+          "priority": "MEDIUM"
+        }
+      ]
+    },
+    {
+      "name": "Labeling",
+      "description": "Labeling is the practice of identifying and vocalizing someone's emotions to diffuse tension and build rapport through emotional acknowledgment.",
+      "when_to_use": "When emotions are evident but unspoken, when you need to defuse tension, or when you want to demonstrate empathy and understanding",
+      "why_it_works": "Acknowledging emotions validates the person's feelings, reduces their defensive stance, and creates psychological safety for open dialogue",
+      "sales_application": "Use labeling to address hidden concerns, defuse price objections, and navigate emotional resistance during negotiations",
+      "specific_examples": [
+        {
+          "scenario": "A prospect is confused about pricing structure",
+          "dialogue_example": "Prospect: 'This pricing doesn't make any sense to me.'\nSalesperson: 'It seems like you're confused about how we structure our pricing.'\nProspect: 'Yes, I don't understand why there are so many tiers and add-ons.'"
+        },
+        {
+          "scenario": "A client doubts ROI claims",
+          "dialogue_example": "Prospect: 'I don't trust these ROI numbers you're showing.'\nSalesperson: 'It sounds like you're skeptical about the projected returns.'\nProspect: 'Exactly, we've been burned by inflated promises before.'"
+        },
+        {
+          "scenario": "Budget constraints emerge",
+          "dialogue_example": "Prospect: 'We can't afford this right now.'\nSalesperson: 'It seems like budget is a real pressure point.'\nProspect: 'It is. We just had our funding cut by 20%.'"
+        }
+      ],
+      "real_world_scenarios": [
+        {
+          "industry": "Enterprise Software",
+          "scenario": "When C-suite executives express skepticism about digital transformation"
+        },
+        {
+          "industry": "Healthcare",
+          "scenario": "When administrators worry about disrupting patient care during implementation"
+        },
+        {
+          "industry": "Financial Services",
+          "scenario": "When compliance officers express concerns about regulatory risks"
+        }
+      ],
+      "implementation_guide": [
+        "Observe verbal and non-verbal cues to identify the underlying emotion",
+        "Start with neutral third-party statements: 'It seems like...', 'It sounds like...', 'It looks like...'",
+        "Keep the label simple and focused on one emotion",
+        "Pause after labeling to allow them to confirm or correct",
+        "If wrong, gracefully accept correction: 'I misread that, help me understand...'"
+      ],
+      "common_mistakes_to_avoid": [
+        "Mislabeling emotions - always use tentative language",
+        "Being too direct or blunt with emotional observations",
+        "Labeling multiple emotions at once, creating confusion"
+      ],
+      "coaching_prompts": [
+        {
+          "trigger": "This doesn't make sense|confusing|unclear",
+          "coach_prompt": "💡 Label their confusion",
+          "salesperson_says": "It seems like this is confusing",
+          "priority": "HIGH"
+        },
+        {
+          "trigger": "skeptical|don't believe|not convinced",
+          "coach_prompt": "💡 Label their skepticism",
+          "salesperson_says": "It sounds like you're skeptical",
+          "priority": "HIGH"
+        },
+        {
+          "trigger": "frustrated|annoyed|upset",
+          "coach_prompt": "💡 Label their frustration",
+          "salesperson_says": "It seems like this is frustrating",
+          "priority": "MEDIUM"
+        }
+      ]
+    },
+    {
+      "name": "Tactical Empathy",
+      "description": "Tactical empathy is understanding and articulating the other person's emotions and perspective to influence outcomes while building genuine connection.",
+      "when_to_use": "When dealing with emotional resistance, building initial rapport, or when the prospect feels misunderstood or unheard",
+      "why_it_works": "Makes counterparts feel emotionally safe and understood, lowering their guard and creating openness to collaboration",
+      "sales_application": "Use tactical empathy to navigate emotional objections, build trust quickly, and transform adversarial dynamics into partnerships",
+      "specific_examples": [
+        {
+          "scenario": "Prospect frustrated with current vendor",
+          "dialogue_example": "Prospect: 'This whole vendor selection process is really frustrating.'\nSalesperson: 'I hear your frustration. It sounds like you've been through this before without great results.'\nProspect: 'Exactly. We spent months last time and the solution didn't even work.'"
+        },
+        {
+          "scenario": "Decision maker worried about change",
+          "dialogue_example": "Prospect: 'I'm worried about how the team will react to another change.'\nSalesperson: 'Your concern about team morale is completely valid. Change fatigue is real.'\nProspect: 'Yes, we've had three system changes in two years.'"
+        },
+        {
+          "scenario": "Buyer burned by previous vendors",
+          "dialogue_example": "Prospect: 'We've been burned by vendors making big promises.'\nSalesperson: 'I understand why past experiences would make you cautious about new vendors.'\nProspect: 'The last vendor promised the world and delivered nothing.'"
+        }
+      ],
+      "real_world_scenarios": [
+        {
+          "industry": "Technology",
+          "scenario": "When IT teams resist another platform migration"
+        },
+        {
+          "industry": "Manufacturing",
+          "scenario": "When operations managers fear production disruption"
+        },
+        {
+          "industry": "Retail",
+          "scenario": "When store managers worry about staff training requirements"
+        }
+      ],
+      "implementation_guide": [
+        "Listen for emotional undertones beyond the literal words",
+        "Acknowledge both the emotion and the reason behind it",
+        "Use phrases like 'I understand...', 'I hear...', 'That makes sense...'",
+        "Share similar experiences when appropriate to build connection",
+        "Avoid immediately jumping to solutions - sit with their emotion first"
+      ],
+      "common_mistakes_to_avoid": [
+        "Dismissing emotions to focus on logic",
+        "Moving too quickly from empathy to selling",
+        "Using fake or insincere empathy that feels manipulative"
+      ],
+      "coaching_prompts": [
+        {
+          "trigger": "frustrated|exhausted|overwhelmed",
+          "coach_prompt": "💡 Show tactical empathy",
+          "salesperson_says": "I hear your frustration with this",
+          "priority": "HIGH"
+        },
+        {
+          "trigger": "worried|concerned|anxious",
+          "coach_prompt": "💡 Validate their concern",
+          "salesperson_says": "Your concern is completely valid",
+          "priority": "HIGH"
+        },
+        {
+          "trigger": "burned|disappointed|let down",
+          "coach_prompt": "💡 Acknowledge past pain",
+          "salesperson_says": "I understand why you'd be cautious",
+          "priority": "MEDIUM"
+        }
+      ]
+    },
+    {
+      "name": "Calibrated Questions",
+      "description": "Calibrated questions are open-ended 'How' and 'What' questions that give the illusion of control while guiding counterparts to your desired outcome.",
+      "when_to_use": "When facing objections, ensuring implementation, or when you need the prospect to think through solutions themselves",
+      "why_it_works": "Shifts mental focus from confrontation to collaboration, making counterparts feel autonomous while working toward your goals",
+      "sales_application": "Use calibrated questions to handle price objections, uncover hidden obstacles, and ensure commitment to implementation",
+      "specific_examples": [
+        {
+          "scenario": "Prospect says solution won't work",
+          "dialogue_example": "Prospect: 'That solution won't work for our team.'\nSalesperson: 'What would work better for your situation?'\nProspect: 'We'd need something that integrates with our existing CRM and doesn't require coding.'"
+        },
+        {
+          "scenario": "Price objection emerges",
+          "dialogue_example": "Prospect: 'The price is way too high for us.'\nSalesperson: 'How can we make this work within your budget?'\nProspect: 'Maybe if we could phase the implementation or adjust the payment terms...'"
+        },
+        {
+          "scenario": "Prospect needs to think about it",
+          "dialogue_example": "Prospect: 'I need to think about this.'\nSalesperson: 'What specifically concerns you most?'\nProspect: 'I'm not sure my team has the bandwidth to implement this quarter.'"
+        }
+      ],
+      "real_world_scenarios": [
+        {
+          "industry": "Consulting",
+          "scenario": "When clients resist recommendations that require organizational change"
+        },
+        {
+          "industry": "Medical Devices",
+          "scenario": "When hospitals cite budget constraints for new equipment"
+        },
+        {
+          "industry": "Education Technology",
+          "scenario": "When schools worry about teacher adoption of new platforms"
+        }
+      ],
+      "implementation_guide": [
+        "Start questions with 'How' or 'What' - avoid 'Why' which sounds accusatory",
+        "Frame questions to make them problem-solve for mutual benefit",
+        "Use questions like: 'How can we resolve this?', 'What would need to change?'",
+        "Let them talk through their answer without interrupting",
+        "Build on their answers with follow-up calibrated questions"
+      ],
+      "common_mistakes_to_avoid": [
+        "Using 'Why' questions which trigger defensiveness",
+        "Asking closed-ended questions that get yes/no answers",
+        "Asking multiple questions at once, creating confusion"
+      ],
+      "coaching_prompts": [
+        {
+          "trigger": "won't work|can't do|impossible",
+          "coach_prompt": "💡 Ask what would work",
+          "salesperson_says": "What would work better?",
+          "priority": "CRITICAL"
+        },
+        {
+          "trigger": "too expensive|over budget|can't afford",
+          "coach_prompt": "💡 Ask how to make it work",
+          "salesperson_says": "How can we make this work?",
+          "priority": "CRITICAL"
+        },
+        {
+          "trigger": "need to think|not sure|maybe later",
+          "coach_prompt": "💡 Ask what concerns them",
+          "salesperson_says": "What concerns you most?",
+          "priority": "HIGH"
+        }
+      ]
+    },
+    {
+      "name": "Accusation Audit",
+      "description": "An accusation audit involves listing every negative thing your counterpart could think about you upfront to trigger their empathy and disarm objections.",
+      "when_to_use": "At the beginning of difficult conversations, before delivering bad news, or when you expect strong resistance",
+      "why_it_works": "Triggers psychological reactance where people want to disagree with negative assessments, making them defend you instead of attack",
+      "sales_application": "Use accusation audits before price discussions, when entering competitive situations, or addressing service failures",
+      "specific_examples": [
+        {
+          "scenario": "Before discussing premium pricing",
+          "dialogue_example": "Salesperson: 'You probably think we're the most expensive option, that we're overpriced, and that we don't understand your budget constraints.'\nProspect: 'Well, I wouldn't say that. I know quality comes at a price.'"
+        },
+        {
+          "scenario": "Competing against established vendor",
+          "dialogue_example": "Salesperson: 'You might think we're too small, too new, and that switching from your current vendor would be too risky.'\nProspect: 'Not necessarily. We're open to better solutions regardless of company size.'"
+        },
+        {
+          "scenario": "After implementation delay",
+          "dialogue_example": "Salesperson: 'You probably think we're unreliable, that we don't value your time, and that this delay shows we can't deliver.'\nProspect: 'Look, delays happen. What matters is how you handle them.'"
+        }
+      ],
+      "real_world_scenarios": [
+        {
+          "industry": "Startups",
+          "scenario": "When pitching against Fortune 500 competitors"
+        },
+        {
+          "industry": "Professional Services",
+          "scenario": "When your rates are higher than competitors"
+        },
+        {
+          "industry": "Software",
+          "scenario": "When you lack certain features competitors have"
+        }
+      ],
+      "implementation_guide": [
+        "List 3-5 worst things they could think about you or your offer",
+        "Deliver calmly without defensiveness or self-pity",
+        "Use phrases like 'You probably think...', 'You might believe...'",
+        "Pause after the audit to let them respond",
+        "Don't argue if they agree with some points - acknowledge and move forward"
+      ],
+      "common_mistakes_to_avoid": [
+        "Being too negative and talking yourself out of the deal",
+        "Overdoing the audit and seeming manipulative",
+        "Defending yourself immediately after the audit"
+      ],
+      "coaching_prompts": [
+        {
+          "trigger": "Let's discuss pricing|talk about cost",
+          "coach_prompt": "💡 Do accusation audit first",
+          "salesperson_says": "You probably think we're expensive",
+          "priority": "HIGH"
+        },
+        {
+          "trigger": "comparing vendors|looking at options",
+          "coach_prompt": "💡 Audit competitive concerns",
+          "salesperson_says": "You might think others are better",
+          "priority": "MEDIUM"
+        },
+        {
+          "trigger": "had some issues|problems came up",
+          "coach_prompt": "💡 Audit service concerns",
+          "salesperson_says": "You probably think we dropped the ball",
+          "priority": "HIGH"
+        }
+      ]
+    },
+    {
+      "name": "Dynamic Silence",
+      "description": "Dynamic silence is the strategic use of pauses to create space for the other person to fill with valuable information and concessions.",
+      "when_to_use": "After making an offer, asking a question, or when the prospect pauses mid-thought",
+      "why_it_works": "Creates productive discomfort that compels people to fill the void, often revealing hidden information or making concessions",
+      "sales_application": "Use silence after price quotes, following questions, and when prospects are processing information",
+      "specific_examples": [
+        {
+          "scenario": "After quoting price",
+          "dialogue_example": "Salesperson: 'The investment for this solution is $50,000.' [Remains silent for 5 seconds]\nProspect: 'That's... actually less than I expected. We budgeted $60,000.'"
+        },
+        {
+          "scenario": "Prospect trails off mid-sentence",
+          "dialogue_example": "Prospect: 'Well, the thing is...' [trails off]\nSalesperson: [Remains silent, maintaining eye contact]\nProspect: '...we're actually looking to replace our current vendor by Q2.'"
+        },
+        {
+          "scenario": "After asking for the business",
+          "dialogue_example": "Salesperson: 'Are you ready to move forward?' [Silence]\nProspect: [After 4 seconds] 'Yes, but we need to start with a smaller pilot first.'"
+        }
+      ],
+      "real_world_scenarios": [
+        {
+          "industry": "Real Estate",
+          "scenario": "After presenting an offer on a property"
+        },
+        {
+          "industry": "Automotive",
+          "scenario": "After stating the final price on a vehicle"
+        },
+        {
+          "industry": "B2B Sales",
+          "scenario": "After asking for a multi-year commitment"
+        }
+      ],
+      "implementation_guide": [
+        "Count to 5 slowly in your head before speaking",
+        "Maintain calm, neutral body language during silence",
+        "On phone calls, resist the urge to fill dead air",
+        "If they ask 'Are you still there?' simply say 'Yes, I'm listening'",
+        "Use silence after every important question or statement"
+      ],
+      "common_mistakes_to_avoid": [
+        "Breaking silence too quickly due to discomfort",
+        "Appearing uncomfortable or fidgeting during silence",
+        "Using silence punitively or manipulatively"
+      ],
+      "coaching_prompts": [
+        {
+          "trigger": "[after stating price]",
+          "coach_prompt": "💡 Stay silent - count to 5",
+          "salesperson_says": "[remain silent]",
+          "priority": "CRITICAL"
+        },
+        {
+          "trigger": "Well...|The thing is...|Actually...",
+          "coach_prompt": "💡 Don't interrupt - wait",
+          "salesperson_says": "[remain silent]",
+          "priority": "HIGH"
+        },
+        {
+          "trigger": "I don't know|Let me think",
+          "coach_prompt": "💡 Give them space to think",
+          "salesperson_says": "[remain silent]",
+          "priority": "MEDIUM"
+        }
+      ]
+    },
+    {
+      "name": "Black Swan Discovery",
+      "description": "Black Swan discovery is the practice of uncovering hidden, game-changing information that completely shifts the negotiation dynamics in your favor.",
+      "when_to_use": "When something doesn't add up, when facing unexpected resistance, or when you sense hidden factors affecting the decision",
+      "why_it_works": "Reveals unknown unknowns - information you didn't know you didn't know - that can completely transform the negotiation",
+      "sales_application": "Use black swan discovery to uncover hidden budgets, undisclosed deadlines, political dynamics, or competitive situations",
+      "specific_examples": [
+        {
+          "scenario": "Prospect says timing isn't right",
+          "dialogue_example": "Prospect: 'We need to wait until next quarter.'\nSalesperson: 'What specifically happens next quarter?'\nProspect: 'That's when our merger completes and we'll have the combined budget.'"
+        },
+        {
+          "scenario": "Unexpected urgency emerges",
+          "dialogue_example": "Prospect: 'We need this implemented by March 15th.'\nSalesperson: 'What makes March 15th so critical?'\nProspect: 'That's when our biggest client audits our systems.'"
+        },
+        {
+          "scenario": "Resistance despite clear value",
+          "dialogue_example": "Prospect: 'I just can't move forward right now.'\nSalesperson: 'What aren't you telling me?'\nProspect: 'Honestly? The CEO's son is pushing a different solution.'"
+        }
+      ],
+      "real_world_scenarios": [
+        {
+          "industry": "Enterprise Sales",
+          "scenario": "When decision-making stalls despite stakeholder agreement"
+        },
+        {
+          "industry": "Government Contracts",
+          "scenario": "When procurement processes have hidden requirements"
+        },
+        {
+          "industry": "Private Equity",
+          "scenario": "When portfolio companies have undisclosed exit timelines"
+        }
+      ],
+      "implementation_guide": [
+        "Look for inconsistencies between words and actions",
+        "Ask 'What else?' repeatedly to dig deeper",
+        "Use phrases like 'What aren't you telling me?' when appropriate",
+        "Pay attention to what they're NOT saying",
+        "Create psychological safety for them to reveal sensitive information"
+      ],
+      "common_mistakes_to_avoid": [
+        "Being too aggressive in probing for information",
+        "Missing subtle cues that indicate hidden factors",
+        "Asking about black swans too early before building trust"
+      ],
+      "coaching_prompts": [
+        {
+          "trigger": "It's complicated|complex situation",
+          "coach_prompt": "💡 Probe for hidden factors",
+          "salesperson_says": "What else should I know?",
+          "priority": "CRITICAL"
+        },
+        {
+          "trigger": "can't do this|not possible now",
+          "coach_prompt": "💡 Dig for real obstacle",
+          "salesperson_says": "What's really blocking this?",
+          "priority": "CRITICAL"
+        },
+        {
+          "trigger": "need by [date]|deadline is",
+          "coach_prompt": "💡 Understand the deadline",
+          "salesperson_says": "What happens on that date?",
+          "priority": "HIGH"
+        }
+      ]
+    },
+    {
+      "name": "Anchoring with Precision",
+      "description": "Anchoring uses precise, odd numbers and specific terms to establish psychological reference points that influence the entire negotiation.",
+      "when_to_use": "When discussing price, terms, timelines, or any quantifiable aspect of the deal",
+      "why_it_works": "Precise numbers appear calculated and researched, making them seem less negotiable and more credible than round numbers",
+      "sales_application": "Use precise anchoring for pricing, payment terms, implementation timelines, and service levels",
+      "specific_examples": [
+        {
+          "scenario": "Quoting a specific price",
+          "dialogue_example": "Prospect: 'What's your best price for this?'\nSalesperson: 'We can do this for $47,850.'\nProspect: 'That's very specific. How did you arrive at that number?'"
+        },
+        {
+          "scenario": "Negotiating implementation timeline",
+          "dialogue_example": "Prospect: 'How long will implementation take?'\nSalesperson: 'We'll have you fully operational in 73 days.'\nProspect: 'That's precise. You must have done this before.'"
+        },
+        {
+          "scenario": "Offering a discount",
+          "dialogue_example": "Prospect: 'Can you do any better on price?'\nSalesperson: 'I can offer a 13.7% discount if you sign this week.'\nProspect: 'That's an odd percentage. Is that your limit?'"
+        }
+      ],
+      "real_world_scenarios": [
+        {
+          "industry": "Consulting",
+          "scenario": "When proposing project fees and timelines"
+        },
+        {
+          "industry": "SaaS",
+          "scenario": "When offering annual contract discounts"
+        },
+        {
+          "industry": "Manufacturing",
+          "scenario": "When negotiating bulk order pricing"
+        }
+      ],
+      "implementation_guide": [
+        "Use odd, precise numbers like $4,827 instead of $5,000",
+        "Decrease increments when making concessions (20%, then 10%, then 5%)",
+        "Provide ranges with precise anchors: '$4,827 to $5,243'",
+        "Support precise numbers with brief logic when asked",
+        "Never use round numbers for final offers"
+      ],
+      "common_mistakes_to_avoid": [
+        "Using round numbers that invite further negotiation",
+        "Making large price movements that seem arbitrary",
+        "Being unable to explain your precise numbers if asked"
+      ],
+      "coaching_prompts": [
+        {
+          "trigger": "What's your best price|final offer",
+          "coach_prompt": "💡 Use precise number",
+          "salesperson_says": "$4,827",
+          "priority": "CRITICAL"
+        },
+        {
+          "trigger": "Can you do better|lower price",
+          "coach_prompt": "💡 Odd percentage discount",
+          "salesperson_says": "I can do 8.3% off",
+          "priority": "HIGH"
+        },
+        {
+          "trigger": "What's the range|ballpark figure",
+          "coach_prompt": "💡 Precise range",
+          "salesperson_says": "$4,827 to $5,243",
+          "priority": "MEDIUM"
+        }
+      ]
+    }
+  ],
+  "conversation_starters": [
+    {
+      "scenario": "Cold call opening",
+      "opener": "Hi [Name], I know you weren't expecting my call. Do you have 27 seconds for me to tell you why I'm calling?",
+      "purpose": "Gets permission and sets time expectation",
+      "follow_up": "If yes: brief value prop. If no: 'When would be a better time?'"
+    },
+    {
+      "scenario": "Discovery call opening",
+      "opener": "Thanks for taking the time. Before we dive in, what's your biggest challenge with [relevant area] right now?",
+      "purpose": "Immediately focuses on their pain points",
+      "follow_up": "Mirror or label their response to go deeper"
+    },
+    {
+      "scenario": "Demo call opening",
+      "opener": "I've prepared some specific examples based on our last conversation. But first, what's changed since we last spoke?",
+      "purpose": "Checks for new information before presenting",
+      "follow_up": "Adjust demo based on their update"
+    },
+    {
+      "scenario": "Pricing discussion opening",
+      "opener": "Before we discuss investment levels, help me understand: what would make this a no-brainer decision for you?",
+      "purpose": "Uncovers their value drivers before price anchor",
+      "follow_up": "Frame pricing in context of their stated value"
+    }
+  ],
+  "objection_handlers": [
+    {
+      "objection": "It's too expensive",
+      "response": "It seems like budget is a real concern for you. Help me understand - too expensive compared to what?",
+      "technique_used": "Labeling + Calibrated Question",
+      "example_dialogue": "Prospect: 'Your solution is too expensive.'\nSalesperson: 'Too expensive? (pause) It seems like budget is tight right now. What would need to change for this to make sense financially?'\nProspect: 'Well, if we could see ROI within 6 months...'"
+    },
+    {
+      "objection": "We need to think about it",
+      "response": "I understand you need time to process. What specifically do you need to think through?",
+      "technique_used": "Tactical Empathy + Calibrated Question",
+      "example_dialogue": "Prospect: 'We need to think about this.'\nSalesperson: 'Of course. What specific concerns do you need to address internally?'\nProspect: 'Mainly whether our team has bandwidth for the implementation.'"
+    },
+    {
+      "objection": "We're happy with our current vendor",
+      "response": "Sounds like they're taking good care of you. What would have to change for you to consider alternatives?",
+      "technique_used": "Labeling + Calibrated Question",
+      "example_dialogue": "Prospect: 'We're satisfied with our current solution.'\nSalesperson: 'Satisfied with current? (pause) What would make you open to exploring alternatives?'\nProspect: 'Only if they couldn't scale with our growth plans.'"
+    },
+    {
+      "objection": "I don't have authority to decide",
+      "response": "I appreciate your honesty. Who else needs to weigh in, and what would they want to know?",
+      "technique_used": "Tactical Empathy + Calibrated Question",
+      "example_dialogue": "Prospect: 'I can't make this decision alone.'\nSalesperson: 'I understand. How does the decision process work here? What would your CEO need to see?'\nProspect: 'She'd want to see the ROI calculation and integration plan.'"
+    }
+  ],
+  "closing_techniques": [
+    {
+      "name": "The Calibrated Close",
+      "when_to_use": "When they've expressed interest but haven't committed",
+      "exact_words": "How do we move forward together on this?",
+      "fallback": "What would need to happen for you to feel comfortable moving forward?"
+    },
+    {
+      "name": "The Implementation Close",
+      "when_to_use": "When focusing on post-purchase success",
+      "exact_words": "What's our first step after you sign?",
+      "fallback": "How do you see the rollout happening on your end?"
+    },
+    {
+      "name": "The Assumption Close",
+      "when_to_use": "When buying signals are strong",
+      "exact_words": "When should we schedule the kickoff call?",
+      "fallback": "What's your target go-live date?"
+    }
+  ],
+  "stage_guidance": {
+    "discovery": {
+      "focus": "Uncover pain points and build rapport",
+      "top_techniques": ["Calibrated Questions", "Mirroring", "Labeling"],
+      "quick_prompts": [
+        "Ask: 'What's your biggest challenge?'",
+        "Say: 'Tell me more about that'",
+        "Mirror their last concern",
+        "Label: 'Seems like a pain point'",
+        "Ask: 'How are you handling this now?'"
+      ]
+    },
+    "objection_handling": {
+      "focus": "Address concerns without defensiveness",
+      "top_techniques": ["Labeling", "Accusation Audit", "Calibrated Questions"],
+      "quick_prompts": [
+        "Say: 'It seems like price is a concern'",
+        "Ask: 'What specifically worries you?'",
+        "Label: 'You're concerned about ROI'",
+        "Audit: 'You probably think this is risky'",
+        "Ask: 'How can we solve this together?'"
+      ]
+    },
+    "negotiation": {
+      "focus": "Find mutually beneficial terms",
+      "top_techniques": ["Anchoring with Precision", "Calibrated Questions", "Dynamic Silence"],
+      "quick_prompts": [
+        "Use precise numbers like $4,827",
+        "Ask: 'How can we make this work?'",
+        "Say: 'What would need to change?'",
+        "Offer: 'Range is $4,827 to $5,243'",
+        "Ask: 'What's your ideal outcome?'"
+      ]
+    },
+    "closing": {
+      "focus": "Secure commitment and next steps",
+      "top_techniques": ["Black Swan Discovery", "Dynamic Silence", "Calibrated Questions"],
+      "quick_prompts": [
+        "Ask: 'What stops us from moving forward?'",
+        "Use silence after your offer",
+        "Probe: 'What aren't you telling me?'",
+        "Ask: 'How do we implement this?'",
+        "Say: 'Seems like we're aligned'"
+      ]
+    }
+  },
+  "response_patterns": {
+    "price_objections": {
+      "triggers": ["too expensive", "can't afford", "over budget", "too much"],
+      "responses": [
+        "Label: 'Seems like budget is tight'",
+        "Ask: 'What would work for you?'",
+        "Mirror: 'Too expensive?'",
+        "Ask: 'How far apart are we?'"
+      ]
+    },
+    "trust_issues": {
+      "triggers": ["don't believe", "skeptical", "prove it", "not convinced"],
+      "responses": [
+        "Label: 'You're skeptical, I get it'",
+        "Audit: 'You think I'm overselling'",
+        "Ask: 'What would convince you?'",
+        "Say: 'Fair enough. What concerns you?'"
+      ]
+    },
+    "timing_delays": {
+      "triggers": ["not now", "next quarter", "need time", "too soon"],
+      "responses": [
+        "Ask: 'What changes next quarter?'",
+        "Mirror: 'Next quarter?'",
+        "Ask: 'What needs to happen first?'",
+        "Label: 'Timing feels rushed'"
+      ]
+    },
+    "authority_issues": {
+      "triggers": ["check with boss", "not my decision", "need approval", "committee decides"],
+      "responses": [
+        "Ask: 'Who else should we include?'",
+        "Ask: 'How does approval work?'",
+        "Say: 'What would they want to know?'",
+        "Ask: 'When do they meet?'"
+      ]
+    },
+    "need_objections": {
+      "triggers": ["not interested", "no need", "happy with current", "already have"],
+      "responses": [
+        "Ask: 'What's working well now?'",
+        "Label: 'You're satisfied with status quo'",
+        "Ask: 'What would make you switch?'",
+        "Mirror: 'Happy with current?'"
+      ]
+    },
+    "feature_objections": {
+      "triggers": ["missing feature", "doesn't do", "limitation", "requirement"],
+      "responses": [
+        "Ask: 'What's most critical?'",
+        "Label: 'Feature gap concerns you'",
+        "Ask: 'How would you use that?'",
+        "Say: 'Tell me your workflow'"
+      ]
+    }
+  },
+  "advanced_combinations": {
+    "discovery_to_pain": [
+      "Mirror to get elaboration",
+      "Label the emotion",
+      "Ask calibrated question to deepen"
+    ],
+    "objection_to_solution": [
+      "Accusation audit first",
+      "Use tactical empathy",
+      "Offer precise alternative"
+    ],
+    "stall_to_close": [
+      "Black swan discovery",
+      "Dynamic silence",
+      "Calibrated question to move forward"
+    ],
+    "price_to_value": [
+      "Acknowledge price concern with label",
+      "Ask what they value most",
+      "Reframe with precise number"
+    ],
+    "trust_building": [
+      "Tactical empathy for rapport",
+      "Accusation audit to disarm",
+      "Calibrated question for engagement"
+    ]
+  },
+  "coaching_rules": {
+    "max_prompt_length": 25,
+    "response_time": "under_2_seconds",
+    "clarity": "exact_words_to_say",
+    "format": "conversational_phone_appropriate",
+    "avoid": [
+      "Complex explanations",
+      "Multiple options",
+      "Theory or background",
+      "Long sentences",
+      "Jargon or acronyms"
+    ]
+  }
+}

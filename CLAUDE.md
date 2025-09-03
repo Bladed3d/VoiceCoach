@@ -1,5 +1,25 @@
 # VoiceCoach V2 - Development Instructions
 
+## 🚨 CRITICAL: THIS IS A DESKTOP ELECTRON APP - NOT A WEB APP! 🚨
+
+### BEFORE WRITING ANY CODE, VERIFY:
+1. **This is an ELECTRON DESKTOP APPLICATION** - We moved from web to desktop to overcome browser limitations
+2. **Check the tech stack** - Look at package.json: We use Electron + React + TypeScript
+3. **Renderer process limitations** - React components CANNOT import Node.js modules (`fs`, `path`, etc.)
+4. **Use Electron IPC** - All file operations must go through `electronAPI` methods defined in preload.js
+
+### Why Desktop, NOT Web:
+- **WebRTC limitations** in browsers prevented proper audio capture
+- **File system access** restricted in browsers
+- **CORS issues** with local services
+- **Full system integration** only possible with desktop
+
+### Electron Architecture Rules:
+- **Main process** (main.cjs) - Can use Node.js modules
+- **Renderer process** (React app) - Browser environment, NO Node.js modules
+- **Preload script** (preload.js) - Bridge between main and renderer
+- **IPC communication** - Use `electronAPI` for file/system operations
+
 ## Project Mission
 Build a clean, modern desktop sales coaching application that provides real-time AI guidance during sales calls.
 
@@ -18,12 +38,30 @@ Build a clean, modern desktop sales coaching application that provides real-time
 - Ask user for specific PID numbers if needed
 - Always target specific PIDs, never process names
 
-## Technical Standards
-- **React 18** + TypeScript for type safety
-- **Electron only** - No browser compatibility needed
+## Technical Standards & Stack
+
+### Core Technology Stack:
+- **Electron 32.2.2** - Desktop application framework
+- **React 18.3.1** - UI in renderer process
+- **TypeScript 5.6.2** - Type safety
+- **Vite 5.4.19** - Build tool
+- **Node.js** - Main process only
+
+### Architecture Requirements:
+- **NO BROWSER COMPATIBILITY** - This is desktop-only
 - **Components < 400 lines** - Keep everything maintainable
-- **LED Breadcrumbs** - Instrument all critical operations
+- **LED Breadcrumbs** - Instrument all critical operations (ranges 1000-9099)
 - **Quality first** - Robust, production-ready code only
+- **Electron IPC for file ops** - Never use fs/path in React components
+
+### Common Mistakes to AVOID:
+❌ Creating "Browser" versions of services - THIS IS DESKTOP ONLY
+❌ Importing Node.js modules in React components
+❌ Using Web APIs when Electron APIs exist
+❌ Assuming browser limitations apply
+✅ Use Electron IPC through electronAPI
+✅ Check preload.js for available methods
+✅ Keep Node.js imports in main process only
 
 ## Core Workflow
 1. User uploads sales document
@@ -79,6 +117,13 @@ src/
 4. Components only handle presentation
 5. Hooks bridge services and components
 6. Communication: Service → Hook → Component
+
+## ⚠️ CRITICAL: Content Security Policy (CSP)
+**DEVELOPMENT MODE**: The CSP in `index.html` is completely relaxed to allow ALL connections during development. This prevents wasting hours debugging CSP issues.
+
+**PRODUCTION MODE**: Before release, replace the CSP with the one in `csp-production.html`
+
+**NEVER** add restrictive CSP during development. If you need to test CSP, do it in a separate branch or at the very end of development.
 
 ## Development Rules
 ✅ **Always do:**

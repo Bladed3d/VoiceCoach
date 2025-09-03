@@ -3,6 +3,7 @@
  * Real-time coaching using processed document insights via Ollama
  */
 import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
+import { ollamaInstructionLoader } from './OllamaInstructionLoader-Browser';
 
 export interface OllamaConfig {
   baseUrl: string;
@@ -36,6 +37,7 @@ export class OllamaCoachingService {
   private trail: BreadcrumbTrail;
   private config: OllamaConfig;
   private isConnected: boolean = false;
+  private promptCount: number = 0;
 
   constructor(config: OllamaConfig) {
     this.trail = new BreadcrumbTrail('OllamaService');
@@ -45,6 +47,7 @@ export class OllamaCoachingService {
       operation: 'ollama_service_initialization',
       baseUrl: config.baseUrl,
       model: config.model,
+      instruction_loader: 'initialized',
       timestamp: Date.now()
     });
   }
@@ -93,6 +96,13 @@ export class OllamaCoachingService {
       // Build context-aware prompt using processed document insights
       const prompt = this.buildCoachingPrompt(context);
       
+      console.log('🚀 Sending to Ollama:', {
+        url: `${this.config.baseUrl}/api/generate`,
+        model: this.config.model,
+        promptLength: prompt.length,
+        temperature: this.config.temperature
+      });
+
       const response = await fetch(`${this.config.baseUrl}/api/generate`, {
         method: 'POST',
         headers: {
@@ -111,7 +121,9 @@ export class OllamaCoachingService {
       });
 
       if (!response.ok) {
-        throw new Error(`Ollama API error: ${response.status}`);
+        const errorText = await response.text();
+        console.error('❌ Ollama API error:', response.status, errorText);
+        throw new Error(`Ollama API error: ${response.status} - ${errorText}`);
       }
 
       const result = await response.json();
@@ -128,69 +140,199 @@ export class OllamaCoachingService {
       return suggestion;
 
     } catch (error) {
+      console.error('❌ OLLAMA GENERATION FAILED:', error);
       this.trail.fail(8110, error as Error);
       return null;
     }
   }
 
   private buildCoachingPrompt(context: CoachingContext): string {
+    this.promptCount++;
+    console.log(`\n🔢 PROMPT #${this.promptCount} BEING BUILT`);
+    
     const insights = context.processedInsights;
     const recentTranscript = context.currentTranscript.slice(-500); // Last 500 chars
     
-    return `# Real-Time Sales Coaching Assistant
-
-## Your Role
-You are an AI sales coach providing real-time guidance during a live sales call. Analyze the conversation and provide ONE specific, actionable suggestion.
-
-## Document Insights Available
-${insights?.high_impact_techniques ? 
-  insights.high_impact_techniques.slice(0, 3).map((t: any) => 
-    `- ${t.technique}: ${t.example || t.description}`
-  ).join('\n') : 'No specific techniques available'
-}
-
-## Objection Handlers Available  
-${insights?.objection_handlers ?
-  insights.objection_handlers.slice(0, 3).map((o: any) =>
-    `- "${o.objection}" → "${o.response}"`
-  ).join('\n') : 'No objection handlers available'
-}
-
-## Current Conversation Context
-Recent transcript: "${recentTranscript}"
-
-## Instructions
-Respond with ONLY a JSON object in this exact format:
-{
-  "suggestion": "One specific actionable suggestion (max 100 words)",
-  "priority": "HIGH|MEDIUM|LOW", 
-  "category": "objection_handling|discovery|closing|value_prop",
-  "trigger": "What triggered this suggestion",
-  "context": "Brief context explanation",
-  "confidence": 0.0-1.0
-}
-
-ONLY respond if you detect a clear coaching opportunity. If no coaching is needed, respond with: {"suggestion": null}`;
+    // Check for documentContent wrapper
+    const actualInsights = insights?.documentContent || insights;
+    
+    // Handle both 'techniques' and 'predictive_techniques' field names
+    const techniques = actualInsights?.techniques || actualInsights?.predictive_techniques || [];
+    
+    console.log('🔍 Building prompt with insights:', {
+      hasInsights: !!actualInsights,
+      hasTechniques: techniques.length > 0,
+      techniqueCount: techniques.length,
+      transcriptLength: recentTranscript.length,
+      insightKeys: actualInsights ? Object.keys(actualInsights).slice(0, 5) : [],
+      hasDocumentContent: !!insights?.documentContent,
+      hasPredictiveTechniques: !!actualInsights?.predictive_techniques
+    });
+    
+    // CRITICAL DEBUG - See what we actually have
+    if (techniques[0]) {
+      console.log('🎯 FIRST TECHNIQUE:', {
+        name: techniques[0].technique_name,
+        hasConversationPaths: !!techniques[0].conversation_paths,
+        pathCount: techniques[0].conversation_paths?.length || 0,
+        firstPath: techniques[0].conversation_paths?.[0]?.trigger
+      });
+    } else {
+      console.log('❌ NO TECHNIQUES FOUND IN DOCUMENT!');
+    }
+    
+    // Build knowledge base string from processed insights
+    let knowledgeBase = '';
+    
+    // Add techniques with conversation paths if available
+    if (techniques.length > 0) {
+      knowledgeBase += 'TECHNIQUES WITH CONVERSATION PATHS:\n';
+      techniques.forEach((t: any) => {
+        if (t.conversation_paths || t.when_to_use) {
+          knowledgeBase += `\n${t.technique_name}:\n`;
+          const examples = t.conversation_paths || t.when_to_use || [];
+          examples.slice(0, 5).forEach((path: any) => {
+            // Handle predictive document structure
+            knowledgeBase += `- Trigger: "${path.trigger || path.prospect_says}"\n`;
+            
+            // Get immediate response
+            const immediateWords = path.immediate_response?.exact_words || 
+                                 path.salesperson_says || 
+                                 path.coach_prompt;
+            if (immediateWords) {
+              knowledgeBase += `  Say Now: "${immediateWords}"\n`;
+            }
+            
+            // Get predicted response
+            if (path.predicted_path?.likely_prospect_response) {
+              knowledgeBase += `  They'll Say: "${path.predicted_path.likely_prospect_response}"\n`;
+            }
+            
+            // Get next move
+            if (path.predicted_path?.next_move?.exact_words) {
+              knowledgeBase += `  Then Say: "${path.predicted_path.next_move.exact_words}"\n`;
+            }
+            
+            // Get third move if available
+            if (path.predicted_path?.third_move?.exact_words) {
+              knowledgeBase += `  Finally: "${path.predicted_path.third_move.exact_words}"\n`;
+            }
+          });
+        }
+      });
+    }
+    
+    // Add response patterns if available
+    if (actualInsights?.response_patterns) {
+      knowledgeBase += '\n\nRESPONSE PATTERNS:\n';
+      Object.entries(actualInsights.response_patterns).forEach(([type, pattern]: [string, any]) => {
+        knowledgeBase += `${type}:\n`;
+        if (pattern.triggers) {
+          knowledgeBase += `Triggers: ${pattern.triggers.join(', ')}\n`;
+        }
+        if (pattern.responses) {
+          pattern.responses.slice(0, 3).forEach((r: string) => {
+            knowledgeBase += `- ${r}\n`;
+          });
+        }
+      });
+    }
+    
+    // Use instruction loader to build the prompt with the knowledge base
+    const promptContext = {
+      transcript: recentTranscript,
+      knowledge: knowledgeBase || (console.warn('⚠️ WARNING: No knowledge base loaded - coaching without document context!'), 'No specific knowledge loaded'),
+      salesStage: this.detectSalesStage(recentTranscript),
+      objections: this.detectObjections(recentTranscript),
+      topics: this.detectTopics(recentTranscript)
+    };
+    
+    console.log('📝 Knowledge base length:', knowledgeBase.length);
+    if (knowledgeBase.length === 0) {
+      console.log('❌❌❌ KNOWLEDGE BASE IS EMPTY - NO TECHNIQUES LOADED!');
+    } else {
+      console.log('📋 First 500 chars of knowledge:', knowledgeBase.substring(0, 500));
+    }
+    
+    const finalPrompt = ollamaInstructionLoader.buildPrompt(promptContext);
+    console.log('🚀 Final prompt length:', finalPrompt.length);
+    
+    // CRITICAL: Show what we're actually sending to Ollama
+    console.log('🔴 ACTUAL PROMPT BEING SENT (first 1000 chars):');
+    console.log(finalPrompt.substring(0, 1000));
+    
+    // Check if prompt contains predictive instructions
+    if (!finalPrompt.includes('predictive') && !finalPrompt.includes('PREDICT') && !finalPrompt.includes('forward')) {
+      console.log('⚠️⚠️⚠️ PROMPT DOES NOT CONTAIN PREDICTIVE INSTRUCTIONS!');
+    }
+    
+    return finalPrompt;
+  }
+  
+  private detectSalesStage(transcript: string): string {
+    const lower = transcript.toLowerCase();
+    if (lower.includes('next steps') || lower.includes('get started')) return 'closing';
+    if (lower.includes('expensive') || lower.includes('concern')) return 'objection_handling';
+    if (lower.includes('how does') || lower.includes('features')) return 'demo';
+    return 'discovery';
+  }
+  
+  private detectObjections(transcript: string): string[] {
+    const objections: string[] = [];
+    const lower = transcript.toLowerCase();
+    if (lower.includes('expensive') || lower.includes('cost')) objections.push('price');
+    if (lower.includes('boss') || lower.includes('approval')) objections.push('authority');
+    if (lower.includes('not sure') || lower.includes('think about')) objections.push('hesitation');
+    return objections;
+  }
+  
+  private detectTopics(transcript: string): string[] {
+    const topics: string[] = [];
+    const lower = transcript.toLowerCase();
+    if (lower.includes('price') || lower.includes('cost')) topics.push('pricing');
+    if (lower.includes('feature') || lower.includes('capability')) topics.push('features');
+    if (lower.includes('support') || lower.includes('help')) topics.push('support');
+    return topics;
   }
 
   private parseCoachingResponse(ollamaResponse: string, context: CoachingContext): CoachingResponse | null {
     try {
+      console.log('🔵 RAW OLLAMA RESPONSE (first 500 chars):', ollamaResponse.substring(0, 500));
+      
       // Extract JSON from response (Ollama sometimes adds extra text)
       const jsonMatch = ollamaResponse.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) return null;
+      if (!jsonMatch) {
+        console.log('❌ NO JSON FOUND IN RESPONSE');
+        return null;
+      }
 
       const parsed = JSON.parse(jsonMatch[0]);
       
-      // Validate required fields
+      // Handle predictive format
+      if (parsed.say_now) {
+        // New predictive format
+        const suggestion = `${parsed.say_now}${parsed.next_move ? `\n➡️ Next: ${parsed.next_move}` : ''}${parsed.path_goal ? `\n🎯 Goal: ${parsed.path_goal}` : ''}`;
+        
+        return {
+          suggestion: suggestion,
+          priority: this.determinePriority(parsed),
+          category: this.determineCategory(parsed),
+          trigger: parsed.current_trigger || parsed.trigger || 'conversation_analysis',
+          context: parsed.conversation_path || parsed.context || 'predictive_guidance',
+          confidence: parsed.confidence || 0.7
+        };
+      }
+      
+      // Handle legacy format
       if (!parsed.suggestion || parsed.suggestion === null) {
         return null;
       }
 
       return {
-        suggestion: parsed.suggestion,
+        suggestion: parsed.suggestion || parsed.text || parsed.say_now,
         priority: parsed.priority || 'MEDIUM',
         category: parsed.category || 'discovery',
-        trigger: parsed.trigger || 'conversation_analysis',
+        trigger: parsed.trigger || parsed.current_trigger || 'conversation_analysis',
         context: parsed.context || 'real_time_analysis',
         confidence: parsed.confidence || 0.5
       };
@@ -199,6 +341,22 @@ ONLY respond if you detect a clear coaching opportunity. If no coaching is neede
       this.trail.fail(8111, error as Error);
       return null;
     }
+  }
+  
+  private determinePriority(parsed: any): 'HIGH' | 'MEDIUM' | 'LOW' {
+    if (parsed.priority) return parsed.priority;
+    if (parsed.confidence > 0.8) return 'HIGH';
+    if (parsed.confidence > 0.5) return 'MEDIUM';
+    return 'LOW';
+  }
+  
+  private determineCategory(parsed: any): 'objection_handling' | 'discovery' | 'closing' | 'value_prop' {
+    if (parsed.category) return parsed.category;
+    const path = (parsed.conversation_path || '').toLowerCase();
+    if (path.includes('objection') || path.includes('concern')) return 'objection_handling';
+    if (path.includes('closing') || path.includes('commitment')) return 'closing';
+    if (path.includes('discovery') || path.includes('question')) return 'discovery';
+    return 'value_prop';
   }
 
   async processPhase1C(phase1AResults: any, phase1BResults: any): Promise<any> {

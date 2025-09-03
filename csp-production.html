@@ -1,0 +1,13 @@
+<!-- PRODUCTION CSP - Use this when building for release -->
+<!-- Copy this meta tag to index.html when building for production -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: blob:;
+  connect-src 'self' 
+    ws://127.0.0.1:5000 
+    ws://localhost:5000 
+    http://localhost:11434 
+    http://127.0.0.1:11434;
+">

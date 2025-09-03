@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test RAG Process</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        button { padding: 10px 20px; margin: 10px; }
+        #output { border: 1px solid #ccc; padding: 10px; min-height: 200px; }
+    </style>
+</head>
+<body>
+    <h1>Test RAG Process</h1>
+    <p>Open this file in the Electron app DevTools console and run the test</p>
+    
+    <h2>Test Code:</h2>
+    <pre id="testCode">
+// Test the RAG Process directly
+async function testRAGProcess() {
+    console.log('🧪 Starting RAG Process test...');
+    
+    // Import the processor
+    const { automatedDocumentProcessor } = await import('./src/services/document/AutomatedDocumentProcessor.ts');
+    
+    // Test document content
+    const testContent = `Never Split the Difference - Key Sales Techniques
+
+TACTICAL EMPATHY
+The foundation of all negotiation. Understanding the feelings and mindset of another in the moment and hearing what is behind those feelings so you increase your influence in all the moments that follow.
+
+MIRRORING
+Simply repeating the last three words (or the critical one to three words) of what someone has just said. This encourages them to keep talking and reveals more information.
+
+LABELING
+Spotting the other person's feelings and turning them into words. Use phrases like "It seems like..." or "It sounds like..." or "It looks like..."`;
+
+    // Process the document
+    const result = await automatedDocumentProcessor.processDocumentContent(
+        testContent,
+        'test-document.txt',
+        {
+            chunkSize: 512,
+            chunkOverlap: 50,
+            enableChromaDB: true,
+            enableOllamaIntegration: true
+        }
+    );
+    
+    console.log('✅ RAG Process Result:', result);
+    return result;
+}
+
+// Run the test
+testRAGProcess().then(result => {
+    console.log('🎉 Test completed successfully!', result);
+}).catch(error => {
+    console.error('❌ Test failed:', error);
+});
+    </pre>
+    
+    <button onclick="copyCode()">Copy Test Code</button>
+    
+    <h2>Instructions:</h2>
+    <ol>
+        <li>Open the Electron app (it's already running)</li>
+        <li>Open DevTools (Ctrl+Shift+I or from View menu)</li>
+        <li>Go to Console tab</li>
+        <li>Copy and paste the test code above</li>
+        <li>Press Enter to run</li>
+    </ol>
+    
+    <div id="output"></div>
+    
+    <script>
+        function copyCode() {
+            const code = document.getElementById('testCode').textContent;
+            navigator.clipboard.writeText(code);
+            document.getElementById('output').innerHTML = 'Code copied to clipboard!';
+        }
+    </script>
+</body>
+</html>

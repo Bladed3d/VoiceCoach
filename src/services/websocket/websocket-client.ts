@@ -514,18 +514,26 @@ export class VoiceCoachWebSocketClient {
         timestamp: Date.now()
       });
       
+      // Get Vosk config to use user settings
+      const voskConfigStr = localStorage.getItem('voicecoach-vosk-config');
+      const voskConfig = voskConfigStr ? JSON.parse(voskConfigStr) : null;
+      const audioConfig = voskConfig?.audio || { sampleRate: 16000, channels: 1 };
+      
       // LED 7073: Microphone access request
       this.trail.light(7073, {
         operation: 'requesting_microphone_access',
         mode: captureMode,
+        requestedSampleRate: audioConfig.sampleRate,
+        requestedChannels: audioConfig.channels,
+        configSource: voskConfig ? 'user_settings' : 'defaults',
         timestamp: Date.now()
       });
 
       // Step 1: Capture microphone (user's side) for optimal Vosk compatibility
       this.micStream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          channelCount: { ideal: 1 }, // Mono for Vosk
-          sampleRate: { ideal: 16000 }, // Native 16kHz for Vosk
+          channelCount: { ideal: audioConfig.channels }, // User configurable
+          sampleRate: { ideal: audioConfig.sampleRate }, // User configurable
           sampleSize: { ideal: 16 }, // 16-bit PCM
           echoCancellation: false, // Disable processing overhead
           noiseSuppression: false, // Disable processing overhead  
@@ -842,16 +850,22 @@ export class VoiceCoachWebSocketClient {
         this.onDualStreamsCallback(this.micStream, this.tabStream);
       }
 
+      // Re-load config for AudioContext (out of scope from earlier)
+      const voskConfigStr2 = localStorage.getItem('voicecoach-vosk-config');
+      const voskConfig2 = voskConfigStr2 ? JSON.parse(voskConfigStr2) : null;
+      const sampleRate = voskConfig2?.audio?.sampleRate || 16000;
+      
       // LED 7088: AudioContext creation for Vosk
       this.trail.light(7088, {
         operation: 'creating_audio_context',
-        targetSampleRate: 16000,
+        targetSampleRate: sampleRate,
+        configSource: voskConfig2 ? 'user_settings' : 'defaults',
         timestamp: Date.now()
       });
       
-      // Create AudioContext with exact Vosk sample rate
+      // Create AudioContext with user-configured sample rate
       this.audioContext = new AudioContext({
-        sampleRate: 16000
+        sampleRate: sampleRate
       });
       
       // LED 7089: AudioContext created successfully
@@ -884,6 +898,38 @@ export class VoiceCoachWebSocketClient {
 
       // Create AudioWorklet node for direct PCM processing
       this.audioWorkletNode = new AudioWorkletNode(this.audioContext, 'vosk-audio-processor');
+      
+      // Get buffer size from Vosk config - FAIL if not configured
+      const voskConfigStr3 = localStorage.getItem('voicecoach-vosk-config');
+      const voskConfig3 = voskConfigStr3 ? JSON.parse(voskConfigStr3) : null;
+      const bufferSize = voskConfig3?.audio?.chunkSize;
+      
+      if (!bufferSize) {
+        const errorMsg = '❌ CONFIGURATION ERROR: No chunk size found in Vosk settings!';
+        console.error(errorMsg);
+        this.trail.fail(8500, new Error(errorMsg));
+        this.onErrorCallback?.(errorMsg + ' Please configure audio settings.');
+        
+        // Show user-visible error
+        alert('⚠️ Audio Configuration Missing!\n\nNo chunk size configured. Please go to Settings > Audio > Vosk Settings and configure the chunk size.');
+        throw new Error('Cannot start audio capture without chunk size configuration');
+      }
+      
+      // LED 7311: AudioWorklet buffer configuration
+      this.trail.light(7311, {
+        operation: 'audioworklet_buffer_config',
+        bufferSize: bufferSize,
+        bufferDurationMs: Math.round(bufferSize / 16), // Approximate ms at 16kHz
+        configSource: 'user_config',
+        timestamp: Date.now()
+      });
+      
+      // CRITICAL: Actually SEND the configuration to AudioWorklet!
+      console.log('🚀 Sending buffer configuration to AudioWorklet:', bufferSize);
+      this.audioWorkletNode.port.postMessage({
+        type: 'CONFIGURE',
+        bufferSize: bufferSize
+      });
       
       // Handle PCM data from AudioWorklet
       this.audioWorkletNode.port.onmessage = (event) => {

@@ -1,0 +1,89 @@
+{
+  "principles": {
+    "always": [
+      "Keep conversations going",
+      "Advance toward the sale",
+      "Handle objections constructively",
+      "Build rapport and trust",
+      "Focus on customer value",
+      "Ask for the business",
+      "Maintain positive momentum"
+    ],
+    "never": [
+      "Suggest ending the call",
+      "Give up on objections",
+      "Accept 'no' without understanding why",
+      "Rush the customer",
+      "Argue or be defensive",
+      "Ignore buying signals",
+      "Skip discovery questions"
+    ],
+    "compressed": {
+      "essential": "NEVER: end calls, give up. ALWAYS: advance sale, handle objections, build value.",
+      "extended": "Keep conversations progressing. Handle all objections constructively. Focus on value and customer success. Ask for commitment.",
+      "full": "Maintain conversation momentum at all times. Transform objections into opportunities. Connect features to specific pain points. Build trust through active listening. Create urgency without pressure. Always ask for next steps."
+    }
+  },
+  "methodologies": {
+    "active": ["SPIN", "Challenger", "Solution Selling"],
+    "available": ["MEDDIC", "Sandler", "BANT", "SNAP", "NEAT"],
+    "techniques": {
+      "SPIN": {
+        "situation": "Understand current state",
+        "problem": "Identify pain points",
+        "implication": "Explore consequences",
+        "need_payoff": "Quantify value"
+      },
+      "Challenger": {
+        "teach": "Provide new insights",
+        "tailor": "Customize message",
+        "take_control": "Drive the conversation"
+      },
+      "Chris_Voss": {
+        "mirroring": "Repeat last 3 words",
+        "labeling": "It seems like...",
+        "calibrated_questions": "How/What questions",
+        "tactical_empathy": "Understand their perspective"
+      }
+    }
+  },
+  "conversation_rules": {
+    "discovery": {
+      "minQuestions": 3,
+      "focusOn": ["pain", "impact", "current_state"],
+      "avoid": ["premature_solutions", "feature_dumping"]
+    },
+    "presentation": {
+      "maxFeaturesPerResponse": 1,
+      "alwaysTieToNeed": true,
+      "checkUnderstanding": true
+    },
+    "objection_handling": {
+      "framework": "acknowledge_isolate_value",
+      "neverSayNo": true,
+      "alwaysExplore": true
+    },
+    "closing": {
+      "beSpecific": true,
+      "getCommitment": true,
+      "confirmNextSteps": true
+    }
+  },
+  "coaching_focus": {
+    "primary": "What to say next",
+    "secondary": "Why it matters",
+    "avoid": [
+      "Generic advice",
+      "Multiple suggestions",
+      "Passive observations",
+      "Commentary on past"
+    ]
+  },
+  "quality_standards": {
+    "maxSuggestionWords": 25,
+    "maxReasoningWords": 20,
+    "maxActionWords": 25,
+    "responseTime": 2000,
+    "confidenceThreshold": 0.7
+  }
+}

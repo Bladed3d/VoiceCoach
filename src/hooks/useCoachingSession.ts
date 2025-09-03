@@ -35,9 +35,9 @@ export const useCoachingSession = () => {
     };
   }, []);
 
-  const startSession = async (captureMode: 'microphone' | 'full-conversation' = 'microphone'): Promise<boolean> => {
+  const startSession = async (captureMode: 'microphone' | 'full-conversation' = 'microphone', selectedDocuments: string[] = []): Promise<boolean> => {
     if (!sessionManager.current) return false;
-    return await sessionManager.current.startSession(captureMode);
+    return await sessionManager.current.startSession(captureMode, selectedDocuments);
   };
 
   const stopSession = async (): Promise<boolean> => {
