@@ -17,6 +17,7 @@ export interface VoskConfig {
     sampleRate: number;            // Audio sample rate in Hz (default: 16000)
     chunkSize: number;             // Audio chunk size in samples (default: 8000)
     channels: number;              // Number of channels (default: 1)
+    otherPartyGain: number;        // Audio gain for system/other party audio (percentage, 100=normal)
   };
   
   // Transcription Mode Settings
@@ -49,7 +50,8 @@ export const defaultVoskConfig: VoskConfig = {
   audio: {
     sampleRate: 16000,
     chunkSize: 8000,
-    channels: 1
+    channels: 1,
+    otherPartyGain: 100
   },
   transcription: {
     mode: 'sentence',
@@ -83,7 +85,8 @@ export const voskPresets = {
       audio: {
         sampleRate: 16000,
         chunkSize: 512,  // Small chunk for fast phrase detection
-        channels: 1
+        channels: 1,
+        otherPartyGain: 100
       },
       transcription: {
         mode: 'phrase' as const,
@@ -113,7 +116,8 @@ export const voskPresets = {
       audio: {
         sampleRate: 16000,      // Matches test script
         chunkSize: 8000,        // Default chunk size for stability
-        channels: 1             // Mono, matches test script
+        channels: 1,             // Mono, matches test script
+        otherPartyGain: 100
       },
       transcription: {
         mode: 'sentence' as const,
@@ -145,7 +149,8 @@ export const voskPresets = {
       audio: {
         sampleRate: 16000,
         chunkSize: 256,  // Minimum chunk size for real-time
-        channels: 1
+        channels: 1,
+        otherPartyGain: 100
       },
       transcription: {
         mode: 'word' as const,
@@ -175,7 +180,8 @@ export const voskPresets = {
       audio: {
         sampleRate: 16000,
         chunkSize: 2048,  // Balanced chunk size
-        channels: 1
+        channels: 1,
+        otherPartyGain: 100
       },
       transcription: {
         mode: 'hybrid' as const,
@@ -205,7 +211,8 @@ export const voskPresets = {
       audio: {
         sampleRate: 16000,      // Exact match to test script
         chunkSize: 8000,        // Using default for stability
-        channels: 1             // Mono audio (explicit in test script)
+        channels: 1,             // Mono audio (explicit in test script)
+        otherPartyGain: 100
       },
       transcription: {
         mode: 'sentence' as const,

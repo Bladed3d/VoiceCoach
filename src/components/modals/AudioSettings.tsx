@@ -18,6 +18,7 @@ interface AudioSettings {
   audioInput: string;
   audioInputLabel: string;
   micSensitivity: number;
+  otherPartyGain: number;
   noiseSuppression: boolean;
 }
 
@@ -148,6 +149,18 @@ const AudioSettingsComponent: React.FC<AudioSettingsProps> = ({
     
     onChange('noiseSuppression', enabled);
   };
+  
+  // Other Party Audio Gain handler
+  const handleOtherPartyGainChange = (newValue: number) => {
+    trail.light(7100, {
+      other_party_gain_adjustment: 'user_changed_gain',
+      from_value: settings.otherPartyGain,
+      to_value: newValue,
+      change_delta: newValue - settings.otherPartyGain
+    });
+    
+    onChange('otherPartyGain', newValue);
+  };
   return (
     <div className="space-y-8">
       <div>
@@ -216,6 +229,26 @@ const AudioSettingsComponent: React.FC<AudioSettingsProps> = ({
               <span>Medium</span>
               <span>High</span>
             </div>
+          </div>
+
+          <div className="bg-slate-800/30 rounded-lg p-4">
+            <label className="block text-sm font-medium mb-3">
+              Other Party Audio Gain: <span className="text-primary-400 font-semibold">{settings.otherPartyGain}%</span>
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="200"
+              value={settings.otherPartyGain}
+              onChange={(e) => handleOtherPartyGainChange(parseInt(e.target.value))}
+              className="w-full h-3 bg-slate-700 rounded-lg appearance-none cursor-pointer hover:bg-slate-600 transition-colors"
+            />
+            <div className="flex justify-between text-xs text-slate-500 mt-2">
+              <span>0%</span>
+              <span>100%</span>
+              <span>200%</span>
+            </div>
+            <p className="text-xs text-slate-400 mt-2">Boost system audio volume for clearer transcription</p>
           </div>
 
           <div className="bg-slate-800/30 rounded-lg p-4">

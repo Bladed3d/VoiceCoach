@@ -27,10 +27,18 @@ export class LiveCoachingManager {
     
     // Check for saved model preference and update config
     const savedModel = localStorage.getItem('voicecoach-selected-model');
+    const chromaDBEnabled = localStorage.getItem('voicecoach-chromadb-enabled') === 'true';
     const config = { ...defaultLiveCoachingConfig };
+    
     if (savedModel) {
       config.ollama.model = savedModel;
       console.log(`🎯 Using saved model preference: ${savedModel}`);
+    }
+    
+    // Enable ChromaDB if user has toggled it on
+    if (chromaDBEnabled) {
+      config.coaching.useChromaDB = true;
+      console.log('🔍 ChromaDB semantic search enabled');
     }
     
     this.liveCoachingService = new LiveCoachingService(config);

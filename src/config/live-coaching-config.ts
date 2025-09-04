@@ -19,7 +19,8 @@ export const defaultLiveCoachingConfig: LiveCoachingConfig = {
     minTranscriptLength: 50,           // Min chars before coaching triggers
     maxHistoryLength: 20,              // Max conversation history items
     enableRealTimeAnalysis: true,      // 🚨 CRITICAL - Enable instant analysis
-    debounceMs: 150                    // Debounce rapid transcripts (150ms)
+    debounceMs: 150,                   // Debounce rapid transcripts (150ms)
+    useChromaDB: false                 // Enable ChromaDB semantic search (reduces 35KB to 3-5KB prompts)
   }
 };
 

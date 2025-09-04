@@ -84,6 +84,13 @@ export class LiveCoachingService {
         // CRITICAL DEBUG: Track accumulation
         const beforeLength = this.pendingTranscript?.length || 0;
         this.pendingTranscript += transcript.text + ' ';
+        
+        // MEMORY SAFETY: Keep only last 2000 chars to prevent unbounded growth
+        if (this.pendingTranscript.length > 2000) {
+          this.pendingTranscript = this.pendingTranscript.slice(-1500); // Keep last 1500 chars
+          console.log('🔄 Trimmed pending transcript to prevent memory leak');
+        }
+        
         const afterLength = this.pendingTranscript.length;
         
         console.log('🔴 TRANSCRIPT ACCUMULATION:', {

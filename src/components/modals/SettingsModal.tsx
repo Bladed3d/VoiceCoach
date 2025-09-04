@@ -45,6 +45,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
     audioInputLabel: savedMicLabel,
     audioOutput: 'default',
     micSensitivity: 75,
+    otherPartyGain: 100,
     noiseSuppression: true,
     aiModel: 'ollama',
     dataRetention: '30days',
@@ -396,10 +397,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
-      <div className="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-6xl h-[90vh] max-h-[900px] flex flex-col shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-700">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-8">
+      <div className="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-6xl max-h-[calc(100vh-4rem)] flex flex-col shadow-2xl">
+        {/* Header - Fixed */}
+        <div className="flex items-center justify-between p-6 border-b border-slate-700 flex-shrink-0">
           <h2 className="text-xl font-semibold">VoiceCoach V2 Settings</h2>
           <button 
             onClick={() => {
@@ -412,9 +413,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
           </button>
         </div>
 
-        <div className="flex flex-1">
+        {/* Body - Scrollable */}
+        <div className="flex flex-1 min-h-0 overflow-hidden">
           {/* Sidebar Navigation */}
-          <div className="w-72 border-r border-slate-700 p-6">
+          <div className="w-72 border-r border-slate-700 p-6 flex-shrink-0">
             <nav className="space-y-2">
               {tabConfig.map((tab) => {
                 const Icon = tab.icon;
@@ -443,14 +445,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 overflow-hidden">
-            <div className="h-full overflow-y-auto px-6 py-6">
+          <div className="flex-1 min-w-0">
+            <div className="h-full overflow-y-auto px-6 py-6" style={{ scrollbarWidth: 'thin', scrollbarColor: '#475569 #1e293b' }}>
             {activeTab === 'audio' && (
               <AudioSettingsComponent
                 settings={{
                   audioInput: settings.audioInput,
                   audioInputLabel: settings.audioInputLabel,
                   micSensitivity: settings.micSensitivity,
+                  otherPartyGain: settings.otherPartyGain,
                   noiseSuppression: settings.noiseSuppression
                 }}
                 audioDevices={audioDevices}
@@ -689,8 +692,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="border-t border-slate-700 p-6">
+        {/* Footer - Fixed */}
+        <div className="border-t border-slate-700 p-6 flex-shrink-0">
           <div className="flex justify-end space-x-3">
             <button 
               onClick={() => {

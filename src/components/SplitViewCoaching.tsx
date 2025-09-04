@@ -573,11 +573,16 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
                 onClick={() => {
                   const newValue = !useChromaDB;
                   setUseChromaDB(newValue);
+                  // Save to both keys for compatibility
                   localStorage.setItem('voicecoach-use-chromadb', String(newValue));
+                  localStorage.setItem('voicecoach-chromadb-enabled', String(newValue));
                   trail.light(7209, {
                     operation: 'chromadb_toggle',
                     enabled: newValue
                   });
+                  
+                  console.log(`🔍 ChromaDB ${newValue ? 'enabled' : 'disabled'} - will take effect on next coaching session`);
+                  
                   // Emit event for services to react
                   window.dispatchEvent(new CustomEvent('chromaDBToggled', { 
                     detail: { enabled: newValue } 

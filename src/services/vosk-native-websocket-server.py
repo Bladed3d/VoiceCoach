@@ -10,6 +10,7 @@ import websockets
 import sys
 import os
 import argparse
+import numpy as np
 from datetime import datetime
 from vosk import Model, KaldiRecognizer
 
@@ -113,6 +114,7 @@ class VoskNativeWebSocketServer:
         self.enable_word_timings = self.config.get('enable_word_timings', False)
         self.set_words = self.config.get('set_words', False)
         self.set_partial_words = self.config.get('set_partial_words', True)
+        self.other_party_gain = float(self.config.get('other_party_gain', 100)) / 100.0  # Convert percentage to multiplier
         
         # Load Vosk model
         if model_path is None:
@@ -179,13 +181,20 @@ class VoskNativeWebSocketServer:
             
             # Handle messages
             async for message in websocket:
-                await self.process_message(websocket, message)
+                try:
+                    await self.process_message(websocket, message)
+                except Exception as msg_error:
+                    print(f"[8010.3] Error processing message, continuing: {msg_error}")
+                    # Continue processing other messages instead of crashing
+                    continue
                 
         except websockets.exceptions.ConnectionClosed:
             print(f"[6011] Client disconnected from {client_addr}")
             print(f"[6011.1] Remaining connected clients: {len(self.connected_clients) - 1}")
         except Exception as e:
             print(f"[8011] WebSocket connection error: {e}")
+            import traceback
+            traceback.print_exc()
         finally:
             self.connected_clients.discard(websocket)
 
@@ -236,6 +245,20 @@ class VoskNativeWebSocketServer:
                     self.recognizer = KaldiRecognizer(self.model, self.sample_rate)
                     self._last_reset = datetime.now()
                     print(f"[6022.0] Recognizer reset after {reset_interval}s interval")
+            
+            # Apply audio gain if configured (for system audio/other party)
+            if self.other_party_gain != 1.0:
+                try:
+                    # Convert bytes to numpy array (16-bit PCM)
+                    audio_array = np.frombuffer(audio_bytes, dtype=np.int16)
+                    # Apply gain
+                    audio_array = (audio_array * self.other_party_gain).clip(-32768, 32767).astype(np.int16)
+                    # Convert back to bytes
+                    audio_bytes = audio_array.tobytes()
+                    if len(audio_bytes) > 1000:
+                        print(f"[6022.3] Applied audio gain: {self.other_party_gain:.1f}x")
+                except Exception as gain_error:
+                    print(f"[8022.1] Error applying audio gain, using original audio: {gain_error}")
             
             # Only log larger chunks to reduce console spam
             if len(audio_bytes) > 1000:
@@ -455,6 +478,8 @@ if __name__ == "__main__":
                         help='Vosk SetWords parameter (affects accuracy)')
     parser.add_argument('--set-partial-words', type=lambda x: x.lower() == 'true', default=True,
                         help='Vosk SetPartialWords parameter (reduces fragmentation)')
+    parser.add_argument('--other-party-gain', type=float, default=100,
+                        help='Audio gain for system/other party audio (percentage, 100=normal, 200=double)')
     parser.add_argument('--enable-recognizer-reset', action='store_true', default=False,
                         help='Enable periodic recognizer reset (default: disabled)')
     parser.add_argument('--recognizer-reset-interval', type=int, default=30,
@@ -482,6 +507,7 @@ if __name__ == "__main__":
         'enable_word_timings': args.enable_word_timings,
         'set_words': args.set_words,
         'set_partial_words': args.set_partial_words,
+        'other_party_gain': args.other_party_gain,
         'enable_recognizer_reset': args.enable_recognizer_reset,
         'recognizer_reset_interval': args.recognizer_reset_interval
     }

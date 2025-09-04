@@ -49,24 +49,58 @@ export class OllamaInstructionLoaderBrowser {
    */
   private async loadInstructions(): Promise<boolean> {
     try {
-      // Try to load from localStorage first (for quick testing)
+      // If already loaded in memory, use it (no expiration!)
+      if (this.instructionTemplate && this.instructionTemplate.length > 0) {
+        console.log('📋 Using in-memory Ollama instructions (no expiration)');
+        // LED 6401: Using loaded instructions
+        this.trail.light(6401, {
+          operation: 'instruction_memory_hit',
+          template_length: this.instructionTemplate.length,
+          loaded_once: true
+        });
+        return true;
+      }
+      
+      // Try to load from localStorage (permanent cache)
       const cachedInstructions = localStorage.getItem('ollama_instructions_cache');
       if (cachedInstructions) {
         const cached = JSON.parse(cachedInstructions);
-        // Check if cache is less than 5 minutes old
-        if (Date.now() - cached.timestamp < 5 * 60 * 1000) {
-          this.instructionTemplate = cached.template;
-          console.log('📋 Using cached Ollama instructions');
-          return true;
-        }
+        this.instructionTemplate = cached.template;
+        
+        const cacheAge = Date.now() - cached.timestamp;
+        const cacheAgeMinutes = Math.floor(cacheAge / 60000);
+        const cacheAgeHours = Math.floor(cacheAgeMinutes / 60);
+        
+        console.log(`📋 Loaded instructions from permanent cache (${cacheAgeHours}h ${cacheAgeMinutes % 60}m old)`);
+        
+        // LED 6401: Cache loaded (no expiration check!)
+        this.trail.light(6401, {
+          operation: 'instruction_cache_loaded',
+          cache_age_hours: cacheAgeHours,
+          cache_age_minutes: cacheAgeMinutes % 60,
+          permanent: true
+        });
+        return true;
       }
       
       // If we have electronAPI, try to read the file
       if ((window as any).electronAPI?.readFile) {
+        console.log(`📂 Attempting to read instruction file: ${this.instructionFilePath}`);
+        
+        // LED 6402: File read attempt
+        this.trail.light(6402, {
+          operation: 'instruction_file_read_attempt',
+          file_path: this.instructionFilePath,
+          timestamp: Date.now()
+        });
+        
         const fileData = await (window as any).electronAPI.readFile(this.instructionFilePath);
+        
         if (fileData && fileData.content) {
           // Access the content property of the returned object
           const fileContent = fileData.content;
+          console.log(`✅ File read successful, content length: ${fileContent.length}`);
+          
           // Extract the prompt section
           const promptMatch = fileContent.match(/```prompt\s*([\s\S]*?)\s*```/);
           if (promptMatch) {
@@ -81,9 +115,24 @@ export class OllamaInstructionLoaderBrowser {
             timestamp: Date.now()
           }));
           
-          console.log('✅ Ollama instructions loaded from file');
+          // LED 6403: File load success
+          this.trail.light(6403, {
+            operation: 'instruction_file_loaded',
+            template_length: this.instructionTemplate.length,
+            cached: true
+          });
+          
+          console.log('✅ Ollama instructions loaded from file and cached');
           return true;
+        } else {
+          // LED 8404: File read returned null/empty
+          this.trail.fail(8404, new Error(`File read failed or returned empty: ${this.instructionFilePath}`));
+          console.error('❌ File read returned null or empty data:', fileData);
         }
+      } else {
+        // LED 8405: ElectronAPI not available
+        this.trail.fail(8405, new Error('ElectronAPI.readFile not available - cannot read instruction files'));
+        console.error('❌ ElectronAPI not available for file reading');
       }
       
       // NO SILENT FALLBACK - Make it visible!
@@ -240,35 +289,15 @@ export class OllamaInstructionLoaderBrowser {
   }
   
   /**
-   * Get default instructions - FAILURE STATE
+   * Get default instructions - FAILURE STATE with LED tracking
    */
   private getDefaultInstructions(): string {
-    return `FAILED: Ollama instruction loading failed.
-
-CURRENT CONTEXT:
-- Sales Stage: FAILED
-- Call Duration: FAILED
-- Objections: FAILED
-
-KNOWLEDGE: FAILED - No knowledge base loaded
-
-CONVERSATION: "{TRANSCRIPT}"
-
-ERROR: Unable to load coaching instructions. Please check:
-1. Ollama service is running
-2. Instruction file exists at ollama-prompts/active-instructions.md
-3. File permissions are correct
-
-RESPONSE FORMAT (JSON):
-{
-  "suggestion": "FAILED: Cannot provide coaching - instruction loading failed",
-  "priority": "HIGH",
-  "category": "error",
-  "technique": "FAILED",
-  "confidence": 0.0
-}
-
-System is in FAILED state - cannot provide coaching suggestions.`;
+    // LED 8402: Instruction loading failure - track specific reason
+    this.trail.fail(8402, new Error(`Instruction file not found at: ${this.instructionFilePath}`));
+    
+    // Return NULL prompt that will cause Ollama to fail fast
+    // This makes the failure obvious instead of hiding it
+    return `INSTRUCTION_LOAD_FAILED_AT_${Date.now()}_CHECK_LED_8402`;
   }
   
   /**
