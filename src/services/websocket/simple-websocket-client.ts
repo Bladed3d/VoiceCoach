@@ -142,7 +142,16 @@ export class SimpleWebSocketClient {
     
     // Configure with buffer size from settings
     const voskConfig = JSON.parse(localStorage.getItem('voicecoach-vosk-config') || '{}');
-    const bufferSize = voskConfig?.audio?.chunkSize || 8000;
+    const bufferSize = voskConfig?.audio?.chunkSize || 8192; // Default to 8192 for 512ms chunks
+    const sampleRate = voskConfig?.audio?.sampleRate || 16000;
+    
+    console.log('🎛️ Vosk Settings Applied:', {
+      bufferSize,
+      bufferDurationMs: Math.round(bufferSize / sampleRate * 1000),
+      sampleRate,
+      enablePartials: voskConfig?.transcription?.enablePartials ?? true,
+      mode: voskConfig?.transcription?.mode || 'hybrid'
+    });
     
     this.audioWorkletNode.port.postMessage({
       type: 'CONFIGURE',

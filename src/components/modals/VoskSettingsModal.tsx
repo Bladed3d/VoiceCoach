@@ -3,9 +3,10 @@
  * Real-time configuration for transcription optimization
  */
 import React, { useState, useEffect } from 'react';
-import { X, Mic, Zap, Clock, Cpu, RotateCcw, Save, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, Mic, Zap, Clock, Cpu, RotateCcw, Save, AlertCircle, CheckCircle, Info } from 'lucide-react';
 import { VoskConfig, defaultVoskConfig, voskPresets } from '../../types/vosk-config';
 import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
+import { voskConfigService } from '../../services/vosk-config-service';
 
 interface VoskSettingsModalProps {
   isOpen: boolean;
@@ -26,6 +27,10 @@ export const VoskSettingsModal: React.FC<VoskSettingsModalProps> = ({
   const [selectedPreset, setSelectedPreset] = useState<string>('');
   const [lastAppliedPreset, setLastAppliedPreset] = useState<string>('');
   const [isModified, setIsModified] = useState<boolean>(false);
+  const [showSaveNotification, setShowSaveNotification] = useState<boolean>(false);
+  const [pressTimer, setPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [savingToPreset, setSavingToPreset] = useState<string>('');
+  const [showPresetSaveNotification, setShowPresetSaveNotification] = useState<boolean>(false);
 
   // Helper function to check if config matches a preset
   const checkPresetMatch = (config: VoskConfig): string => {
@@ -79,6 +84,28 @@ export const VoskSettingsModal: React.FC<VoskSettingsModalProps> = ({
   if (!isOpen) return null;
 
   const handlePresetSelect = (presetKey: string) => {
+    // First check for custom saved preset
+    const customPresets = JSON.parse(localStorage.getItem('voicecoach-custom-presets') || '{}');
+    if (customPresets[presetKey]) {
+      trail.light(7300, {
+        operation: 'custom_preset_selected',
+        preset: presetKey
+      });
+      
+      const customConfig = customPresets[presetKey];
+      delete customConfig.timestamp; // Remove timestamp before applying
+      setConfig({
+        ...config,
+        ...customConfig
+      });
+      setSelectedPreset(presetKey);
+      setLastAppliedPreset(presetKey);
+      setIsModified(false);
+      localStorage.setItem('voicecoach-vosk-last-preset', presetKey);
+      return;
+    }
+    
+    // Otherwise use default preset
     const preset = voskPresets[presetKey as keyof typeof voskPresets];
     if (preset) {
       trail.light(7300, {
@@ -92,13 +119,59 @@ export const VoskSettingsModal: React.FC<VoskSettingsModalProps> = ({
       });
       setSelectedPreset(presetKey);
       setLastAppliedPreset(presetKey);
-      setIsModified(false); // Reset modified flag when preset is applied
-      // Save last applied preset to localStorage
+      setIsModified(false);
       localStorage.setItem('voicecoach-vosk-last-preset', presetKey);
     }
   };
 
-  const handleSave = () => {
+  const handlePresetMouseDown = (presetKey: string) => {
+    // Start timer for long press (2 seconds)
+    const timer = setTimeout(() => {
+      handleSaveToPreset(presetKey);
+    }, 2000);
+    setPressTimer(timer);
+    setSavingToPreset(presetKey);
+  };
+
+  const handlePresetMouseUp = () => {
+    // Clear timer if released before 2 seconds
+    if (pressTimer) {
+      clearTimeout(pressTimer);
+      setPressTimer(null);
+      setSavingToPreset('');
+    }
+  };
+
+  const handleSaveToPreset = (presetKey: string) => {
+    trail.light(7305, {
+      operation: 'save_current_settings_to_preset',
+      preset: presetKey
+    });
+
+    // Save current config to the preset in localStorage
+    const customPresets = JSON.parse(localStorage.getItem('voicecoach-custom-presets') || '{}');
+    customPresets[presetKey] = {
+      ...config,
+      timestamp: Date.now()
+    };
+    localStorage.setItem('voicecoach-custom-presets', JSON.stringify(customPresets));
+
+    // Show notification
+    setShowPresetSaveNotification(true);
+    setSavingToPreset('');
+    setPressTimer(null);
+    
+    setTimeout(() => {
+      setShowPresetSaveNotification(false);
+    }, 3000);
+
+    // Mark as selected
+    setSelectedPreset(presetKey);
+    setLastAppliedPreset(presetKey);
+    setIsModified(false);
+  };
+
+  const handleSave = async () => {
     trail.light(7301, {
       operation: 'vosk_config_save_initiated',
       mode: config.transcription?.mode,
@@ -112,18 +185,25 @@ export const VoskSettingsModal: React.FC<VoskSettingsModalProps> = ({
       chunkSize: config.audio?.chunkSize
     });
     
-    // Save to localStorage for persistence
-    const configStr = JSON.stringify(config);
-    localStorage.setItem('voicecoach-vosk-config', configStr);
+    // Use the config service to save and apply settings
+    const success = await voskConfigService.updateConfig(config);
     
-    trail.light(7302, {
-      operation: 'vosk_config_saved_to_localStorage',
-      configSize: configStr.length,
-      timestamp: Date.now()
-    });
-    
-    onSave(config);
-    onClose();
+    if (success) {
+      trail.light(7302, {
+        operation: 'vosk_config_saved_successfully',
+        timestamp: Date.now()
+      });
+      
+      // Show notification briefly
+      setShowSaveNotification(true);
+      setTimeout(() => {
+        setShowSaveNotification(false);
+        onSave(config);
+        onClose();
+      }, 2000);
+    } else {
+      trail.fail(8302, new Error('Failed to save Vosk configuration'));
+    }
   };
 
   const handleReset = () => {
@@ -158,20 +238,35 @@ export const VoskSettingsModal: React.FC<VoskSettingsModalProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <span className="text-sm text-slate-400">Presets:</span>
-              {Object.entries(voskPresets).map(([key, preset]) => (
-                <button
-                  key={key}
-                  onClick={() => handlePresetSelect(key)}
-                  className={`px-3 py-1 text-xs rounded-lg transition-colors ${
-                    selectedPreset === key
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
-                  }`}
-                  title={preset.description}
-                >
-                  {preset.name}
-                </button>
-              ))}
+              {Object.entries(voskPresets).map(([key, preset]) => {
+                const customPresets = JSON.parse(localStorage.getItem('voicecoach-custom-presets') || '{}');
+                const hasCustomSettings = !!customPresets[key];
+                
+                return (
+                  <button
+                    key={key}
+                    onClick={() => handlePresetSelect(key)}
+                    onMouseDown={() => handlePresetMouseDown(key)}
+                    onMouseUp={handlePresetMouseUp}
+                    onMouseLeave={handlePresetMouseUp}
+                    onTouchStart={() => handlePresetMouseDown(key)}
+                    onTouchEnd={handlePresetMouseUp}
+                    className={`px-3 py-1 text-xs rounded-lg transition-all relative ${
+                      savingToPreset === key
+                        ? 'bg-yellow-600 text-white animate-pulse'
+                        : selectedPreset === key
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                    } ${hasCustomSettings ? 'ring-1 ring-green-500/50' : ''}`}
+                    title={`${preset.description}${hasCustomSettings ? ' (Custom settings saved)' : ''}\n\nHold for 2 seconds to save current settings to this preset`}
+                  >
+                    {preset.name}
+                    {hasCustomSettings && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
             
             {/* Active Preset Indicator */}
@@ -667,6 +762,48 @@ export const VoskSettingsModal: React.FC<VoskSettingsModalProps> = ({
           )}
         </div>
 
+        {/* Notifications and Info - Below tab content */}
+        <div className="px-6 py-4 space-y-3">
+          {/* Preset Save Notification */}
+          {showPresetSaveNotification && (
+            <div className="p-3 bg-purple-900/50 border border-purple-700 rounded-lg flex items-start space-x-2">
+              <CheckCircle className="w-5 h-5 text-purple-400 mt-0.5" />
+              <div>
+                <p className="text-sm text-purple-300 font-medium">Settings Saved to Preset</p>
+                <p className="text-xs text-purple-400 mt-1">
+                  Your current settings have been saved to the selected preset
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Save Notification */}
+          {showSaveNotification && (
+            <div className="p-3 bg-green-900/50 border border-green-700 rounded-lg flex items-start space-x-2">
+              <CheckCircle className="w-5 h-5 text-green-400 mt-0.5" />
+              <div>
+                <p className="text-sm text-green-300 font-medium">Settings Saved Successfully</p>
+                <p className="text-xs text-green-400 mt-1">
+                  Settings will take effect on the next coaching session
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Info Notice */}
+          <div className="p-3 bg-blue-900/30 border border-blue-800 rounded-lg flex items-start space-x-2">
+            <Info className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
+            <div className="text-xs text-blue-300">
+              <p className="font-medium mb-1">Tips:</p>
+              <ul className="space-y-0.5 ml-3">
+                <li>• Hold any preset button for 2 seconds to save current settings to it</li>
+                <li>• Settings require restarting the coaching session to take effect</li>
+                <li>• Buffer size directly affects latency vs. accuracy tradeoff</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
         {/* Footer */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-slate-700">
           <button
@@ -681,15 +818,17 @@ export const VoskSettingsModal: React.FC<VoskSettingsModalProps> = ({
             <button
               onClick={onClose}
               className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+              disabled={showSaveNotification}
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
-              className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
+              className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50"
+              disabled={showSaveNotification}
             >
               <Save className="w-4 h-4" />
-              <span>Save Settings</span>
+              <span>{showSaveNotification ? 'Saving...' : 'Save Settings'}</span>
             </button>
           </div>
         </div>

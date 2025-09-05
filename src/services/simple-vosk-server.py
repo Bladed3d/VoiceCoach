@@ -62,6 +62,20 @@ async def handle_client(websocket, path):
                             'message': 'Transcription stopped'
                         }))
                         continue
+                    elif data.get('type') == 'config_update':
+                        # Handle configuration updates
+                        config = data.get('config', {})
+                        if config.get('setWords') is not None:
+                            recognizers[client_id].SetWords(config['setWords'])
+                            print(f"[CONFIG] SetWords: {config['setWords']}")
+                        if config.get('setPartialWords') is not None:
+                            recognizers[client_id].SetPartialWords(config['setPartialWords'])
+                            print(f"[CONFIG] SetPartialWords: {config['setPartialWords']}")
+                        await websocket.send(json.dumps({
+                            'type': 'status',
+                            'message': 'Configuration updated'
+                        }))
+                        continue
                         
                 except json.JSONDecodeError:
                     # Not JSON, assume it's base64 audio
