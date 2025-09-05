@@ -4,6 +4,7 @@
  */
 import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
 import { ollamaInstructionLoader } from './OllamaInstructionLoader-Browser';
+import { intelligentPromptBuilder } from './intelligent-prompt-builder';
 
 export interface OllamaConfig {
   baseUrl: string;
@@ -38,6 +39,8 @@ export class OllamaCoachingService {
   private config: OllamaConfig;
   private isConnected: boolean = false;
   private promptCount: number = 0;
+  private useIntelligentIndexing: boolean = false;
+  private documentIndexed: boolean = false;
 
   constructor(config: OllamaConfig) {
     this.trail = new BreadcrumbTrail('OllamaService');
@@ -93,8 +96,13 @@ export class OllamaCoachingService {
         conversationLength: context.conversationHistory.length
       });
 
-      // Build context-aware prompt using processed document insights
-      const prompt = this.buildCoachingPrompt(context);
+      // Build context-aware prompt using intelligent indexing or full document
+      const prompt = this.useIntelligentIndexing 
+        ? intelligentPromptBuilder.buildContextAwarePrompt(
+            context.currentTranscript, 
+            context.processedInsights
+          )
+        : this.buildCoachingPrompt(context);
       
       console.log('🚀 Sending to Ollama:', {
         url: `${this.config.baseUrl}/api/generate`,
@@ -576,5 +584,46 @@ Create a comprehensive synthesis that combines both analyses into actionable coa
       config: this.config,
       lastActivity: this.trail.sequence[this.trail.sequence.length - 1]?.timestamp?.toString()
     };
+  }
+
+  /**
+   * Load and index a document for intelligent prompt building
+   */
+  async loadAndIndexDocument(ragDocument: any): Promise<boolean> {
+    try {
+      console.log('🔍 Loading document into intelligent indexer...');
+      
+      // Index the document for fast context matching
+      await intelligentPromptBuilder.indexDocument(ragDocument);
+      
+      this.documentIndexed = true;
+      this.useIntelligentIndexing = true;
+      
+      const stats = intelligentPromptBuilder.getIndexStats();
+      console.log('✅ Document indexed successfully:', stats);
+      
+      this.trail.light(6104, {
+        operation: 'document_indexed',
+        techniques: stats.techniques,
+        keywords: stats.keywords,
+        paths: stats.totalPaths,
+        memory: stats.memoryUsage
+      });
+      
+      return true;
+    } catch (error) {
+      this.trail.fail(8106, error as Error);
+      console.error('❌ Failed to index document:', error);
+      this.useIntelligentIndexing = false;
+      return false;
+    }
+  }
+
+  /**
+   * Toggle between intelligent indexing and full document mode
+   */
+  setIntelligentIndexing(enabled: boolean): void {
+    this.useIntelligentIndexing = enabled && this.documentIndexed;
+    console.log(`📊 Intelligent indexing: ${this.useIntelligentIndexing ? 'ENABLED' : 'DISABLED'}`);
   }
 }

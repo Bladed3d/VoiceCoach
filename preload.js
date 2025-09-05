@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectFile: () => ipcRenderer.invoke('select-file'),
   selectMultipleFiles: () => ipcRenderer.invoke('select-multiple-files'),
   readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
+  openFileDialog: (options) => ipcRenderer.invoke('openFileDialog', options),
   
   // Document processing
   processDocument: (data) => ipcRenderer.invoke('process-document', data),
@@ -71,6 +72,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.removeAllListeners('transcript-update');
     ipcRenderer.removeAllListeners('coaching-suggestion');
   },
+  
+  // ChromaDB operations
+  chromadbInitialize: () => ipcRenderer.invoke('chromadb-initialize'),
+  chromadbLoadDocument: (documentPath) => ipcRenderer.invoke('chromadb-load-document', documentPath),
+  chromadbSearch: (query, nResults) => ipcRenderer.invoke('chromadb-search', query, nResults),
+  chromadbGetStats: () => ipcRenderer.invoke('chromadb-get-stats'),
+  chromadbPing: () => ipcRenderer.invoke('chromadb-ping'),
+  chromadbStartServer: () => ipcRenderer.invoke('chromadb-start-server'),
+  chromadbStopServer: () => ipcRenderer.invoke('chromadb-stop-server'),
+  
+  // Vosk Optimization Progress Events
+  onVoskOptimizationProgress: (callback) => {
+    ipcRenderer.on('vosk-optimization-progress', (event, progress) => {
+      callback(event, progress);
+    });
+  },
+  removeVoskOptimizationListener: () => {
+    ipcRenderer.removeAllListeners('vosk-optimization-progress');
+  },
+  launchVoskOptimizer: (config) => ipcRenderer.invoke('launch-vosk-optimizer', config),
   
   // Utility
   platform: process.platform,

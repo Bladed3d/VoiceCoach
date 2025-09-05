@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socket.IO Connection Test</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Testing Socket.IO Connection to Vosk Server</h1>
+    <button onclick="testConnection()">Test Connection</button>
+    <pre id="output"></pre>
+    
+    <script>
+        function log(msg) {
+            document.getElementById('output').textContent += msg + '\n';
+            console.log(msg);
+        }
+        
+        function testConnection() {
+            log('Testing connection to http://localhost:5000...');
+            
+            const socket = io('http://localhost:5000', {
+                transports: ['websocket', 'polling'],
+                reconnection: false
+            });
+            
+            socket.on('connect', () => {
+                log('✅ SUCCESS: Connected to Vosk server!');
+                log('Socket ID: ' + socket.id);
+                
+                // Test starting transcription
+                socket.emit('start_transcription');
+                log('Sent: start_transcription');
+            });
+            
+            socket.on('connect_error', (error) => {
+                log('❌ ERROR: ' + error.message);
+                log('Error type: ' + error.type);
+                
+                // Try different URL formats
+                log('\nTrying http://127.0.0.1:5000...');
+                const socket2 = io('http://127.0.0.1:5000', {
+                    transports: ['polling', 'websocket']
+                });
+                
+                socket2.on('connect', () => {
+                    log('✅ Connected with 127.0.0.1!');
+                });
+                
+                socket2.on('connect_error', (err) => {
+                    log('❌ Also failed: ' + err.message);
+                });
+            });
+            
+            socket.on('status', (data) => {
+                log('Status received: ' + JSON.stringify(data));
+            });
+            
+            socket.on('transcription_status', (data) => {
+                log('Transcription status: ' + JSON.stringify(data));
+            });
+            
+            socket.on('error', (error) => {
+                log('Socket error: ' + error);
+            });
+        }
+    </script>
+</body>
+</html>

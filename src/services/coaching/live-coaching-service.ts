@@ -3,7 +3,8 @@
  * Coordinates real-time transcription with document-based coaching via Ollama
  */
 import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
-import { VoiceCoachWebSocketClient, TranscriptEvent, CoachingSuggestion } from '../websocket/websocket-client';
+import { SimpleWebSocketClient, TranscriptEvent } from '../websocket/simple-websocket-client';
+import { CoachingSuggestion } from '../websocket/websocket-client';
 import { OllamaCoachingService, OllamaConfig, CoachingContext, CoachingResponse } from './ollama-service';
 
 export interface LiveCoachingConfig {
@@ -31,7 +32,7 @@ export interface ProcessedDocument {
 export class LiveCoachingService {
   private trail: BreadcrumbTrail;
   private config: LiveCoachingConfig;
-  private webSocketClient: VoiceCoachWebSocketClient;
+  private webSocketClient: SimpleWebSocketClient;
   private ollamaService: OllamaCoachingService;
   private currentDocument: ProcessedDocument | null = null;
   private conversationHistory: Array<{ speaker: 'user' | 'prospect'; text: string; timestamp: string }> = [];
@@ -49,8 +50,8 @@ export class LiveCoachingService {
     this.trail = new BreadcrumbTrail('LiveCoaching');
     this.config = config;
     
-    // Initialize services
-    this.webSocketClient = new VoiceCoachWebSocketClient(config.websocket.serverUrl);
+    // Initialize services - Use SimpleWebSocketClient for native WebSocket on port 8765
+    this.webSocketClient = new SimpleWebSocketClient('ws://127.0.0.1:8765');
     this.ollamaService = new OllamaCoachingService(config.ollama);
 
     this.trail.light(6200, {
@@ -166,7 +167,7 @@ export class LiveCoachingService {
     }
   }
 
-  loadProcessedDocument(document: any): boolean {
+  async loadProcessedDocument(document: any): Promise<boolean> {
     try {
       this.trail.light(6220, {
         operation: 'document_loading',
@@ -184,12 +185,27 @@ export class LiveCoachingService {
         response_patterns: document.response_patterns || document.documentContent?.response_patterns
       };
       
+      // NEW: Index the document for intelligent prompt building
+      const indexSuccess = await this.ollamaService.loadAndIndexDocument(
+        document.documentContent || document
+      );
+      
+      if (indexSuccess) {
+        console.log('✅ Document indexed for intelligent prompt building');
+        this.trail.light(6221, {
+          operation: 'document_indexed_for_coaching',
+          intelligent_indexing: true
+        });
+      } else {
+        console.log('⚠️ Using full document mode (indexing failed)');
+      }
+      
       this.conversationHistory = []; // Reset conversation when loading new document
       this.pendingTranscript = '';
 
       this.onStatusCallback?.(`Document loaded: ${document.name}`);
       
-      this.trail.light(6221, {
+      this.trail.light(6222, {
         operation: 'document_loaded_successfully',
         techniqueCount: this.currentDocument.techniques?.length || 0
       });

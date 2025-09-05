@@ -288,7 +288,7 @@ export class SessionManagerService {
               loadedTimestamp: new Date().toISOString()
             };
             
-            const loaded = this.liveCoachingManager.loadDocument(processedDoc);
+            const loaded = await this.liveCoachingManager.loadDocument(processedDoc);
             if (loaded) {
               console.log('✅ Document loaded into live coaching manager');
               console.log('📄 Document has', documentContent.techniques?.length || 0, 'techniques');
@@ -819,11 +819,34 @@ export class SessionManagerService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
-      // LED 8300: Session start failure
+      // LED 8300: Session start failure with enhanced diagnostics
       this.trail.fail(8300, error as Error);
+      this.trail.light(8301, {
+        operation: 'session_start_failure_diagnostics',
+        error_message: errorMessage,
+        error_name: error instanceof Error ? error.name : 'Unknown',
+        error_stack: error instanceof Error ? error.stack?.split('\n').slice(0, 3).join(' | ') : null,
+        capture_mode: captureMode,
+        selected_documents: selectedDocuments,
+        ws_client_connected: this.wsClient?.isConnected(),
+        session_duration_before_error: Date.now() - sessionStartTime,
+        timestamp: Date.now()
+      });
+      
+      // Stop any partially started services
+      try {
+        this.volumeService?.stopMonitoring();
+        this.wsClient?.disconnect();
+        if (this.liveCoachingManager) {
+          await this.liveCoachingManager.stopLiveCoaching();
+        }
+      } catch (cleanupError) {
+        console.error('Error during cleanup:', cleanupError);
+      }
       
       this.updateSessionState({
-        wsStatus: `Error: ${errorMessage}`
+        wsStatus: `Error: ${errorMessage}`,
+        isRecording: false
       });
       
       return false;

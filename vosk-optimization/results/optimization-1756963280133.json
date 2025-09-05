@@ -1,0 +1,192 @@
+{
+  "timestamp": "2025-09-04T05:21:20.133Z",
+  "config": {
+    "audioFile": "D:\\Projects\\Ai\\VoiceCoach-v2\\vosk-optimization\\test-files\\test-normal.wav",
+    "textFile": "D:\\Projects\\Ai\\VoiceCoach-v2\\vosk-optimization\\test-files\\test-normal.txt",
+    "mode": "quick",
+    "targetMetric": "balanced",
+    "currentSettings": {
+      "sampleRate": 16000,
+      "chunkSize": 4096,
+      "beamSize": 13,
+      "maxActive": 7000,
+      "silenceThreshold": 0.5,
+      "partialWords": false,
+      "setWords": false,
+      "setPartialWords": true
+    }
+  },
+  "bestSettings": {
+    "sampleRate": 16000,
+    "chunkSize": 16000,
+    "setWords": false,
+    "setPartialWords": true
+  },
+  "metrics": {
+    "wordAccuracy": 100,
+    "characterAccuracy": 100,
+    "processingTime": 28784,
+    "realTimeFactor": 2.8784,
+    "partialCount": 28
+  },
+  "improvement": {
+    "accuracyGain": 0,
+    "speedGain": 4.056531448951701,
+    "baselineAccuracy": 100,
+    "optimalAccuracy": 100
+  },
+  "allResults": [
+    {
+      "params": {
+        "sampleRate": 16000,
+        "chunkSize": 4096,
+        "beamSize": 13,
+        "maxActive": 7000,
+        "silenceThreshold": 0.5,
+        "partialWords": false,
+        "setWords": false,
+        "setPartialWords": true
+      },
+      "transcript": "",
+      "metrics": {
+        "wordAccuracy": 100,
+        "characterAccuracy": 100,
+        "processingTime": 30001,
+        "realTimeFactor": 3.0001,
+        "partialCount": 13
+      }
+    },
+    {
+      "params": {
+        "sampleRate": 16000,
+        "chunkSize": 8000,
+        "setWords": false,
+        "setPartialWords": true
+      },
+      "transcript": "",
+      "metrics": {
+        "wordAccuracy": 100,
+        "characterAccuracy": 100,
+        "processingTime": 30001,
+        "realTimeFactor": 3.0001,
+        "partialCount": 28
+      }
+    },
+    {
+      "params": {
+        "sampleRate": 16000,
+        "chunkSize": 8000,
+        "setWords": true,
+        "setPartialWords": false
+      },
+      "transcript": "",
+      "metrics": {
+        "wordAccuracy": 100,
+        "characterAccuracy": 100,
+        "processingTime": 30001,
+        "realTimeFactor": 3.0001,
+        "partialCount": 28
+      }
+    },
+    {
+      "params": {
+        "sampleRate": 16000,
+        "chunkSize": 4000,
+        "setWords": false,
+        "setPartialWords": true
+      },
+      "transcript": "",
+      "metrics": {
+        "wordAccuracy": 100,
+        "characterAccuracy": 100,
+        "processingTime": 30000,
+        "realTimeFactor": 3,
+        "partialCount": 13
+      }
+    },
+    {
+      "params": {
+        "sampleRate": 16000,
+        "chunkSize": 4000,
+        "setWords": true,
+        "setPartialWords": true
+      },
+      "transcript": "",
+      "metrics": {
+        "wordAccuracy": 100,
+        "characterAccuracy": 100,
+        "processingTime": 30000,
+        "realTimeFactor": 3,
+        "partialCount": 13
+      }
+    },
+    {
+      "params": {
+        "sampleRate": 8000,
+        "chunkSize": 4000,
+        "setWords": false,
+        "setPartialWords": true
+      },
+      "transcript": "",
+      "metrics": {
+        "wordAccuracy": 100,
+        "characterAccuracy": 100,
+        "processingTime": 30000,
+        "realTimeFactor": 3,
+        "partialCount": 13
+      }
+    },
+    {
+      "params": {
+        "sampleRate": 8000,
+        "chunkSize": 8000,
+        "setWords": true,
+        "setPartialWords": false
+      },
+      "transcript": "",
+      "metrics": {
+        "wordAccuracy": 100,
+        "characterAccuracy": 100,
+        "processingTime": 30000,
+        "realTimeFactor": 3,
+        "partialCount": 27
+      }
+    },
+    {
+      "params": {
+        "sampleRate": 16000,
+        "chunkSize": 16000,
+        "setWords": false,
+        "setPartialWords": true
+      },
+      "transcript": "",
+      "metrics": {
+        "wordAccuracy": 100,
+        "characterAccuracy": 100,
+        "processingTime": 28784,
+        "realTimeFactor": 2.8784,
+        "partialCount": 28
+      }
+    },
+    {
+      "params": {
+        "sampleRate": 16000,
+        "chunkSize": 2000,
+        "setWords": true,
+        "setPartialWords": true
+      },
+      "transcript": "",
+      "metrics": {
+        "wordAccuracy": 100,
+        "characterAccuracy": 100,
+        "processingTime": 30001,
+        "realTimeFactor": 3.0001,
+        "partialCount": 7
+      }
+    }
+  ],
+  "systemProfile": {
+    "cpuModel": "13th Gen Intel(R) Core(TM) i9-13900K",
+    "availableMemory": 107
+  }
+}

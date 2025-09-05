@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Microphone Level Tester</title>
+    <style>
+        body { 
+            font-family: 'Courier New', monospace; 
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .instructions {
+            background: #e8f4f8;
+            border: 2px solid #0066cc;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        button { 
+            padding: 12px 24px; 
+            margin: 5px; 
+            font-size: 16px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #output { 
+            background: #1e1e1e; 
+            color: #d4d4d4;
+            padding: 15px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            border-radius: 4px;
+            min-height: 300px;
+        }
+        .good { color: #4ec9b0; font-weight: bold; }
+        .bad { color: #f48771; font-weight: bold; }
+        .warn { color: #ffcc00; font-weight: bold; }
+        .level-bar {
+            width: 100%;
+            height: 30px;
+            background: #333;
+            margin: 10px 0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .level-fill {
+            height: 100%;
+            background: linear-gradient(to right, #4ec9b0, #ffcc00, #f48771);
+            width: 0%;
+            transition: width 0.1s;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎤 Microphone Level Diagnostic</h1>
+    
+    <div class="instructions">
+        <strong>HOW TO USE:</strong><br>
+        1. Open this file in Chrome or Edge (File → Open → Select this HTML file)<br>
+        2. Click "Start Test" and allow microphone access<br>
+        3. SPEAK NORMALLY for 5 seconds<br>
+        4. Review the analysis to see if audio levels are the problem
+    </div>
+    
+    <button id="startBtn" onclick="startTest()">Start Test (5 seconds)</button>
+    <button id="playBtn" style="display:none" onclick="playRecording()">Play Recording</button>
+    
+    <div class="level-bar" id="levelBar" style="display:none">
+        <div class="level-fill" id="levelFill"></div>
+    </div>
+    
+    <div id="output">Ready to test microphone levels...</div>
+    
+    <script>
+        const output = document.getElementById('output');
+        let recordedAudio = null;
+        let audioContext = null;
+        
+        function log(msg, className = '') {
+            const timestamp = new Date().toLocaleTimeString();
+            const line = document.createElement('div');
+            if (className) line.className = className;
+            line.textContent = `[${timestamp}] ${msg}`;
+            output.appendChild(line);
+            console.log(msg);
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        function clear() {
+            output.innerHTML = '';
+        }
+        
+        async function startTest() {
+            clear();
+            log('=== MICROPHONE LEVEL TEST STARTING ===\n');
+            
+            // Check browser compatibility
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                log('ERROR: Your browser does not support audio capture!', 'bad');
+                log('Please use Chrome, Edge, or Firefox', 'bad');
+                return;
+            }
+            
+            try {
+                log('Requesting microphone access...');
+                
+                // Request microphone with Vosk-compatible settings
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false,
+                        sampleRate: 16000,
+                        channelCount: 1
+                    }
+                });
+                
+                log('✓ Microphone access granted', 'good');
+                
+                // Show what we got
+                const track = stream.getAudioTracks()[0];
+                const settings = track.getSettings();
+                log(`Microphone: ${track.label}`);
+                log(`Settings: ${settings.sampleRate || 'unknown'}Hz, ${settings.channelCount || 'unknown'} channel(s)`);
+                
+                // Create AudioContext
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+                log(`AudioContext: ${audioContext.sampleRate}Hz (Vosk needs 16000Hz)`);
+                
+                if (audioContext.sampleRate !== 16000) {
+                    log('⚠️ AudioContext not 16kHz! This may affect accuracy', 'warn');
+                }
+                
+                // Create processor
+                const source = audioContext.createMediaStreamSource(stream);
+                const processor = audioContext.createScriptProcessor(4096, 1, 1);
+                
+                let allSamples = [];
+                let chunkCount = 0;
+                const startTime = Date.now();
+                const testDuration = 5000; // 5 seconds
+                
+                // Show level bar
+                document.getElementById('levelBar').style.display = 'block';
+                
+                processor.onaudioprocess = (e) => {
+                    const inputData = e.inputBuffer.getChannelData(0);
+                    chunkCount++;
+                    
+                    // Convert to Int16 (like VoiceCoach does)
+                    const int16Array = new Int16Array(inputData.length);
+                    for (let i = 0; i < inputData.length; i++) {
+                        const clamped = Math.max(-1, Math.min(1, inputData[i]));
+                        int16Array[i] = Math.floor(clamped * 32767);
+                    }
+                    
+                    // Store samples
+                    allSamples.push(...int16Array);
+                    
+                    // Calculate levels
+                    const avgLevel = Array.from(int16Array)
+                        .reduce((a, b) => a + Math.abs(b), 0) / int16Array.length;
+                    const maxLevel = Math.max(...Array.from(int16Array).map(Math.abs));
+                    
+                    // Update level bar
+                    const levelPercent = Math.min(100, (maxLevel / 32767) * 100);
+                    document.getElementById('levelFill').style.width = levelPercent + '%';
+                    
+                    // Log periodically
+                    if (chunkCount % 10 === 0) {
+                        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                        const avgPercent = (avgLevel / 32767 * 100).toFixed(1);
+                        log(`[${elapsed}s] Level: ${avgPercent}% avg, ${levelPercent.toFixed(1)}% peak`);
+                    }
+                    
+                    // Stop after duration
+                    if (Date.now() - startTime > testDuration) {
+                        processor.disconnect();
+                        source.disconnect();
+                        stream.getTracks().forEach(t => t.stop());
+                        audioContext.close();
+                        
+                        analyzeResults();
+                    }
+                };
+                
+                source.connect(processor);
+                processor.connect(audioContext.destination);
+                
+                log('\n🎤 RECORDING NOW - SPEAK NORMALLY!\n', 'warn');
+                document.getElementById('startBtn').disabled = true;
+                
+                function analyzeResults() {
+                    document.getElementById('levelBar').style.display = 'none';
+                    log('\n=== ANALYSIS COMPLETE ===\n');
+                    
+                    if (allSamples.length === 0) {
+                        log('❌ NO AUDIO CAPTURED!', 'bad');
+                        log('Check microphone connection', 'bad');
+                        document.getElementById('startBtn').disabled = false;
+                        return;
+                    }
+                    
+                    recordedAudio = new Int16Array(allSamples);
+                    const duration = recordedAudio.length / 16000;
+                    
+                    log(`Recorded: ${duration.toFixed(2)} seconds`);
+                    log(`Samples: ${recordedAudio.length.toLocaleString()}`);
+                    
+                    // Calculate statistics
+                    const avgLevel = allSamples.reduce((a, b) => a + Math.abs(b), 0) / allSamples.length;
+                    const maxLevel = Math.max(...allSamples.map(Math.abs));
+                    const silentSamples = allSamples.filter(s => Math.abs(s) < 10).length;
+                    const silentPercent = (silentSamples / allSamples.length * 100).toFixed(1);
+                    
+                    log(`\n📊 AUDIO STATISTICS:`);
+                    log(`  Average Level: ${avgLevel.toFixed(0)}/32767 (${(avgLevel/32767*100).toFixed(2)}%)`);
+                    log(`  Peak Level: ${maxLevel}/32767 (${(maxLevel/32767*100).toFixed(2)}%)`);
+                    log(`  Silent Samples: ${silentPercent}%`);
+                    
+                    // Diagnosis
+                    log('\n🔍 DIAGNOSIS:\n');
+                    
+                    if (avgLevel < 100) {
+                        log('❌ CRITICAL PROBLEM FOUND!', 'bad');
+                        log('Your audio is WAY TOO QUIET for Vosk!', 'bad');
+                        log(`Expected: 1000-5000, Got: ${avgLevel.toFixed(0)}`, 'bad');
+                        log('\nThis is why Vosk accuracy is poor!', 'bad');
+                        log('\n📌 IMMEDIATE FIXES:', 'warn');
+                        log('1. Right-click speaker icon → Open Sound settings');
+                        log('2. Click "Device properties" under Input');
+                        log('3. Set Volume to 100%');
+                        log('4. Enable "Microphone Boost" if available');
+                        log('5. Position microphone closer to mouth');
+                        log('\nOR in your code, try:', 'warn');
+                        log('autoGainControl: true (instead of false)');
+                    } else if (avgLevel < 500) {
+                        log('⚠️ Audio level is LOW', 'warn');
+                        log('This will reduce Vosk accuracy', 'warn');
+                        log('Consider increasing microphone gain', 'warn');
+                    } else if (avgLevel > 25000) {
+                        log('⚠️ Audio may be CLIPPING', 'warn');
+                        log('Reduce microphone volume slightly', 'warn');
+                    } else {
+                        log('✅ Audio levels are GOOD!', 'good');
+                        log(`Average ${avgLevel.toFixed(0)} is in optimal range (500-25000)`, 'good');
+                        log('\nIf Vosk accuracy is still poor:', 'warn');
+                        log('- Problem is in WebSocket transmission');
+                        log('- Or in audio format conversion');
+                        log('- Or Vosk model/settings issue');
+                    }
+                    
+                    log('\n📝 NEXT STEPS:');
+                    log('1. Click "Play Recording" to verify audio quality');
+                    log('2. If it sounds clear, audio capture is working');
+                    log('3. If Vosk still fails, issue is elsewhere');
+                    
+                    document.getElementById('startBtn').disabled = false;
+                    document.getElementById('playBtn').style.display = 'inline';
+                }
+                
+            } catch (error) {
+                log(`\n❌ ERROR: ${error.message}`, 'bad');
+                
+                if (error.name === 'NotAllowedError') {
+                    log('Microphone access was denied!', 'bad');
+                    log('Please allow microphone access and try again', 'warn');
+                } else if (error.name === 'NotFoundError') {
+                    log('No microphone found!', 'bad');
+                    log('Please connect a microphone and try again', 'warn');
+                } else {
+                    log('Unknown error occurred', 'bad');
+                    log('Check browser console for details', 'warn');
+                }
+                
+                document.getElementById('startBtn').disabled = false;
+            }
+        }
+        
+        function playRecording() {
+            if (!recordedAudio || recordedAudio.length === 0) {
+                log('No recording available', 'warn');
+                return;
+            }
+            
+            log('\n🔊 Playing recorded audio...');
+            
+            // Convert Int16 back to Float32
+            const float32 = new Float32Array(recordedAudio.length);
+            for (let i = 0; i < recordedAudio.length; i++) {
+                float32[i] = recordedAudio[i] / 32767;
+            }
+            
+            // Create new context for playback
+            const playContext = new (window.AudioContext || window.webkitAudioContext)();
+            const buffer = playContext.createBuffer(1, float32.length, 16000);
+            buffer.getChannelData(0).set(float32);
+            
+            const source = playContext.createBufferSource();
+            source.buffer = buffer;
+            source.connect(playContext.destination);
+            source.start();
+            
+            log('Listen for:');
+            log('- Is it loud enough?');
+            log('- Is your voice clear?');
+            log('- Any distortion or noise?');
+            
+            source.onended = () => {
+                playContext.close();
+                log('Playback complete', 'good');
+            };
+        }
+        
+        // Auto-focus for quick testing
+        window.onload = () => {
+            log('Ready! Click "Start Test" to begin...');
+            document.getElementById('startBtn').focus();
+        };
+    </script>
+</body>
+</html>

@@ -3,6 +3,10 @@
 VoiceCoach V2 - WebSocket Vosk Transcription Server
 High-performance real-time transcription with <1ms latency
 """
+# Use gevent for proper WebSocket support
+from gevent import monkey
+monkey.patch_all()
+
 import asyncio
 import json
 import os
@@ -10,6 +14,7 @@ import sys
 from datetime import datetime
 from flask import Flask
 from flask_socketio import SocketIO, emit
+from flask_cors import CORS
 from vosk import Model, KaldiRecognizer
 import sounddevice as sd
 import numpy as np
@@ -44,19 +49,24 @@ class VoskWebSocketServer:
         # Initialize Flask app with SocketIO
         self.app = Flask(__name__)
         self.app.config['SECRET_KEY'] = 'voicecoach-v2-secret'
+        
+        # Enable CORS for all origins
+        CORS(self.app, resources={r"/*": {"origins": "*"}})
+        
         # ✅ Enhanced CORS configuration for Electron compatibility
         self.socketio = SocketIO(
             self.app, 
-            cors_allowed_origins=[
-                "http://localhost:5173", "http://127.0.0.1:5173",  # Vite dev server
-                "http://localhost:5175", "http://127.0.0.1:5175",  # Alternative ports
-                "http://localhost:3000", "http://127.0.0.1:3000"   # React dev server
-            ],
-            cors_credentials=True,
+            cors_allowed_origins="*",  # Allow all origins for Electron app
+            cors_credentials=False,  # Changed to False - can't use True with origin "*"
             async_mode='threading',
             logger=True,
             engineio_logger=True,
-            transports=['polling', 'websocket']  # Explicitly enable both transports
+            transports=['polling', 'websocket'],  # Explicitly enable both transports
+            ping_timeout=60,  # Increase timeout
+            ping_interval=25,  # Keep-alive ping
+            max_http_buffer_size=1e6,  # 1MB max buffer
+            allow_upgrades=True,  # Allow transport upgrades
+            compression_threshold=1024  # Enable compression
         )
         
         # LED Breadcrumb 6002: Initialize Vosk
@@ -157,7 +167,7 @@ class VoskWebSocketServer:
             
             # Initialize recognizer for 16kHz
             self.recognizer = KaldiRecognizer(self.model, 16000)
-            self.recognizer.SetWords(False)  # Clean output
+            self.recognizer.SetWords(True)  # Clean output
             self.recognizer.SetPartialWords(True)  # Enable word-level partial detection for better sentence boundaries
             
             print(f"[6002] Vosk model loaded successfully")
@@ -172,7 +182,10 @@ class VoskWebSocketServer:
         @self.socketio.on('connect')
         def handle_connect():
             # LED Breadcrumb 6010: Client connected
+            from flask import request
             print(f"[6010] Client connected: {datetime.now()}")
+            print(f"[6010.1] Connection from: {request.remote_addr}")
+            print(f"[6010.2] Headers: {dict(request.headers)}")
             emit('status', {'message': 'Connected to VoiceCoach V2 Transcription Server'})
         
         @self.socketio.on('disconnect')
@@ -184,30 +197,13 @@ class VoskWebSocketServer:
         @self.socketio.on('start_transcription')
         def handle_start_transcription():
             # LED Breadcrumb 6020: Start transcription requested
-            print(f"[6020] Start transcription requested")
+            print(f"[6020] Start transcription requested from client")
             
-            # Check audio device validation before starting
-            if not self.audio_device_validated:
-                print(f"[8020.1] Transcription start failed: Audio device not validated")
-                emit('error', {
-                    'message': 'Audio device validation failed. Please check microphone configuration.',
-                    'details': {
-                        'device_validated': False,
-                        'default_device': self.default_device_info['name'] if self.default_device_info else 'None',
-                        'troubleshooting': [
-                            'Ensure microphone is connected and set as default device',
-                            'Check Windows Privacy Settings > Microphone permissions',
-                            'Verify no other applications are using the microphone',
-                            'Try restarting the application'
-                        ]
-                    }
-                })
-                return
-            
+            # Simply set recording flag - audio will come from client via audio_chunk events
             self.is_recording = True
             
-            # Start microphone capture in separate thread
-            Thread(target=self._capture_microphone, daemon=True).start()
+            # Don't start microphone capture - wait for audio chunks from client!
+            # The client is capturing audio and will send it via 'audio_chunk' events
             
             emit('transcription_status', {'status': 'started'})
         
@@ -238,6 +234,7 @@ class VoskWebSocketServer:
         @self.socketio.on('audio_chunk')
         def handle_audio_chunk(data):
             # LED Breadcrumb 6030: Process audio chunk
+            print(f"[6030] Audio chunk received, size: {len(data) if data else 0}")
             try:
                 # Convert received audio data to bytes if needed
                 if isinstance(data, str):
@@ -527,8 +524,7 @@ class VoskWebSocketServer:
             self.app, 
             host='0.0.0.0', 
             port=self.port,
-            debug=False,
-            allow_unsafe_werkzeug=True
+            debug=False
         )
 
 def main():

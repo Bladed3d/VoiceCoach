@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Socket.IO in Browser Console</title>
+</head>
+<body>
+    <h1>Socket.IO Debug Test</h1>
+    <p>Open browser console (F12) and paste this code:</p>
+    <pre id="code">
+// Test Socket.IO connection directly in browser console
+import('https://cdn.socket.io/4.5.4/socket.io.esm.min.js')
+  .then((module) => {
+    const io = module.io;
+    const socket = io('http://localhost:5000', {
+      transports: ['websocket', 'polling'],
+      reconnection: false
+    });
+    
+    socket.on('connect', () => {
+      console.log('✅ Connected!', socket.id);
+    });
+    
+    socket.on('connect_error', (err) => {
+      console.error('❌ Error:', err.message, err);
+    });
+    
+    return socket;
+  })
+  .catch(err => console.error('Failed to load Socket.IO:', err));
+    </pre>
+    
+    <button onclick="testDirect()">Or Click Here to Test</button>
+    
+    <div id="result"></div>
+    
+    <script type="module">
+        window.testDirect = async function() {
+            try {
+                const module = await import('https://cdn.socket.io/4.5.4/socket.io.esm.min.js');
+                const io = module.io;
+                
+                console.log('Creating Socket.IO connection...');
+                const socket = io('http://localhost:5000', {
+                    transports: ['websocket', 'polling'],
+                    reconnection: false
+                });
+                
+                socket.on('connect', () => {
+                    document.getElementById('result').innerHTML = '✅ Connected! Socket ID: ' + socket.id;
+                    console.log('✅ Connected!', socket.id);
+                });
+                
+                socket.on('connect_error', (err) => {
+                    document.getElementById('result').innerHTML = '❌ Error: ' + err.message;
+                    console.error('❌ Error:', err.message, err);
+                });
+                
+                window.testSocket = socket;
+                return socket;
+            } catch (err) {
+                document.getElementById('result').innerHTML = '❌ Failed: ' + err.message;
+                console.error('Failed:', err);
+            }
+        }
+    </script>
+</body>
+</html>

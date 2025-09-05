@@ -36,7 +36,7 @@ class VoskAudioProcessor extends AudioWorkletProcessor {
         type: 'AUDIO_DATA',
         data: pcmData.buffer,
         sampleCount: inputChannel.length,
-        sampleRate: sampleRate,
+        sampleRate: 16000, // Fixed: Hardcode to 16kHz for now
         chunkIndex: this.processedChunks++
       }, [pcmData.buffer]); // Transfer ownership for performance
       

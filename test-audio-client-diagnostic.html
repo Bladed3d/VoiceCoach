@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Client Audio Diagnostic</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        button { padding: 10px; margin: 5px; }
+        #output { background: #f0f0f0; padding: 10px; }
+        .good { color: green; }
+        .bad { color: red; }
+        .warn { color: orange; }
+    </style>
+</head>
+<body>
+    <h1>Client-Side Audio Diagnostic</h1>
+    <p>This mimics your app's audio pipeline to find where accuracy is lost</p>
+    
+    <button id="startBtn">Start Audio Capture</button>
+    <button id="stopBtn" disabled>Stop</button>
+    <button id="playBtn" disabled>Play Recorded Audio</button>
+    
+    <div id="output"></div>
+    
+    <script>
+        const output = document.getElementById('output');
+        let audioContext;
+        let workletNode;
+        let source;
+        let mediaStream;
+        let recordedChunks = [];
+        let audioBuffer = [];
+        
+        function log(msg, className = '') {
+            const line = document.createElement('div');
+            line.className = className;
+            line.textContent = msg;
+            output.appendChild(line);
+            console.log(msg);
+        }
+        
+        // Mimic your AudioWorklet processor
+        class TestAudioProcessor extends AudioWorkletProcessor {
+            constructor() {
+                super();
+                this.isRecording = false;
+                this.chunkCount = 0;
+                
+                this.port.onmessage = (e) => {
+                    if (e.data === 'START') {
+                        this.isRecording = true;
+                        this.chunkCount = 0;
+                    } else if (e.data === 'STOP') {
+                        this.isRecording = false;
+                    }
+                };
+            }
+            
+            process(inputs, outputs, parameters) {
+                if (!this.isRecording) return true;
+                
+                const input = inputs[0];
+                if (!input || !input[0]) return true;
+                
+                const inputChannel = input[0];
+                
+                // Convert to Int16 like your code does
+                const int16Array = new Int16Array(inputChannel.length);
+                for (let i = 0; i < inputChannel.length; i++) {
+                    const clampedValue = Math.max(-1, Math.min(1, inputChannel[i]));
+                    int16Array[i] = clampedValue * 32767;
+                }
+                
+                // Analyze the chunk
+                const avgLevel = Array.from(int16Array).reduce((a, b) => a + Math.abs(b), 0) / int16Array.length;
+                const maxLevel = Math.max(...Array.from(int16Array).map(Math.abs));
+                
+                // Send analysis back
+                this.port.postMessage({
+                    type: 'CHUNK_ANALYSIS',
+                    chunkNum: ++this.chunkCount,
+                    samples: inputChannel.length,
+                    avgLevel: avgLevel,
+                    maxLevel: maxLevel,
+                    data: int16Array.buffer
+                }, [int16Array.buffer]);
+                
+                return true;
+            }
+        }
+        
+        // Register the processor
+        const processorCode = `
+            ${TestAudioProcessor.toString()}
+            registerProcessor('test-audio-processor', TestAudioProcessor);
+        `;
+        
+        document.getElementById('startBtn').addEventListener('click', async () => {
+            output.innerHTML = '';
+            recordedChunks = [];
+            audioBuffer = [];
+            
+            log('=== STARTING AUDIO DIAGNOSTIC ===\n');
+            
+            try {
+                // Step 1: Get microphone (mimicking your code)
+                log('Step 1: Getting microphone...');
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false,
+                        sampleRate: 16000,
+                        channelCount: 1
+                    }
+                });
+                
+                const track = mediaStream.getAudioTracks()[0];
+                const settings = track.getSettings();
+                log(`✓ Microphone: ${settings.sampleRate || 'unknown'}Hz, ${settings.channelCount || 'unknown'} channel(s)`, 'good');
+                
+                // Step 2: Create AudioContext (mimicking your code)
+                log('\nStep 2: Creating AudioContext...');
+                audioContext = new AudioContext({ sampleRate: 16000 });
+                log(`AudioContext created at: ${audioContext.sampleRate}Hz`, 
+                    audioContext.sampleRate === 16000 ? 'good' : 'bad');
+                
+                // Step 3: Create AudioWorklet
+                log('\nStep 3: Setting up AudioWorklet...');
+                const blob = new Blob([processorCode], { type: 'application/javascript' });
+                const workletUrl = URL.createObjectURL(blob);
+                await audioContext.audioWorklet.addModule(workletUrl);
+                
+                workletNode = new AudioWorkletNode(audioContext, 'test-audio-processor');
+                
+                // Step 4: Connect audio graph
+                log('\nStep 4: Connecting audio pipeline...');
+                source = audioContext.createMediaStreamSource(mediaStream);
+                source.connect(workletNode);
+                // Note: Not connecting to destination (like your code)
+                log('✓ Audio graph connected: mic → worklet → (no destination)');
+                
+                // Step 5: Handle worklet messages
+                let chunkAnalysis = [];
+                let totalSamples = 0;
+                let silentChunks = 0;
+                let lowChunks = 0;
+                let goodChunks = 0;
+                
+                workletNode.port.onmessage = (e) => {
+                    if (e.data.type === 'CHUNK_ANALYSIS') {
+                        const chunk = e.data;
+                        totalSamples += chunk.samples;
+                        
+                        // Store for playback
+                        const int16Array = new Int16Array(e.data.data);
+                        audioBuffer.push(...int16Array);
+                        
+                        // Analyze
+                        if (chunk.avgLevel < 10) {
+                            silentChunks++;
+                        } else if (chunk.avgLevel < 100) {
+                            lowChunks++;
+                        } else {
+                            goodChunks++;
+                        }
+                        
+                        // Log every 10th chunk
+                        if (chunk.chunkNum % 10 === 0) {
+                            const levelPercent = (chunk.avgLevel / 32767 * 100).toFixed(2);
+                            log(`Chunk ${chunk.chunkNum}: avg=${chunk.avgLevel.toFixed(0)}, max=${chunk.maxLevel}, level=${levelPercent}%`);
+                        }
+                        
+                        // Summary every 50 chunks
+                        if (chunk.chunkNum % 50 === 0) {
+                            log(`\n--- After ${chunk.chunkNum} chunks ---`);
+                            log(`Silent chunks: ${silentChunks}`, silentChunks > 10 ? 'bad' : 'good');
+                            log(`Low level chunks: ${lowChunks}`, lowChunks > 20 ? 'warn' : 'good');
+                            log(`Good chunks: ${goodChunks}`, goodChunks > 20 ? 'good' : 'bad');
+                            log(`Total duration: ${(totalSamples / 16000).toFixed(2)} seconds`);
+                        }
+                    }
+                };
+                
+                // Start recording
+                log('\nStep 5: Starting recording...');
+                log('SPEAK NOW FOR 5-10 SECONDS!', 'warn');
+                workletNode.port.postMessage('START');
+                
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                
+            } catch (error) {
+                log(`ERROR: ${error.message}`, 'bad');
+            }
+        });
+        
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            if (workletNode) {
+                workletNode.port.postMessage('STOP');
+                
+                log('\n=== RECORDING STOPPED ===');
+                log(`Total samples collected: ${audioBuffer.length}`);
+                log(`Duration: ${(audioBuffer.length / 16000).toFixed(2)} seconds`);
+                
+                // Analyze final audio
+                if (audioBuffer.length > 0) {
+                    const avgLevel = audioBuffer.reduce((a, b) => a + Math.abs(b), 0) / audioBuffer.length;
+                    const maxLevel = Math.max(...audioBuffer.map(Math.abs));
+                    
+                    log('\n=== FINAL ANALYSIS ===');
+                    log(`Average level: ${avgLevel.toFixed(0)} / 32767 (${(avgLevel/32767*100).toFixed(2)}%)`);
+                    log(`Peak level: ${maxLevel} / 32767`);
+                    
+                    if (avgLevel < 100) {
+                        log('\n❌ PROBLEM FOUND: Audio is too quiet!', 'bad');
+                        log('This explains poor Vosk accuracy', 'bad');
+                        log('Solutions:', 'warn');
+                        log('1. Move microphone closer');
+                        log('2. Increase microphone gain in Windows');
+                        log('3. Check if autoGainControl:false is the issue');
+                    } else if (avgLevel < 500) {
+                        log('\n⚠️ WARNING: Audio level is low', 'warn');
+                        log('This may affect accuracy', 'warn');
+                    } else {
+                        log('\n✓ Audio levels look good', 'good');
+                        log('Problem is likely elsewhere in the pipeline', 'warn');
+                    }
+                    
+                    // Check for other issues
+                    const zeroSamples = audioBuffer.filter(s => s === 0).length;
+                    const zeroPercent = (zeroSamples / audioBuffer.length * 100).toFixed(2);
+                    log(`\nZero samples: ${zeroPercent}%`);
+                    if (zeroPercent > 50) {
+                        log('❌ Too many silent samples!', 'bad');
+                    }
+                    
+                    document.getElementById('playBtn').disabled = false;
+                }
+                
+                // Cleanup
+                if (source) source.disconnect();
+                if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+                if (audioContext) audioContext.close();
+            }
+            
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+        });
+        
+        document.getElementById('playBtn').addEventListener('click', () => {
+            if (audioBuffer.length === 0) return;
+            
+            log('\nPlaying back captured audio...');
+            
+            // Convert Int16 back to Float32 for playback
+            const floatArray = new Float32Array(audioBuffer.length);
+            for (let i = 0; i < audioBuffer.length; i++) {
+                floatArray[i] = audioBuffer[i] / 32767;
+            }
+            
+            // Create new context for playback
+            const playContext = new (window.AudioContext || window.webkitAudioContext)();
+            const audioBufferObj = playContext.createBuffer(1, floatArray.length, 16000);
+            audioBufferObj.getChannelData(0).set(floatArray);
+            
+            const source = playContext.createBufferSource();
+            source.buffer = audioBufferObj;
+            source.connect(playContext.destination);
+            source.start();
+            
+            log('If audio sounds distorted or wrong, the conversion is the problem');
+            log('If audio sounds clear but Vosk fails, the issue is after this point');
+        });
+    </script>
+</body>
+</html>

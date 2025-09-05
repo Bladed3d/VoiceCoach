@@ -1,6 +1,6 @@
 // Cleanup is now handled by pre-startup-cleanup.js before npm run dev
 
-const { app, BrowserWindow, ipcMain, dialog, systemPreferences, shell, net, desktopCapturer } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, systemPreferences, shell, net, desktopCapturer, screen } = require('electron');
 const path = require('path');
 const fs = require('fs-extra');
 const fsSync = require('fs');
@@ -9,8 +9,65 @@ const { spawn } = require('child_process');
 // Keep a global reference of the window object
 let mainWindow;
 let pythonWebSocketServer;
+let chromaDBServer;
 let conversationHistory = [];
 let coachingTriggers = null;
+
+// Window state persistence
+let windowState = {
+  width: 1400,
+  height: 900,
+  x: undefined,
+  y: undefined,
+  isMaximized: false
+};
+
+// Load saved window state from app data
+const loadWindowState = () => {
+  try {
+    const userDataPath = app.getPath('userData');
+    const stateFile = path.join(userDataPath, 'window-state.json');
+    
+    if (fsSync.existsSync(stateFile)) {
+      const savedState = JSON.parse(fsSync.readFileSync(stateFile, 'utf8'));
+      windowState = { ...windowState, ...savedState };
+      console.log('🎵 LED 1076: APP_LIFECYCLE - Loaded saved window state:', windowState);
+    } else {
+      // Center window on first launch
+      const primaryDisplay = screen.getPrimaryDisplay();
+      const { width, height } = primaryDisplay.workAreaSize;
+      windowState.x = Math.floor((width - windowState.width) / 2);
+      windowState.y = Math.floor((height - windowState.height) / 2);
+      console.log('🎵 LED 1077: APP_LIFECYCLE - Using default window state (first launch)');
+    }
+  } catch (error) {
+    console.log('⚠️ LED 8076: ERROR_HANDLING - Failed to load window state:', error.message);
+  }
+};
+
+// Save window state to app data
+const saveWindowState = () => {
+  try {
+    if (!mainWindow) return;
+    
+    const bounds = mainWindow.getBounds();
+    windowState = {
+      width: bounds.width,
+      height: bounds.height,
+      x: bounds.x,
+      y: bounds.y,
+      isMaximized: mainWindow.isMaximized()
+    };
+    
+    const userDataPath = app.getPath('userData');
+    const stateFile = path.join(userDataPath, 'window-state.json');
+    
+    fsSync.writeFileSync(stateFile, JSON.stringify(windowState, null, 2));
+    console.log('🎵 LED 1078: APP_LIFECYCLE - Saved window state:', windowState);
+  } catch (error) {
+    console.log('⚠️ LED 8077: ERROR_HANDLING - Failed to save window state:', error.message);
+  }
+};
 
 // 🚨 CRITICAL: Single Instance Lock (cleanup handled by pre-startup script)
 const gotTheLock = app.requestSingleInstanceLock();
@@ -46,10 +103,15 @@ app.on('second-instance', (event, commandLine, workingDirectory) => {
 const createWindow = () => {
   console.log('🎵 LED 1056: APP_LIFECYCLE - Creating desktop application window');
   
+  // Load saved window state before creating window
+  loadWindowState();
+  
   // 🚨 CRITICAL: Desktop-First Configuration with Full System Permissions
   mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
+    width: windowState.width,
+    height: windowState.height,
+    x: windowState.x,
+    y: windowState.y,
     minWidth: 800,
     minHeight: 600,
     show: false, // Don't show until ready
@@ -97,6 +159,12 @@ const createWindow = () => {
   // 🚨 CRITICAL: Enhanced window ready state management
   mainWindow.once('ready-to-show', () => {
     console.log('🎵 LED 1057: APP_LIFECYCLE - Window ready to show, displaying application');
+    
+    // Restore maximized state if it was maximized
+    if (windowState.isMaximized) {
+      mainWindow.maximize();
+    }
+    
     mainWindow.show();
     
     // Focus and bring to front
@@ -252,10 +320,47 @@ const createWindow = () => {
     shell.openExternal(url);
     return { action: 'deny' };
   });
+  
+  // Track window state changes
+  let saveStateTimer;
+  
+  // Save state when window is resized (debounced)
+  mainWindow.on('resize', () => {
+    clearTimeout(saveStateTimer);
+    saveStateTimer = setTimeout(() => {
+      if (!mainWindow.isMaximized()) {
+        saveWindowState();
+      }
+    }, 500); // Debounce for 500ms
+  });
+  
+  // Save state when window is moved (debounced)
+  mainWindow.on('move', () => {
+    clearTimeout(saveStateTimer);
+    saveStateTimer = setTimeout(() => {
+      if (!mainWindow.isMaximized()) {
+        saveWindowState();
+      }
+    }, 500); // Debounce for 500ms
+  });
+  
+  // Track maximize state changes
+  mainWindow.on('maximize', () => {
+    windowState.isMaximized = true;
+    saveWindowState();
+  });
+  
+  mainWindow.on('unmaximize', () => {
+    windowState.isMaximized = false;
+    saveWindowState();
+  });
 
   // Handle window events with enhanced cleanup
   mainWindow.on('closed', () => {
     console.log('🎵 LED 1062: APP_LIFECYCLE - Main window closed, cleaning up');
+    
+    // Save final window state before closing
+    saveWindowState();
     
     // Clean shutdown of Python WebSocket server
     if (pythonWebSocketServer) {
@@ -557,7 +662,7 @@ app.on('window-all-closed', () => {
 app.on('before-quit', (event) => {
   console.log('🎵 LED 1072: APP_LIFECYCLE - App before quit, cleaning up resources');
   
-  // Kill our known server first
+  // Kill our known servers first
   if (pythonWebSocketServer) {
     console.log('🎵 LED 1073: APP_LIFECYCLE - Stopping Python server before quit');
     try {
@@ -568,14 +673,26 @@ app.on('before-quit', (event) => {
     }
   }
   
-  // Kill any stale processes on ports 5000 and 5175 to prevent future conflicts
-  console.log('🎵 LED 1074: APP_LIFECYCLE - Final port cleanup on quit');
+  // Stop ChromaDB server
+  if (chromaDBServer) {
+    console.log('🎵 LED 6507: CHROMADB - Stopping ChromaDB server before quit');
+    try {
+      chromaDBServer.kill('SIGINT');
+      chromaDBServer = null;
+    } catch (error) {
+      console.log('❌ LED 8507: CHROMADB - ChromaDB stop error on quit:', error.message);
+    }
+  }
+  
+  // Kill any stale processes on ports 5000, 8767, and 5175 to prevent future conflicts
+  console.log('🎵 LED 1074: APP_LIFECYCLE - Final port cleanup on quit (Vosk: 5000, ChromaDB: 8767, Vite: 5175)');
   try {
-    // Clear both ports on quit
-    [5000, 5175].forEach(port => {
+    // Clear all three ports on quit
+    [5000, 8767, 5175].forEach(port => {
       const killCmd = `for /f "tokens=5" %a in ('netstat -ano ^| findstr :${port} ^| findstr LISTENING') do taskkill /F /PID %a >nul 2>&1`;
       spawn('cmd', ['/c', killCmd], { shell: true, stdio: 'ignore' });
     });
+    console.log('🎵 LED 6510: CHROMADB - Ensured port 8767 is cleared for next startup');
   } catch (error) {
     console.log('❌ LED 8055: ERROR_HANDLING - Final port cleanup error:', error.message);
   }
@@ -612,6 +729,12 @@ ipcMain.handle('select-multiple-files', async () => {
     return result.filePaths;
   }
   return [];
+});
+
+// Handle file dialog for Vosk Optimizer
+ipcMain.handle('openFileDialog', async (event, options) => {
+  const result = await dialog.showOpenDialog(mainWindow, options);
+  return result;
 });
 
 ipcMain.handle('read-file', async (event, filePath) => {
@@ -1147,12 +1270,12 @@ ipcMain.handle('ollama-generate', async (event, { prompt, model = 'qwen2.5:14b-i
         resolve({ success: false, error: error.message });
       });
 
-      // Set timeout for generation (30 seconds)
+      // Set timeout for generation (60 seconds to handle complex prompts)
       setTimeout(() => {
         request.abort();
-        console.log('⏰ IPC Handler: Ollama generation timeout');
-        resolve({ success: false, error: 'Generation timeout' });
-      }, 30000);
+        console.log('⏰ IPC Handler: Ollama generation timeout after 60 seconds');
+        resolve({ success: false, error: 'Generation timeout after 60 seconds' });
+      }, 60000);
 
       request.write(postData);
       request.end();
@@ -1925,11 +2048,11 @@ ipcMain.handle('start-transcription', async (event, voskConfigFromRenderer) => {
       await new Promise(resolve => setTimeout(resolve, 500)); // Wait for cleanup
     }
     
-    // LED 1027: Automatic port cleanup to prevent conflicts
-    console.log('🎵 LED 1027: APP_LIFECYCLE - Port cleanup initiation {"operation":"port_cleanup_start","port":5000,"timestamp":' + Date.now() + '} ElectronMain_1027');
+    // LED 1027: Automatic port cleanup to prevent conflicts (Vosk and ChromaDB)
+    console.log('🎵 LED 1027: APP_LIFECYCLE - Port cleanup initiation {"operation":"port_cleanup_start","ports":[5000,8767],"timestamp":' + Date.now() + '} ElectronMain_1027');
     
     try {
-      // Find and kill any processes using port 5000 (including orphaned Python servers)
+      // Find and kill any processes using ports 5000 (Vosk) and 8767 (ChromaDB)
       const netstatResult = spawn('netstat', ['-ano'], { shell: true });
       let netstatOutput = '';
       
@@ -1941,29 +2064,48 @@ ipcMain.handle('start-transcription', async (event, voskConfigFromRenderer) => {
         netstatResult.on('close', () => {
           const lines = netstatOutput.split('\n');
           const port5000Lines = lines.filter(line => line.includes(':5000') && line.includes('LISTENING'));
+          const port8767Lines = lines.filter(line => line.includes(':8767') && line.includes('LISTENING'));
           
-          console.log('🎵 LED 1027.1: APP_LIFECYCLE - Port scan results {"operation":"port_scan","port5000_processes":' + port5000Lines.length + '} ElectronMain_1027.1');
+          console.log('🎵 LED 1027.1: APP_LIFECYCLE - Port scan results {"operation":"port_scan","port5000_processes":' + port5000Lines.length + ',"port8767_processes":' + port8767Lines.length + '} ElectronMain_1027.1');
           
           if (port5000Lines.length > 0) {
-            console.log('⚠️ LED 1027.2: APP_LIFECYCLE - Found orphaned processes on port 5000, cleaning up...');
+            console.log('⚠️ LED 1027.2: APP_LIFECYCLE - Found orphaned processes on port 5000 (Vosk), cleaning up...');
+          }
+          if (port8767Lines.length > 0) {
+            console.log('⚠️ LED 6508: CHROMADB - Found orphaned processes on port 8767 (ChromaDB), cleaning up...');
           }
           
+          // Clean up port 5000 (Vosk)
           port5000Lines.forEach(line => {
             const parts = line.trim().split(/\s+/);
             const pid = parts[parts.length - 1];
             if (pid && pid !== '0' && !isNaN(pid)) {
-              console.log('🎵 LED 1027.3: APP_LIFECYCLE - Killing port blocker {"operation":"kill_port_blocker","pid":' + pid + ',"port":5000} ElectronMain_1027.3');
+              console.log('🎵 LED 1027.3: APP_LIFECYCLE - Killing Vosk port blocker {"operation":"kill_port_blocker","pid":' + pid + ',"port":5000} ElectronMain_1027.3');
               try {
                 spawn('taskkill', ['/F', '/PID', pid], { shell: true });
               } catch (killError) {
-                console.log('❌ LED 8027 FAILED [ElectronMain]: ERROR_HANDLING Port cleanup kill failed for PID ' + pid + ': ' + killError.message);
+                console.log('❌ LED 8027 FAILED [ElectronMain]: ERROR_HANDLING Port 5000 cleanup kill failed for PID ' + pid + ': ' + killError.message);
+              }
+            }
+          });
+          
+          // Clean up port 8767 (ChromaDB)
+          port8767Lines.forEach(line => {
+            const parts = line.trim().split(/\s+/);
+            const pid = parts[parts.length - 1];
+            if (pid && pid !== '0' && !isNaN(pid)) {
+              console.log('🎵 LED 6509: CHROMADB - Killing ChromaDB port blocker {"operation":"kill_chromadb_blocker","pid":' + pid + ',"port":8767}');
+              try {
+                spawn('taskkill', ['/F', '/PID', pid], { shell: true });
+              } catch (killError) {
+                console.log('❌ LED 8509: CHROMADB - Port 8767 cleanup kill failed for PID ' + pid + ': ' + killError.message);
               }
             }
           });
           
           // Wait a moment for processes to be killed
           setTimeout(() => {
-            console.log('🎵 LED 1027.4: APP_LIFECYCLE - Port cleanup complete {"operation":"port_cleanup_complete","wait_time":500} ElectronMain_1027.4');
+            console.log('🎵 LED 1027.4: APP_LIFECYCLE - Port cleanup complete {"operation":"port_cleanup_complete","ports_cleared":[5000,8767],"wait_time":500} ElectronMain_1027.4');
             resolve();
           }, 500);
         });
@@ -2004,7 +2146,8 @@ ipcMain.handle('start-transcription', async (event, voskConfigFromRenderer) => {
     }
     
     // LED 1032: Python server spawn preparation - Use absolute path with app.getAppPath()
-    const pythonScript = path.join(app.getAppPath(), 'src', 'services', 'vosk-native-websocket-server.py');
+    // Using Socket.IO version for compatibility with client
+    const pythonScript = path.join(app.getAppPath(), 'src', 'services', 'vosk-websocket-server.py');
     
     // Prepare Vosk config arguments if available
     const voskConfigArgs = [];
@@ -2043,6 +2186,11 @@ ipcMain.handle('start-transcription', async (event, voskConfigFromRenderer) => {
         voskConfigArgs.push('--set-partial-words', String(config.transcription.setPartialWords));
       }
       
+      // Add audio processing settings
+      if (config.audio?.otherPartyGain !== undefined) {
+        voskConfigArgs.push('--other-party-gain', String(config.audio.otherPartyGain));
+      }
+      
       // Add performance settings
       if (config.performance?.enableRecognizerReset) {
         voskConfigArgs.push('--enable-recognizer-reset');
@@ -2064,26 +2212,94 @@ ipcMain.handle('start-transcription', async (event, voskConfigFromRenderer) => {
     let pythonArgs = [pythonScript, ...voskConfigArgs];
     
     if (process.platform === 'win32') {
-      // ✅ Windows Fix #2: Use cmd.exe wrapper for reliable execution
-      pythonCmd = 'cmd.exe';
-      pythonArgs = ['/c', 'python', pythonScript, ...voskConfigArgs];
+      // Use python directly on Windows without cmd.exe wrapper
+      pythonCmd = 'python';
+      pythonArgs = [pythonScript, ...voskConfigArgs];
     } else {
       pythonCmd = 'python3';
+      pythonArgs = [pythonScript, ...voskConfigArgs];
     }
     
     console.log('🎵 LED 1032: APP_LIFECYCLE - Python server spawn preparation {"operation":"spawn_prep","script_path":"' + pythonScript + '","python_cmd":"' + pythonCmd + '","python_args":["' + pythonArgs.join('","') + '"],"platform":"' + process.platform + '","timestamp":' + Date.now() + '} ElectronMain_1032');
     
-    // ✅ Windows Fix #1: Add shell: true + Windows Fix #2: cmd.exe wrapper
+    // Spawn Python server directly
     pythonWebSocketServer = spawn(pythonCmd, pythonArgs, {
-      stdio: ['inherit', 'pipe', 'pipe'],
+      stdio: ['ignore', 'pipe', 'pipe'],
       env: { ...process.env, PYTHONUNBUFFERED: '1' },
       cwd: __dirname,
       windowsHide: true,  // Hide terminal window on Windows
-      shell: true  // ✅ Standard Windows spawn fix - enables proper process execution
+      shell: false  // Don't use shell to avoid cmd.exe opening an interactive window
     });
     
     // LED 1033: Server process created
     console.log('🎵 LED 1033: APP_LIFECYCLE - Server process created {"operation":"process_spawned","pid":' + (pythonWebSocketServer ? pythonWebSocketServer.pid : 'null') + ',"timestamp":' + Date.now() + '} ElectronMain_1033');
+    
+    // LED 6500: Start ChromaDB server alongside Vosk
+    console.log('🎵 LED 6500: CHROMADB - Starting ChromaDB semantic search server {"operation":"chromadb_server_start","port":8767,"timestamp":' + Date.now() + '}');
+    
+    try {
+      const chromaDBScript = path.join(__dirname, 'src', 'services', 'chromadb-server.py');
+      
+      // Check if ChromaDB script exists
+      if (!fs.existsSync(chromaDBScript)) {
+        console.log('⚠️ LED 6501: CHROMADB - ChromaDB server script not found at:', chromaDBScript);
+      } else {
+        // Kill any existing ChromaDB server
+        if (chromaDBServer) {
+          try {
+            if (process.platform === 'win32' && chromaDBServer.pid) {
+              const { execSync } = require('child_process');
+              execSync(`taskkill /F /PID ${chromaDBServer.pid}`, { stdio: 'ignore' });
+            } else {
+              chromaDBServer.kill('SIGKILL');
+            }
+          } catch (e) {
+            // Process might already be dead
+          }
+          chromaDBServer = null;
+        }
+        
+        // Start ChromaDB server on port 8767
+        const chromaDBArgs = [chromaDBScript, '8767'];
+        
+        chromaDBServer = spawn(pythonCmd, chromaDBArgs, {
+          stdio: ['inherit', 'pipe', 'pipe'],
+          env: { ...process.env, PYTHONUNBUFFERED: '1' },
+          cwd: __dirname,
+          windowsHide: true,
+          shell: true
+        });
+        
+        console.log('🎵 LED 6502: CHROMADB - ChromaDB server process created {"pid":' + (chromaDBServer ? chromaDBServer.pid : 'null') + '}');
+        
+        // Handle ChromaDB server output
+        chromaDBServer.stdout.on('data', (data) => {
+          const output = data.toString().trim();
+          if (output) {
+            console.log('📊 ChromaDB:', output);
+          }
+        });
+        
+        chromaDBServer.stderr.on('data', (data) => {
+          const output = data.toString().trim();
+          if (output && !output.includes('Using cache')) {
+            console.error('❌ ChromaDB Error:', output);
+          }
+        });
+        
+        chromaDBServer.on('error', (error) => {
+          console.error('❌ LED 8500: CHROMADB - Failed to start ChromaDB server:', error);
+        });
+        
+        chromaDBServer.on('exit', (code, signal) => {
+          console.log('🎵 LED 6503: CHROMADB - ChromaDB server exited {"code":' + code + ',"signal":"' + signal + '"}');
+          chromaDBServer = null;
+        });
+      }
+    } catch (chromaError) {
+      console.error('❌ LED 8501: CHROMADB - Error starting ChromaDB server:', chromaError);
+      // Continue without ChromaDB - will fall back to keyword search
+    }
     
     // Handle spawn errors immediately
     pythonWebSocketServer.on('error', (error) => {
@@ -2105,7 +2321,7 @@ ipcMain.handle('start-transcription', async (event, voskConfigFromRenderer) => {
         // LED 1034: Server output analysis - Fixed patterns to match actual server output
         const hasRunningIndicator = output.includes('Running on') || output.includes('running on');
         const hasPortIndicator = output.includes('5000') || output.includes(':5000') || output.includes('localhost:5000');
-        const hasReadyIndicator = output.includes('[6099]') || output.includes('WebSocket Server running') || (output.includes('Running on') && output.includes('5000'));
+        const hasReadyIndicator = output.includes('[6099') || output.includes('WebSocket server started') || output.includes('WebSocket Server running') || (output.includes('Running on') && output.includes('5000'));
         
         console.log('🎵 LED 1012: APP_LIFECYCLE - Python server output {"operation":"server_output","length":' + output.length + ',"has_running":' + hasRunningIndicator + ',"has_port":' + hasPortIndicator + ',"has_ready":' + hasReadyIndicator + '} ElectronMain_1012');
         
@@ -2132,6 +2348,27 @@ ipcMain.handle('start-transcription', async (event, voskConfigFromRenderer) => {
       if (pythonWebSocketServer && pythonWebSocketServer.stderr) {
         pythonWebSocketServer.stderr.on('data', (data) => {
         const errorOutput = data.toString();
+        
+        // Check if this is actually a success message in stderr (Python often outputs to stderr)
+        const hasRunningIndicator = errorOutput.includes('Running on') || errorOutput.includes('running on');
+        const hasPortIndicator = errorOutput.includes('5000') || errorOutput.includes(':5000') || errorOutput.includes('localhost:5000');
+        const hasReadyIndicator = errorOutput.includes('[6099') || errorOutput.includes('WebSocket server started') || errorOutput.includes('WebSocket Server running');
+        
+        // If this is actually a success message, handle it as success
+        if (hasRunningIndicator || hasPortIndicator || hasReadyIndicator) {
+          console.log('🎵 LED 1012: APP_LIFECYCLE - Python server stderr (success): ' + errorOutput.trim());
+          
+          if (!serverStarted) {
+            serverStarted = true;
+            const startupTime = Date.now() - serverStartTime;
+            
+            console.log('🎵 LED 1013: APP_LIFECYCLE - WebSocket server ready from stderr {"operation":"server_ready","startup_time":' + startupTime + ',"timestamp":' + Date.now() + '} ElectronMain_1013');
+            
+            clearTimeout(startupTimeout);
+            resolve({ success: true, serverUrl: 'ws://127.0.0.1:5000' });
+          }
+          return;
+        }
         
         // LED 8038: Error categorization
         const isPortError = errorOutput.includes('Address already in use');
@@ -2284,10 +2521,32 @@ ipcMain.handle('stop-transcription', async () => {
       
       pythonWebSocketServer = null;
       
+      // LED 6504: Stop ChromaDB server
+      if (chromaDBServer) {
+        const chromaPid = chromaDBServer.pid;
+        console.log('🎵 LED 6504: CHROMADB - Stopping ChromaDB server {"pid":' + chromaPid + '}');
+        
+        try {
+          if (process.platform === 'win32' && chromaPid) {
+            const { exec } = require('child_process');
+            exec(`taskkill /F /PID ${chromaPid}`, (error) => {
+              if (error) {
+                console.log('⚠️ LED 6505: CHROMADB - Error stopping ChromaDB:', error.message);
+              }
+            });
+          } else {
+            chromaDBServer.kill('SIGTERM');
+          }
+        } catch (e) {
+          console.log('⚠️ LED 6506: CHROMADB - Exception stopping ChromaDB:', e.message);
+        }
+        chromaDBServer = null;
+      }
+      
       const stopTime = Date.now() - stopStartTime;
       
-      // LED 1043: Server stop complete
-      console.log('🎵 LED 1043: APP_LIFECYCLE - Server stop complete {"operation":"stop_complete","stop_time":' + stopTime + ',"graceful_shutdown":true,"server_nullified":true} ElectronMain_1043');
+      // LED 1043: Servers stop complete
+      console.log('🎵 LED 1043: APP_LIFECYCLE - Servers stop complete {"operation":"stop_complete","stop_time":' + stopTime + ',"graceful_shutdown":true,"servers_nullified":true} ElectronMain_1043');
     } else {
       // LED 1044: No server to stop
       console.log('🎵 LED 1044: APP_LIFECYCLE - No server to stop {"operation":"stop_no_server","server_already_null":true,"timestamp":' + Date.now() + '} ElectronMain_1044');
@@ -2335,6 +2594,885 @@ ipcMain.handle('clear-conversation-history', async () => {
     return { success: false, error: error.message };
   }
 });
+
+// ChromaDB IPC Handlers
+// LED Range: 6450-6499 for ChromaDB IPC operations
+let chromaDBWebSocketClient = null;
+let chromaDBStarting = false; // Flag to prevent duplicate startup
+
+ipcMain.handle('chromadb-start-server', async () => {
+  try {
+    // Check if already starting or started
+    if (chromaDBStarting || chromaDBServer) {
+      console.log('🎵 LED 6449: CHROMADB - Server already starting or started, skipping duplicate request');
+      return { success: true, message: 'ChromaDB server already starting/started' };
+    }
+    
+    chromaDBStarting = true;
+    
+    // LED 6450: ChromaDB server startup
+    console.log('🎵 LED 6450: CHROMADB - Starting ChromaDB server {"operation":"server_startup_initiate","timestamp":' + Date.now() + '}');
+    
+    // Clean up port 8767 like we do for Vosk
+    const { exec } = require('child_process');
+    
+    // Kill any existing ChromaDB processes on port 8767
+    await new Promise((resolve) => {
+      exec('netstat -ano | findstr :8767', (error, stdout) => {
+        if (stdout) {
+          const lines = stdout.split('\n');
+          const port8767Lines = lines.filter(line => line.includes(':8767') && line.includes('LISTENING'));
+          
+          port8767Lines.forEach(line => {
+            const parts = line.trim().split(/\s+/);
+            const pid = parts[parts.length - 1];
+            if (pid && pid !== '0') {
+              exec(`taskkill /F /PID ${pid}`, (killError) => {
+                if (!killError) {
+                  console.log('🎵 LED 6451: CHROMADB - Cleared existing ChromaDB process on port 8767');
+                }
+              });
+            }
+          });
+        }
+        setTimeout(resolve, 500); // Wait for port cleanup
+      });
+    });
+    
+    // Start ChromaDB Python server
+    const chromaDBScriptPath = path.join(__dirname, 'src', 'services', 'chromadb-server.py');
+    
+    chromaDBServer = spawn('python', [chromaDBScriptPath], {
+      cwd: __dirname,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: process.platform === 'win32'
+    });
+    
+    chromaDBServer.stdout.on('data', (data) => {
+      const output = data.toString();
+      if (output.includes('[6500]')) {
+        console.log('🎵 LED 6452: CHROMADB - Server output:', output.trim());
+      }
+    });
+    
+    chromaDBServer.stderr.on('data', (data) => {
+      console.error('❌ LED 8650: CHROMADB - Server error:', data.toString());
+    });
+    
+    chromaDBServer.on('close', (code) => {
+      console.log('🎵 LED 6453: CHROMADB - Server closed with code:', code);
+      chromaDBServer = null;
+      chromaDBStarting = false; // Reset flag
+    });
+    
+    // Wait for server to be ready by checking if port is listening
+    let serverReady = false;
+    for (let i = 0; i < 10; i++) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const isListening = await new Promise((resolve) => {
+        exec('netstat -ano | findstr :8767 | findstr LISTENING', (error, stdout) => {
+          resolve(!!stdout && stdout.trim().length > 0);
+        });
+      });
+      
+      if (isListening) {
+        serverReady = true;
+        console.log('🎵 LED 6453: CHROMADB - Server is listening on port 8767');
+        break;
+      }
+    }
+    
+    if (!serverReady) {
+      throw new Error('ChromaDB server failed to start listening on port 8767');
+    }
+    
+    chromaDBStarting = false; // Reset flag after successful start
+    console.log('🎵 LED 6454: CHROMADB - Server started successfully');
+    return { success: true, message: 'ChromaDB server started' };
+    
+  } catch (error) {
+    chromaDBStarting = false; // Reset flag on error
+    console.error('❌ LED 8651: CHROMADB - Failed to start server:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('chromadb-stop-server', async () => {
+  try {
+    chromaDBStarting = false; // Reset flag
+    if (chromaDBServer) {
+      chromaDBServer.kill();
+      chromaDBServer = null;
+    }
+    
+    // Also cleanup any orphaned ChromaDB processes
+    const { exec } = require('child_process');
+    exec('taskkill /F /IM python.exe /FI "WINDOWTITLE eq *chromadb-server*"', () => {
+      console.log('🎵 LED 6455: CHROMADB - Server stopped');
+    });
+    
+    return { success: true };
+  } catch (error) {
+    console.error('❌ LED 8652: CHROMADB - Failed to stop server:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('chromadb-initialize', async () => {
+  try {
+    // Check if already connected
+    if (chromaDBWebSocketClient && chromaDBWebSocketClient.readyState === 1) {
+      console.log('🎵 LED 6458: CHROMADB - Already connected, skipping initialization');
+      return { success: true, message: 'ChromaDB already connected' };
+    }
+    
+    // Clean up any existing connection
+    if (chromaDBWebSocketClient) {
+      try {
+        chromaDBWebSocketClient.close();
+      } catch (e) {
+        // Ignore cleanup errors
+      }
+      chromaDBWebSocketClient = null;
+    }
+    
+    // Initialize ChromaDB client connection
+    const WebSocket = require('ws');
+    chromaDBWebSocketClient = new WebSocket('ws://127.0.0.1:8767');
+    
+    // Set up event handlers before waiting
+    chromaDBWebSocketClient.on('error', (error) => {
+      console.error('❌ LED 8653: CHROMADB - WebSocket error:', error.message);
+    });
+    
+    chromaDBWebSocketClient.on('close', () => {
+      console.log('🎵 LED 6459: CHROMADB - WebSocket connection closed');
+      chromaDBWebSocketClient = null;
+    });
+    
+    // Wait for connection
+    await new Promise((resolve, reject) => {
+      chromaDBWebSocketClient.once('open', () => {
+        console.log('🎵 LED 6456: CHROMADB - WebSocket client connected');
+        resolve();
+      });
+      
+      chromaDBWebSocketClient.once('error', (error) => {
+        reject(error);
+      });
+      
+      setTimeout(() => reject(new Error('Connection timeout')), 5000);
+    });
+    
+    // Send initialize command and wait for response
+    chromaDBWebSocketClient.send(JSON.stringify({ command: 'initialize' }));
+    
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Initialize response timeout'));
+      }, 2000);
+      
+      chromaDBWebSocketClient.once('message', (data) => {
+        clearTimeout(timeout);
+        try {
+          const response = JSON.parse(data.toString());
+          console.log('🎵 LED 6457: CHROMADB - Initialization response:', response.message || response.status || 'ready');
+          if (response.status === 'success' || response.message) {
+            resolve();
+          } else {
+            reject(new Error('Invalid initialization response'));
+          }
+        } catch (e) {
+          reject(e);
+        }
+      });
+    });
+    
+    // Verify connection is still open
+    if (chromaDBWebSocketClient.readyState !== 1) {
+      throw new Error('Connection lost after initialization');
+    }
+    
+    console.log('🎵 LED 6460: CHROMADB - Initialization complete and verified');
+    return { success: true, message: 'ChromaDB initialized and ready' };
+    
+  } catch (error) {
+    console.error('❌ LED 8654: CHROMADB - Failed to initialize:', error.message);
+    // Clean up on error
+    if (chromaDBWebSocketClient) {
+      try {
+        chromaDBWebSocketClient.close();
+      } catch (e) {
+        // Ignore
+      }
+      chromaDBWebSocketClient = null;
+    }
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('chromadb-load-document', async (event, documentPath) => {
+  try {
+    if (!chromaDBWebSocketClient || chromaDBWebSocketClient.readyState !== 1) {
+      throw new Error('ChromaDB not connected');
+    }
+    
+    // Send load document command
+    const message = JSON.stringify({ 
+      command: 'load_document',
+      path: documentPath
+    });
+    
+    chromaDBWebSocketClient.send(message);
+    
+    // Wait for response
+    const response = await new Promise((resolve) => {
+      chromaDBWebSocketClient.once('message', (data) => {
+        resolve(JSON.parse(data.toString()));
+      });
+    });
+    
+    console.log('🎵 LED 6457: CHROMADB - Document loaded:', documentPath);
+    return response;
+  } catch (error) {
+    console.error('❌ LED 8655: CHROMADB - Failed to load document:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('chromadb-search', async (event, query, nResults = 3) => {
+  try {
+    if (!chromaDBWebSocketClient || chromaDBWebSocketClient.readyState !== 1) {
+      throw new Error('ChromaDB not connected');
+    }
+    
+    // Send search command
+    const message = JSON.stringify({ 
+      command: 'search',
+      query: query,
+      n_results: nResults
+    });
+    
+    chromaDBWebSocketClient.send(message);
+    
+    // Wait for response
+    const response = await new Promise((resolve) => {
+      chromaDBWebSocketClient.once('message', (data) => {
+        resolve(JSON.parse(data.toString()));
+      });
+    });
+    
+    console.log('🎵 LED 6458: CHROMADB - Search complete, found', response.results?.length || 0, 'results');
+    return response;
+  } catch (error) {
+    console.error('❌ LED 8656: CHROMADB - Search failed:', error);
+    return { success: false, error: error.message, results: [] };
+  }
+});
+
+ipcMain.handle('chromadb-get-stats', async () => {
+  try {
+    if (!chromaDBWebSocketClient || chromaDBWebSocketClient.readyState !== 1) {
+      return { status: 'disconnected' };
+    }
+    
+    const message = JSON.stringify({ command: 'get_stats' });
+    chromaDBWebSocketClient.send(message);
+    
+    const response = await new Promise((resolve) => {
+      chromaDBWebSocketClient.once('message', (data) => {
+        resolve(JSON.parse(data.toString()));
+      });
+    });
+    
+    return response.stats || { status: 'error' };
+  } catch (error) {
+    console.error('❌ LED 8657: CHROMADB - Failed to get stats:', error);
+    return { status: 'error', error: error.message };
+  }
+});
+
+ipcMain.handle('chromadb-ping', async () => {
+  try {
+    // First check if the WebSocket client exists and is connected
+    if (!chromaDBWebSocketClient || chromaDBWebSocketClient.readyState !== 1) {
+      // Try to check if the server is running by checking the port
+      const { exec } = require('child_process');
+      const isServerRunning = await new Promise((resolve) => {
+        exec('netstat -ano | findstr :8767 | findstr LISTENING', (error, stdout) => {
+          resolve(!!stdout && stdout.trim().length > 0);
+        });
+      });
+      
+      if (!isServerRunning) {
+        return false; // Server not running
+      }
+      
+      // Server is running but we don't have a WebSocket connection yet
+      // This is OK during pre-warming phase
+      return 'server-only';
+    }
+    
+    // We have a WebSocket connection, send a ping
+    const message = JSON.stringify({ command: 'ping' });
+    chromaDBWebSocketClient.send(message);
+    
+    const response = await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Ping timeout'));
+      }, 2000);
+      
+      chromaDBWebSocketClient.once('message', (data) => {
+        clearTimeout(timeout);
+        resolve(JSON.parse(data.toString()));
+      });
+    });
+    
+    return response.status === 'success';
+  } catch (error) {
+    console.log('🎵 LED 6458: CHROMADB - Ping failed:', error.message);
+    return false;
+  }
+});
+
+// Vosk Optimizer IPC Handlers
+ipcMain.handle('launch-vosk-optimizer', async (event, config) => {
+  console.log('🎵 LED 7700: VOSK_OPTIMIZER - Launching Vosk optimization', config);
+  
+  const WebSocket = require('ws');
+  
+  try {
+    // Ensure Vosk server is running for optimization
+    console.log('🎵 LED 7699: VOSK_OPTIMIZER - Checking Vosk server availability');
+    
+    // First, try to connect to see if server is already running
+    // Use 127.0.0.1 instead of localhost to avoid IPv6 issues
+    const serverRunning = await new Promise((resolve) => {
+      const testWs = new WebSocket('ws://127.0.0.1:5000');
+      
+      testWs.on('open', () => {
+        console.log('🎵 LED 7695: VOSK_OPTIMIZER - Vosk server already running and accessible');
+        testWs.close();
+        resolve(true);
+      });
+      
+      testWs.on('error', () => {
+        console.log('🎵 LED 7698: VOSK_OPTIMIZER - Vosk server not accessible, will start it');
+        resolve(false);
+      });
+      
+      // Timeout after 1 second
+      setTimeout(() => {
+        testWs.close();
+        resolve(false);
+      }, 1000);
+    });
+    
+    // If server is not running, start it
+    if (!serverRunning) {
+      console.log('🎵 LED 7694: VOSK_OPTIMIZER - Starting Vosk server for optimization');
+      
+      // Start the server
+      const { spawn } = require('child_process');
+      const pythonPath = process.platform === 'win32' ? 'python' : 'python3';
+      const pythonScript = path.join(__dirname, 'src/services/vosk-websocket-server.py');
+      
+      if (!fs.existsSync(pythonScript)) {
+        throw new Error('Vosk server script not found: ' + pythonScript);
+      }
+      
+      // Store in a local variable to avoid conflicts
+      const optimizerServer = spawn(pythonPath, [pythonScript], {
+        env: { ...process.env, PYTHONUNBUFFERED: '1' }
+      });
+      
+      // Store it globally if main server isn't running
+      if (!pythonWebSocketServer) {
+        pythonWebSocketServer = optimizerServer;
+      }
+      
+      // Wait for server to be ready (look for actual output messages)
+      await new Promise((resolve, reject) => {
+        let serverReady = false;
+        const timeout = setTimeout(() => {
+          if (!serverReady) {
+            console.log('🎵 LED 7690: VOSK_OPTIMIZER - Server startup timeout, checking if it started anyway');
+            // Try connecting one more time - use 127.0.0.1 to avoid IPv6 issues
+            const finalTest = new WebSocket('ws://127.0.0.1:5000');
+            finalTest.on('open', () => {
+              finalTest.close();
+              resolve();
+            });
+            finalTest.on('error', () => {
+              reject(new Error('Vosk server failed to start after timeout'));
+            });
+          }
+        }, 20000); // 20 second timeout
+        
+        optimizerServer.stdout.on('data', (data) => {
+          const output = data.toString();
+          console.log('🎵 LED 7692: VOSK_OPTIMIZER - Server stdout:', output.substring(0, 200));
+          
+          // Check for actual server start messages
+          if (!serverReady && (
+              output.includes('[6099]') ||  // Starting VoiceCoach V2 Native WebSocket Server
+              output.includes('[6099.5]') || // Waiting for client connections
+              output.includes('Native WebSocket') ||
+              output.includes('Model loaded') ||
+              output.includes('server') ||
+              output.includes('5000'))) {
+            serverReady = true;
+            clearTimeout(timeout);
+            console.log('🎵 LED 7697: VOSK_OPTIMIZER - Vosk server started (stdout)');
+            setTimeout(resolve, 3000); // Give it 3 seconds to fully stabilize
+          }
+        });
+        
+        optimizerServer.stderr.on('data', (data) => {
+          const output = data.toString();
+          // Only log first part to avoid spam
+          if (output.length > 200) {
+            console.log('🎵 LED 7691: VOSK_OPTIMIZER - Server stderr (truncated):', output.substring(0, 200));
+          } else {
+            console.log('🎵 LED 7691: VOSK_OPTIMIZER - Server stderr:', output);
+          }
+          
+          // Vosk model loading messages often go to stderr
+          if (!serverReady && (
+              output.includes('Model loaded') ||
+              output.includes('LOG (VoskAPI') ||
+              output.includes('ivector') ||
+              output.includes('Ready') ||
+              output.includes('[6099]'))) {
+            // Don't mark as ready on first LOG message, wait for more
+            // But if we see the server message, mark as ready
+            if (output.includes('[6099]') || output.includes('Native WebSocket')) {
+              serverReady = true;
+              clearTimeout(timeout);
+              console.log('🎵 LED 7697: VOSK_OPTIMIZER - Vosk server started (stderr)');
+              setTimeout(resolve, 3000);
+            }
+          }
+        });
+        
+        optimizerServer.on('error', (error) => {
+          clearTimeout(timeout);
+          console.error('🎵 LED 7689: VOSK_OPTIMIZER - Server spawn error:', error);
+          reject(new Error(`Failed to start Vosk server: ${error.message}`));
+        });
+      });
+      
+      console.log('🎵 LED 7688: VOSK_OPTIMIZER - Vosk server ready for optimization');
+    }
+    
+    // Read the reference text
+    const referenceText = fs.readFileSync(config.textFile, 'utf-8').trim().toLowerCase();
+    console.log('🎵 LED 7701: VOSK_OPTIMIZER - Loaded reference text', { length: referenceText.length });
+    
+    // Read the WAV file
+    const audioBuffer = fs.readFileSync(config.audioFile);
+    console.log('🎵 LED 7702: VOSK_OPTIMIZER - Loaded audio file', { size: audioBuffer.length });
+    
+    // For actual audio processing, we need to send the raw audio to Vosk
+    // Since Vosk expects 16kHz mono PCM, we'll send the buffer directly
+    
+    // First, test current settings as baseline
+    const currentSettings = config.currentSettings || {
+      sampleRate: 16000,
+      chunkSize: 8000,
+      setWords: false,
+      setPartialWords: true
+    };
+    
+    console.log('🎵 LED 7703: VOSK_OPTIMIZER - Testing baseline with current settings', currentSettings);
+    
+    // Send baseline test progress
+    if (mainWindow) {
+      mainWindow.webContents.send('vosk-optimization-progress', {
+        phase: 'baseline',
+        message: 'Testing your current settings as baseline...'
+      });
+    }
+    
+    // Test baseline configuration
+    console.log('🎵 LED 7703.5: VOSK_OPTIMIZER - Starting baseline test');
+    
+    const baselineResult = await testVoskConfiguration(
+      audioBuffer,
+      referenceText,
+      currentSettings
+    ).catch(error => {
+      console.error('🎵 LED 7694: VOSK_OPTIMIZER - Baseline test failed', error);
+      throw new Error(`Failed to establish baseline: ${error.message}`);
+    });
+    
+    if (!baselineResult) {
+      throw new Error('Failed to establish baseline with current settings. The Vosk server may not be responding correctly.');
+    }
+    
+    console.log('🎵 LED 7704: VOSK_OPTIMIZER - Baseline established', {
+      wordAccuracy: baselineResult.metrics.wordAccuracy,
+      processingTime: baselineResult.metrics.processingTime
+    });
+    
+    // Parameter combinations to test based on mode
+    const parameterSets = generateVoskParameterSets(config.mode);
+    const results = [baselineResult]; // Include baseline in results
+    let bestResult = baselineResult; // Start with baseline as best
+    let bestScore = calculateOptimizationScore(baselineResult.metrics, config.targetMetric);
+    
+    console.log('🎵 LED 7705: VOSK_OPTIMIZER - Starting optimization tests', { totalTests: parameterSets.length });
+    
+    // Test each parameter combination
+    for (let i = 0; i < parameterSets.length; i++) {
+      const params = parameterSets[i];
+      
+      // Send progress update to renderer
+      if (mainWindow) {
+        mainWindow.webContents.send('vosk-optimization-progress', {
+          phase: 'testing',
+          totalTests: parameterSets.length,
+          currentTest: i + 1,
+          currentParams: params
+        });
+      }
+      
+      console.log(`🎵 LED 7706: VOSK_OPTIMIZER - Testing parameter set ${i + 1}/${parameterSets.length}`, params);
+      
+      // Connect to Vosk WebSocket with these parameters
+      const testResult = await testVoskConfiguration(
+        audioBuffer,
+        referenceText,
+        params
+      );
+      
+      if (testResult) {
+        results.push(testResult);
+        
+        // Calculate overall score based on target metric
+        const score = calculateOptimizationScore(testResult.metrics, config.targetMetric);
+        
+        if (score > bestScore) {
+          bestScore = score;
+          bestResult = testResult;
+        }
+      }
+    }
+    
+    // Calculate improvement over actual baseline (first result)
+    const actualBaseline = results[0]; // This is the user's current settings
+    
+    const improvement = bestResult && actualBaseline ? {
+      accuracyGain: bestResult.metrics.wordAccuracy - actualBaseline.metrics.wordAccuracy,
+      speedGain: ((actualBaseline.metrics.processingTime - bestResult.metrics.processingTime) / 
+                  actualBaseline.metrics.processingTime * 100),
+      baselineAccuracy: actualBaseline.metrics.wordAccuracy,
+      optimalAccuracy: bestResult.metrics.wordAccuracy
+    } : { accuracyGain: 0, speedGain: 0, baselineAccuracy: 0, optimalAccuracy: 0 };
+    
+    console.log('🎵 LED 7707: VOSK_OPTIMIZER - Optimization complete', {
+      testsRun: results.length,
+      bestAccuracy: bestResult?.metrics.wordAccuracy
+    });
+    
+    // Save results to file
+    const resultsPath = path.join(__dirname, 'vosk-optimization', 'results', 
+      `optimization-${Date.now()}.json`);
+    
+    // Ensure results directory exists
+    const resultsDir = path.dirname(resultsPath);
+    if (!fs.existsSync(resultsDir)) {
+      fs.mkdirSync(resultsDir, { recursive: true });
+    }
+    
+    fs.writeFileSync(resultsPath, JSON.stringify({
+      timestamp: new Date().toISOString(),
+      config: config,
+      bestSettings: bestResult?.params,
+      metrics: bestResult?.metrics,
+      improvement: improvement,
+      allResults: results,
+      systemProfile: {
+        cpuModel: require('os').cpus()[0].model,
+        availableMemory: Math.round(require('os').freemem() / (1024 * 1024 * 1024))
+      }
+    }, null, 2));
+    
+    return {
+      success: true,
+      data: {
+        timestamp: new Date().toISOString(),
+        parameters: bestResult?.params || null,
+        metrics: bestResult?.metrics || null,
+        improvement: improvement.accuracyGain,
+        systemProfile: {
+          cpuModel: require('os').cpus()[0].model,
+          availableMemory: Math.round(require('os').freemem() / (1024 * 1024 * 1024)),
+          backgroundNoise: 0.2
+        }
+      }
+    };
+    
+  } catch (error) {
+    console.log('❌ LED 7799: VOSK_OPTIMIZER - Optimization failed', { error: error.message });
+    return { success: false, error: error.message };
+  }
+});
+
+// Test a specific Vosk configuration - MATCHES ACTUAL SERVER PROTOCOL
+async function testVoskConfiguration(audioBuffer, referenceText, params) {
+  const WebSocket = require('ws');
+  
+  console.log('🎵 LED 7705: VOSK_OPTIMIZER - Starting test with params:', params);
+  
+  return new Promise((resolve, reject) => {
+    // Create a fresh WebSocket connection for this test
+    const ws = new WebSocket('ws://127.0.0.1:5000');
+    let transcript = '';
+    let partialTranscript = '';
+    const startTime = Date.now();
+    let messageCount = 0;
+    let transcriptionStarted = false;
+    
+    // Timeout for the entire test
+    const timeout = setTimeout(() => {
+      console.log('🎵 LED 7712: VOSK_OPTIMIZER - Test timeout after 30 seconds');
+      ws.close();
+      
+      // Return what we got
+      const processingTime = Date.now() - startTime;
+      const finalTranscript = transcript || partialTranscript || "";
+      resolve({
+        params: params,
+        transcript: finalTranscript,
+        metrics: {
+          wordAccuracy: calculateWER(referenceText, finalTranscript),
+          characterAccuracy: calculateCER(referenceText, finalTranscript),
+          processingTime: processingTime,
+          realTimeFactor: processingTime / 10000,
+          partialCount: messageCount
+        }
+      });
+    }, 30000);
+    
+    ws.on('open', () => {
+      console.log('🎵 LED 7706: VOSK_OPTIMIZER - WebSocket connected, sending start_transcription');
+      
+      // Send start_transcription message like the actual client does
+      ws.send(JSON.stringify({
+        type: 'start_transcription'
+      }));
+    });
+    
+    ws.on('message', (data) => {
+      messageCount++;
+      
+      try {
+        const message = JSON.parse(data.toString());
+        console.log(`🎵 LED 7708.${messageCount}: VOSK_OPTIMIZER - Message type: ${message.type}`);
+        
+        if (message.type === 'transcription_started') {
+          console.log('🎵 LED 7706.1: VOSK_OPTIMIZER - Server ready, sending audio');
+          transcriptionStarted = true;
+          
+          // Now send the audio in chunks
+          const chunkSize = params.chunkSize || 8000;
+          let offset = 0;
+          
+          const sendInterval = setInterval(() => {
+            if (offset < audioBuffer.length && ws.readyState === WebSocket.OPEN) {
+              const chunk = audioBuffer.slice(offset, Math.min(offset + chunkSize, audioBuffer.length));
+              ws.send(chunk); // Send as binary
+              
+              const progress = Math.round((offset / audioBuffer.length) * 100);
+              if (progress % 25 === 0) {
+                console.log(`🎵 LED 7707.${progress}: VOSK_OPTIMIZER - Audio progress: ${progress}%`);
+              }
+              
+              offset += chunkSize;
+            } else {
+              clearInterval(sendInterval);
+              if (offset >= audioBuffer.length) {
+                console.log('🎵 LED 7715: VOSK_OPTIMIZER - All audio sent');
+                
+                // Give server time to process, then stop
+                setTimeout(() => {
+                  if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'stop_transcription' }));
+                    // Close after a delay to receive final results
+                    setTimeout(() => {
+                      if (ws.readyState === WebSocket.OPEN) {
+                        ws.close();
+                      }
+                    }, 2000);
+                  }
+                }, 1000);
+              }
+            }
+          }, 50); // 50ms between chunks
+          
+        } else if (message.type === 'transcription') {
+          // Handle transcription messages
+          const text = message.text || message.transcript || '';
+          const transcriptionType = message.transcriptionType || 'unknown';
+          
+          if (transcriptionType === 'final' && text) {
+            transcript = (transcript ? transcript + ' ' : '') + text;
+            console.log(`🎵 LED 7709: VOSK_OPTIMIZER - Final: "${text}"`);
+          } else if (transcriptionType === 'partial' && text) {
+            partialTranscript = text;
+            console.log(`🎵 LED 7710: VOSK_OPTIMIZER - Partial: "${text.substring(0, 50)}..."`);
+          }
+        } else if (message.type === 'error') {
+          console.error(`🎵 LED 8709: VOSK_OPTIMIZER - Server error: ${message.message}`);
+        }
+      } catch (e) {
+        console.log('🎵 LED 7711: VOSK_OPTIMIZER - Parse error:', e.message);
+      }
+    });
+    
+    ws.on('error', (error) => {
+      console.error('🎵 LED 8708: VOSK_OPTIMIZER - WebSocket error:', {
+        message: error.message,
+        code: error.code
+      });
+      clearTimeout(timeout);
+      
+      if (error.code === 'ECONNREFUSED') {
+        reject(new Error('Cannot connect to Vosk server. Please ensure it is running on port 5000.'));
+      } else {
+        reject(error);
+      }
+    });
+    
+    ws.on('close', () => {
+      console.log('🎵 LED 7713: VOSK_OPTIMIZER - WebSocket closed');
+      clearTimeout(timeout);
+      
+      // Return results
+      const finalTranscript = transcript || partialTranscript || "";
+      const processingTime = Date.now() - startTime;
+      
+      console.log(`🎵 LED 7714: VOSK_OPTIMIZER - Complete. Length: ${finalTranscript.length}, Time: ${processingTime}ms`);
+      
+      resolve({
+        params: params,
+        transcript: finalTranscript,
+        metrics: {
+          wordAccuracy: calculateWER(referenceText, finalTranscript),
+          characterAccuracy: calculateCER(referenceText, finalTranscript),
+          processingTime: processingTime,
+          realTimeFactor: processingTime / 10000,
+          partialCount: messageCount
+        }
+      });
+    });
+  });
+}
+
+// Generate parameter sets for Vosk optimization
+function generateVoskParameterSets(mode) {
+  const sets = [];
+  
+  if (mode === 'quick') {
+    // Quick mode: Test 8 key combinations
+    const configs = [
+      { sampleRate: 16000, chunkSize: 8000, setWords: false, setPartialWords: true },
+      { sampleRate: 16000, chunkSize: 8000, setWords: true, setPartialWords: false },
+      { sampleRate: 16000, chunkSize: 4000, setWords: false, setPartialWords: true },
+      { sampleRate: 16000, chunkSize: 4000, setWords: true, setPartialWords: true },
+      { sampleRate: 8000, chunkSize: 4000, setWords: false, setPartialWords: true },
+      { sampleRate: 8000, chunkSize: 8000, setWords: true, setPartialWords: false },
+      { sampleRate: 16000, chunkSize: 16000, setWords: false, setPartialWords: true },
+      { sampleRate: 16000, chunkSize: 2000, setWords: true, setPartialWords: true }
+    ];
+    
+    return configs;
+  } else if (mode === 'comprehensive') {
+    // Comprehensive: Test many combinations
+    const sampleRates = [8000, 16000];
+    const chunkSizes = [2000, 4000, 8000, 16000];
+    const setWords = [true, false];
+    const setPartialWords = [true, false];
+    
+    for (const sr of sampleRates) {
+      for (const cs of chunkSizes) {
+        for (const sw of setWords) {
+          for (const spw of setPartialWords) {
+            sets.push({
+              sampleRate: sr,
+              chunkSize: cs,
+              setWords: sw,
+              setPartialWords: spw
+            });
+          }
+        }
+      }
+    }
+  }
+  
+  return sets.length > 0 ? sets : generateVoskParameterSets('quick');
+}
+
+// Calculate Word Error Rate (WER)
+function calculateWER(reference, hypothesis) {
+  const refWords = reference.split(/\s+/).filter(w => w.length > 0);
+  const hypWords = hypothesis.split(/\s+/).filter(w => w.length > 0);
+  
+  if (refWords.length === 0) return 100;
+  if (hypWords.length === 0) return 100;
+  
+  // Simple word matching for now
+  let errors = 0;
+  const maxLen = Math.max(refWords.length, hypWords.length);
+  
+  for (let i = 0; i < maxLen; i++) {
+    if (i >= refWords.length || i >= hypWords.length || refWords[i] !== hypWords[i]) {
+      errors++;
+    }
+  }
+  
+  return (errors / refWords.length) * 100;
+}
+
+// Calculate Character Error Rate (CER)
+function calculateCER(reference, hypothesis) {
+  // Remove spaces for character comparison
+  const refChars = reference.replace(/\s/g, '');
+  const hypChars = hypothesis.replace(/\s/g, '');
+  
+  if (refChars.length === 0) return 100;
+  if (hypChars.length === 0) return 100;
+  
+  // Simple character matching
+  let errors = 0;
+  const maxLen = Math.max(refChars.length, hypChars.length);
+  
+  for (let i = 0; i < maxLen; i++) {
+    if (i >= refChars.length || i >= hypChars.length || refChars[i] !== hypChars[i]) {
+      errors++;
+    }
+  }
+  
+  return (errors / refChars.length) * 100;
+}
+
+// Calculate optimization score
+function calculateOptimizationScore(metrics, targetMetric) {
+  if (targetMetric === 'accuracy') {
+    return metrics.wordAccuracy * 0.7 + metrics.characterAccuracy * 0.3;
+  } else if (targetMetric === 'speed') {
+    return (1000 / metrics.processingTime) * 100; // Inverse of processing time
+  } else {
+    // Balanced: Consider both accuracy and speed
+    const accuracyScore = metrics.wordAccuracy * 0.5 + metrics.characterAccuracy * 0.2;
+    const speedScore = (1000 / metrics.processingTime) * 30;
+    return accuracyScore + speedScore;
+  }
+}
+
+// Note: update-vosk-config handler already exists at line 1972
 
 // Additional cleanup handlers
 app.on('will-quit', (event) => {

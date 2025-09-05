@@ -4,10 +4,11 @@
  * Uses extracted components for Audio and Knowledge Base configuration
  */
 import React, { useState, useEffect } from 'react';
-import { X, Mic, Brain, Database, Shield, Info, Lock, Bot } from 'lucide-react';
+import { X, Mic, Brain, Database, Shield, Info, Lock, Bot, Settings } from 'lucide-react';
 import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
 import AudioSettingsComponent from './AudioSettings';
 import KnowledgeBaseAPIConfig from './KnowledgeBaseAPIConfig';
+import { VoskOptimizationPanel } from '../settings/VoskOptimizationPanel';
 
 interface AudioDevice {
   deviceId: string;
@@ -28,7 +29,7 @@ interface SettingsModalProps {
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState }) => {
   const trail = new BreadcrumbTrail('SettingsModal');
-  const [activeTab, setActiveTab] = useState<'audio' | 'ai' | 'knowledgebase' | 'privacy' | 'about'>('audio');
+  const [activeTab, setActiveTab] = useState<'audio' | 'ai' | 'knowledgebase' | 'vosk' | 'privacy' | 'about'>('audio');
   const [audioDevices, setAudioDevices] = useState<AudioDevice[]>([]);
   const [loadingDevices, setLoadingDevices] = useState(false);
   const [deviceError, setDeviceError] = useState<string | null>(null);
@@ -136,6 +137,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
         }});
       } else if (activeTab === 'ai') {
         trail.light(7063, { tab_init: 'ai_configuration', model: settings.aiModel });
+      } else if (activeTab === 'vosk') {
+        trail.light(7505, { tab_init: 'vosk_optimizer', purpose: 'transcription_optimization' });
       } else if (activeTab === 'privacy') {
         trail.light(7064, { tab_init: 'privacy_settings', retention: settings.dataRetention });
       }
@@ -392,6 +395,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
     { id: 'audio', label: 'Audio & Recording', icon: Mic },
     { id: 'ai', label: 'Live AI Settings', icon: Brain },
     { id: 'knowledgebase', label: 'Knowledge Base API', icon: Database },
+    { id: 'vosk', label: 'Vosk Optimizer', icon: Settings },
     { id: 'privacy', label: 'Privacy & Data', icon: Shield },
     { id: 'about', label: 'About', icon: Info }
   ];
@@ -618,6 +622,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
                 settings={settings.knowledgeBase}
                 onChange={handleKnowledgeBaseSettingChange}
               />
+            )}
+
+            {activeTab === 'vosk' && (
+              <VoskOptimizationPanel />
             )}
 
             {activeTab === 'privacy' && (

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Audio Pipeline Test</title>
+</head>
+<body>
+    <h1>Audio Pipeline Diagnostic</h1>
+    <button id="testBtn">Test Audio Capture</button>
+    <pre id="output"></pre>
+    
+    <script>
+        const output = document.getElementById('output');
+        
+        function log(msg) {
+            output.textContent += msg + '\n';
+            console.log(msg);
+        }
+        
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            output.textContent = ''; // Clear
+            
+            log('=== AUDIO PIPELINE TEST ===\n');
+            
+            // Test 1: Check what sample rates are supported
+            log('TEST 1: AudioContext Sample Rates');
+            
+            // Try 16kHz (Vosk ideal)
+            try {
+                const ctx16 = new AudioContext({ sampleRate: 16000 });
+                log(`✓ 16kHz requested, got: ${ctx16.sampleRate}Hz`);
+                if (ctx16.sampleRate !== 16000) {
+                    log(`⚠️ WARNING: Browser changed to ${ctx16.sampleRate}Hz!`);
+                }
+                ctx16.close();
+            } catch (e) {
+                log(`✗ 16kHz failed: ${e.message}`);
+            }
+            
+            // Try 48kHz (browser default)
+            try {
+                const ctx48 = new AudioContext({ sampleRate: 48000 });
+                log(`✓ 48kHz requested, got: ${ctx48.sampleRate}Hz`);
+                ctx48.close();
+            } catch (e) {
+                log(`✗ 48kHz failed: ${e.message}`);
+            }
+            
+            // Try default
+            const ctxDefault = new AudioContext();
+            log(`✓ Default AudioContext: ${ctxDefault.sampleRate}Hz`);
+            ctxDefault.close();
+            
+            log('\nTEST 2: Microphone Capture');
+            
+            // Get microphone
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false,
+                        sampleRate: 16000
+                    }
+                });
+                
+                const track = stream.getAudioTracks()[0];
+                const settings = track.getSettings();
+                log(`✓ Mic captured at: ${settings.sampleRate || 'unknown'}Hz`);
+                log(`  Channels: ${settings.channelCount || 'unknown'}`);
+                
+                // Test with AudioContext
+                const ctx = new AudioContext({ sampleRate: 16000 });
+                const source = ctx.createMediaStreamSource(stream);
+                
+                log(`\nTEST 3: Audio Processing`);
+                log(`  AudioContext rate: ${ctx.sampleRate}Hz`);
+                log(`  ${ctx.sampleRate === 16000 ? '✓ GOOD for Vosk' : '✗ BAD - Need resampling!'}`);
+                
+                // Create a simple processor to check actual data
+                const processor = ctx.createScriptProcessor(4096, 1, 1);
+                let sampleCount = 0;
+                
+                processor.onaudioprocess = (e) => {
+                    const inputData = e.inputBuffer.getChannelData(0);
+                    
+                    if (sampleCount === 0) {
+                        // Check first chunk
+                        const avgLevel = inputData.reduce((a, b) => a + Math.abs(b), 0) / inputData.length;
+                        log(`\nTEST 4: Audio Data`);
+                        log(`  Chunk size: ${inputData.length} samples`);
+                        log(`  Average level: ${avgLevel.toFixed(6)}`);
+                        log(`  ${avgLevel > 0.001 ? '✓ Audio present' : '✗ No audio or too quiet'}`);
+                        
+                        // Disconnect after first check
+                        processor.disconnect();
+                        source.disconnect();
+                        stream.getTracks().forEach(t => t.stop());
+                        ctx.close();
+                        
+                        log('\n=== DIAGNOSIS ===');
+                        if (ctx.sampleRate !== 16000) {
+                            log('❌ PROBLEM: AudioContext is not 16kHz!');
+                            log('   Vosk expects 16kHz but getting ' + ctx.sampleRate + 'Hz');
+                            log('   This WILL cause accuracy problems!');
+                            log('\nSOLUTION: Need to resample audio to 16kHz');
+                            log('   OR use a resampling library');
+                            log('   OR process on server side');
+                        } else {
+                            log('✓ Audio pipeline looks good for Vosk');
+                        }
+                    }
+                    sampleCount++;
+                };
+                
+                source.connect(processor);
+                processor.connect(ctx.destination);
+                
+            } catch (e) {
+                log(`✗ Microphone error: ${e.message}`);
+            }
+        });
+    </script>
+</body>
+</html>

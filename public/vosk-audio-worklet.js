@@ -64,12 +64,25 @@ class VoskAudioProcessor extends AudioWorkletProcessor {
     if (this.isRecording && input && input[0] && input[0].length > 0) {
       const inputChannel = input[0]; // Get first (mono) channel
       
+      // Debug log every 100th process call
+      if (this.sampleCount % (100 * 128) < 128) {
+        console.log('🎙️ AudioWorklet processing:', {
+          isRecording: this.isRecording,
+          inputLength: inputChannel.length,
+          bufferIndex: this.bufferIndex,
+          bufferSize: this.bufferSize,
+          totalSamples: this.sampleCount,
+          chunksProcessed: this.processedChunks
+        });
+      }
+      
       // Add samples to buffer
       for (let i = 0; i < inputChannel.length; i++) {
         this.buffer[this.bufferIndex++] = inputChannel[i];
         
         // When buffer is full, send it
         if (this.bufferIndex >= this.bufferSize) {
+          console.log('📤 AudioWorklet sending chunk #', this.processedChunks, 'size:', this.bufferSize);
           this.sendBufferedData();
         }
       }
@@ -92,7 +105,7 @@ class VoskAudioProcessor extends AudioWorkletProcessor {
       type: 'AUDIO_DATA',
       data: pcmData.buffer,
       sampleCount: this.bufferIndex,
-      sampleRate: sampleRate,
+      sampleRate: 16000, // Fixed at 16kHz for Vosk
       chunkIndex: this.processedChunks++
     }, [pcmData.buffer]); // Transfer ownership for performance
     

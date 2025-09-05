@@ -1,8 +1,9 @@
 /**
- * VoiceCoach V2 - Native WebSocket Client Service
- * Direct WebSocket connection for real-time transcription with <1ms latency
+ * VoiceCoach V2 - Socket.IO WebSocket Client Service
+ * Socket.IO connection for real-time transcription with Vosk server compatibility
  */
 import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
+import { io, Socket } from 'socket.io-client';
 
 export interface TranscriptEvent {
   type: 'final_transcript' | 'partial_transcript';
@@ -23,7 +24,8 @@ export interface CoachingSuggestion {
 }
 
 export class VoiceCoachWebSocketClient {
-  private socket: WebSocket | null = null;
+  private socket: Socket | null = null;
+  private nativeSocket: WebSocket | null = null; // Keep for compatibility
   private serverUrl: string;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
@@ -46,19 +48,20 @@ export class VoiceCoachWebSocketClient {
   private source: MediaStreamAudioSourceNode | null = null;
   private isRecording = false;
   private audioCaptureMode: 'microphone' | 'full-conversation' = 'full-conversation';
+  private chunkCount: number = 0;
 
-  constructor(serverUrl: string = 'ws://127.0.0.1:5000') {
+  constructor(serverUrl: string = 'http://127.0.0.1:5000') {
     // LED 7001: Enhanced URL validation and fallback
     this.trail = new BreadcrumbTrail('WebSocketClient');
     
-    // Validate and set server URL with fallback options (native WebSocket protocol)
+    // Socket.IO uses http:// not ws:// protocol
     const validUrls = [
-      serverUrl,
-      'ws://127.0.0.1:5000',
-      'ws://localhost:5000'
+      serverUrl.replace('ws://', 'http://').replace('wss://', 'https://'),
+      'http://127.0.0.1:5000',
+      'http://127.0.0.1:5000'
     ];
     
-    this.serverUrl = validUrls.find(url => url && (url.startsWith('ws://') || url.startsWith('wss://'))) || 'ws://127.0.0.1:5000';
+    this.serverUrl = validUrls.find(url => url && (url.startsWith('http://') || url.startsWith('https://'))) || 'http://127.0.0.1:5000';
     
     this.trail.light(7001, {
       operation: 'websocket_client_initialization',
@@ -69,49 +72,61 @@ export class VoiceCoachWebSocketClient {
     });
   }
 
-  // LED Breadcrumb 7010: Connect to native WebSocket server
+  // LED Breadcrumb 7010: Connect to Socket.IO server
   connect(): Promise<boolean> {
     return new Promise((resolve, reject) => {
       try {
-        this.trail.light(7010, { serverUrl: this.serverUrl, operation: 'native_websocket_connect_start' });
+        this.trail.light(7010, { serverUrl: this.serverUrl, operation: 'socket_io_connect_start' });
         
-        // LED 7009: Initialize native WebSocket connection
+        // LED 7009: Initialize Socket.IO connection
         this.trail.light(7009, {
-          operation: 'native_websocket_initialization',
-          protocol: 'native_websocket',
+          operation: 'socket_io_initialization',
+          protocol: 'socket_io',
           serverUrl: this.serverUrl,
           maxReconnectAttempts: this.maxReconnectAttempts,
           reconnectDelay: this.reconnectDelay
         });
         
-        this.socket = new WebSocket(this.serverUrl);
-        this.socket.binaryType = 'arraybuffer'; // Handle binary audio data
+        this.socket = io(this.serverUrl, {
+          transports: ['polling', 'websocket'],  // Try both transports
+          reconnection: true,
+          reconnectionAttempts: Infinity,  // Keep trying forever
+          reconnectionDelay: 500,  // Fast reconnect
+          reconnectionDelayMax: 2000,  // Max 2 second delay
+          timeout: 60000,  // Longer timeout for stability
+          forceNew: false,  // Reuse connections when possible
+          autoConnect: true  // Connect immediately
+        });
 
         // LED Breadcrumb 7011: Handle connection events
-        this.socket.onopen = () => {
+        this.socket.on('connect', () => {
           this.trail.lightWithVerification(7011, 
-            { operation: 'native_websocket_connected', timestamp: Date.now() },
-            { expect: 'connected', actual: this.socket?.readyState === WebSocket.OPEN ? 'connected' : 'disconnected' }
+            { operation: 'socket_io_connected', timestamp: Date.now() },
+            { expect: 'connected', actual: this.socket?.connected ? 'connected' : 'disconnected' }
           );
           
           // LED 7052: Connection health verification
           this.trail.checkpoint(7052, 'connection_health_check',
-            () => this.socket?.readyState === WebSocket.OPEN,
-            { readyState: this.socket?.readyState, timestamp: Date.now() }
+            () => this.socket?.connected === true,
+            { connected: this.socket?.connected, timestamp: Date.now() }
           );
           
           this.reconnectAttempts = 0; // Reset on successful connection
           this.onStatusCallback?.('Connected');
           resolve(true);
-        };
+        });
 
-        this.socket.onclose = (event) => {
+        // Handle server status messages
+        this.socket.on('status', (data: any) => {
+          console.log('[WebSocket] Server status:', data);
+          this.trail.light(7013, { status: data });
+        });
+
+        this.socket.on('disconnect', (reason) => {
           this.trail.light(7012, { 
-            operation: 'native_websocket_disconnected', 
+            operation: 'socket_io_disconnected', 
             timestamp: Date.now(),
-            code: event.code,
-            reason: event.reason || 'server_disconnect',
-            wasClean: event.wasClean
+            reason: reason
           });
           
           // LED 7053: Connection state cleanup
@@ -119,20 +134,15 @@ export class VoiceCoachWebSocketClient {
             operation: 'connection_state_cleanup',
             previouslyConnected: true,
             cleanupTimestamp: Date.now(),
-            willReconnect: !event.wasClean && this.reconnectAttempts < this.maxReconnectAttempts
+            willReconnect: this.reconnectAttempts < this.maxReconnectAttempts
           });
           
           this.onStatusCallback?.('Disconnected');
-          
-          // Attempt reconnection if not a clean close
-          if (!event.wasClean && this.reconnectAttempts < this.maxReconnectAttempts) {
-            this._attemptReconnect();
-          }
-        };
+        });
 
-        this.socket.onerror = (event) => {
+        this.socket.on('connect_error', (error) => {
           // LED 8011: Connection error with detailed diagnostic info
-          const errorMessage = `Native WebSocket connection error`;
+          const errorMessage = `Socket.IO connection error: ${error.message}`;
           this.trail.fail(8011, new Error(errorMessage));
           
           // LED 8010: Enhanced connection diagnostics with troubleshooting
@@ -153,31 +163,40 @@ export class VoiceCoachWebSocketClient {
           const friendlyError = this._createFriendlyErrorMessage(errorMessage);
           this.onErrorCallback?.(friendlyError);
           
-          console.error('❌ Native WebSocket connection failed:', errorMessage);
+          console.error('❌ Socket.IO connection failed:', errorMessage);
           console.log('🔧 Troubleshooting steps:', diagnosticInfo.troubleshooting.join(', '));
           reject(new Error(errorMessage));
-        };
+        });
 
-        // Handle incoming messages
-        this.socket.onmessage = (event) => {
-          try {
-            let data;
-            
-            // Handle binary data (audio responses) or JSON text
-            if (typeof event.data === 'string') {
-              data = JSON.parse(event.data);
-            } else {
-              // Handle binary audio data if needed in the future
-              console.log('Received binary data:', event.data);
-              return;
-            }
-            
-            this._handleMessage(data);
-          } catch (error) {
-            this.trail.fail(8022, new Error(`Message parsing error: ${(error as Error).message}`));
-            console.error('❌ Error parsing WebSocket message:', error);
+        // Handle Socket.IO events - Server emits 'transcription' event
+        this.socket.on('transcription', (data) => {
+          console.log('[Socket.IO] Transcription received:', data);
+          this._handleMessage(data);
+        });
+
+        this.socket.on('transcription_status', (data) => {
+          console.log('[Socket.IO] Transcription status:', data);
+        });
+        
+        // Handle coaching suggestions from server
+        this.socket.on('coaching_suggestion', (data) => {
+          console.log('[Socket.IO] Coaching suggestion:', data);
+          if (this.onCoachingCallback) {
+            this.onCoachingCallback(data);
           }
-        };
+        });
+
+        this.socket.on('status', (data) => {
+          console.log('[Socket.IO] Status:', data);
+          if (data.message) {
+            this.onStatusCallback?.(data.message);
+          }
+        });
+
+        this.socket.on('error', (error) => {
+          this.trail.fail(8022, new Error(`Socket.IO error: ${error}`));
+          console.error('❌ Socket.IO error:', error);
+        });
 
 
       } catch (error) {
@@ -439,33 +458,44 @@ export class VoiceCoachWebSocketClient {
     this.setAudioCaptureMode(captureMode);
     // LED 7029: Pre-transcription validation
     this.trail.checkpoint(7029, 'transcription_prerequisites',
-      () => this.socket?.readyState === WebSocket.OPEN,
+      () => this.socket?.connected === true,
       {
-        socketConnected: this.socket?.readyState === WebSocket.OPEN,
-        readyState: this.socket?.readyState,
+        socketConnected: this.socket?.connected === true,
+        connected: this.socket?.connected,
         serverUrl: this.serverUrl,
         timestamp: Date.now()
       }
     );
     
-    if (this.socket?.readyState !== WebSocket.OPEN) {
-      this.trail.fail(8030, new Error('Cannot start transcription: not connected'));
-      
-      // LED 8019: Transcription start failure analysis
-      this.trail.light(8019, {
-        operation: 'transcription_start_failure',
-        reason: 'socket_not_connected',
-        socketState: this.socket ? `readyState_${this.socket.readyState}` : 'socket_null',
+    if (!this.socket?.connected) {
+      console.log('[WebSocket] Not connected, attempting to connect first...');
+      this.trail.light(7069, {
+        operation: 'auto_connect_before_transcription',
         timestamp: Date.now()
       });
       
-      return false;
+      // Try to connect first
+      const connected = await this.connect();
+      if (!connected) {
+        this.trail.fail(8030, new Error('Cannot start transcription: connection failed'));
+        
+        // LED 8019: Transcription start failure analysis
+        this.trail.light(8019, {
+          operation: 'transcription_start_failure',
+          reason: 'socket_connection_failed',
+          socketState: this.socket ? `connected_${this.socket.connected}` : 'socket_null',
+          timestamp: Date.now()
+        });
+        
+        return false;
+      }
+      console.log('[WebSocket] Successfully connected, continuing with transcription...');
     }
 
     this.trail.light(7030, { 
       operation: 'start_transcription_command', 
       timestamp: Date.now(),
-      readyState: this.socket.readyState,
+      connected: this.socket.connected,
       commandSent: true
     });
     
@@ -477,8 +507,9 @@ export class VoiceCoachWebSocketClient {
       timestamp: Date.now()
     });
     
-    // Send start command to server
-    this.socket.send(JSON.stringify({ type: 'start_transcription' }));
+    // Send start command to server using Socket.IO
+    // Note: No longer sending this as the server listens for 'start_transcription' event
+    // which is sent at line 1067 when audio starts
     
     // LED 7070: Audio capture initialization
     this.trail.light(7070, {
@@ -497,7 +528,16 @@ export class VoiceCoachWebSocketClient {
       });
       return true;
     } catch (error) {
+      // LED 8071: Enhanced error diagnostics for audio capture initialization failure
       this.trail.fail(8071, error as Error);
+      this.trail.light(8074, {
+        operation: 'audio_capture_init_failure_diagnostics',
+        error_message: (error as Error).message,
+        error_name: (error as Error).name,
+        capture_mode: this.audioCaptureMode,
+        timestamp: Date.now()
+      });
+      
       this.onErrorCallback?.(`Failed to start audio capture: ${(error as Error).message}`);
       return false;
     }
@@ -519,6 +559,11 @@ export class VoiceCoachWebSocketClient {
       const voskConfig = voskConfigStr ? JSON.parse(voskConfigStr) : null;
       const audioConfig = voskConfig?.audio || { sampleRate: 16000, channels: 1 };
       
+      // Get the selected microphone device from settings
+      const settingsStr = localStorage.getItem('voicecoach-settings');
+      const settings = settingsStr ? JSON.parse(settingsStr) : null;
+      const selectedMicDeviceId = settings?.audioInput;
+      
       // LED 7073: Microphone access request
       this.trail.light(7073, {
         operation: 'requesting_microphone_access',
@@ -526,20 +571,33 @@ export class VoiceCoachWebSocketClient {
         requestedSampleRate: audioConfig.sampleRate,
         requestedChannels: audioConfig.channels,
         configSource: voskConfig ? 'user_settings' : 'defaults',
+        selectedDevice: settings?.audioInputLabel || 'System Default',
+        deviceId: selectedMicDeviceId || 'default',
         timestamp: Date.now()
       });
-
+      
+      // Build audio constraints with selected device
+      const audioConstraints: any = {
+        channelCount: { ideal: audioConfig.channels }, // User configurable
+        sampleRate: { ideal: audioConfig.sampleRate }, // User configurable
+        sampleSize: { ideal: 16 }, // 16-bit PCM
+        echoCancellation: false, // Disable processing overhead
+        noiseSuppression: false, // Disable processing overhead  
+        autoGainControl: false, // Disable processing overhead
+        volume: 1.0 // Maximum signal strength
+      };
+      
+      // Add deviceId if a specific microphone is selected
+      if (selectedMicDeviceId && selectedMicDeviceId !== 'default') {
+        audioConstraints.deviceId = { exact: selectedMicDeviceId };
+        console.log('🎤 Using selected microphone:', selectedMicDeviceId, settings?.audioInputLabel);
+      } else {
+        console.log('🎤 Using default system microphone');
+      }
+      
       // Step 1: Capture microphone (user's side) for optimal Vosk compatibility
       this.micStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          channelCount: { ideal: audioConfig.channels }, // User configurable
-          sampleRate: { ideal: audioConfig.sampleRate }, // User configurable
-          sampleSize: { ideal: 16 }, // 16-bit PCM
-          echoCancellation: false, // Disable processing overhead
-          noiseSuppression: false, // Disable processing overhead  
-          autoGainControl: false, // Disable processing overhead
-          volume: 1.0 // Maximum signal strength
-        }
+        audio: audioConstraints
       });
       
       // LED 7074: Microphone capture success
@@ -552,7 +610,7 @@ export class VoiceCoachWebSocketClient {
           label: t.label,
           enabled: t.enabled,
           muted: t.muted,
-          readyState: t.readyState
+          connected: t.connected
         })),
         timestamp: Date.now()
       });
@@ -702,7 +760,7 @@ export class VoiceCoachWebSocketClient {
               label: t.label,
               enabled: t.enabled,
               muted: t.muted,
-              readyState: t.readyState
+              connected: t.connected
             })),
             timestamp: Date.now()
           });
@@ -879,14 +937,69 @@ export class VoiceCoachWebSocketClient {
       });
 
       // LED 7090: Loading AudioWorklet
+      // For Vite dev server, files in public/ are served from root
+      const workletPath = '/vosk-audio-worklet.js';
+      
       this.trail.light(7090, {
         operation: 'loading_audioworklet',
-        workletPath: '/vosk-audio-worklet.js',
+        workletPath: workletPath,
+        base_url: window.location.href,
         timestamp: Date.now()
       });
       
       // Load AudioWorklet for high-performance processing
-      await this.audioContext.audioWorklet.addModule('/vosk-audio-worklet.js');
+      try {
+        await this.audioContext.audioWorklet.addModule(workletPath);
+      } catch (error) {
+        // LED 8090: AudioWorklet load failure with detailed diagnostics
+        this.trail.fail(8090, error as Error);
+        this.trail.light(8091, {
+          operation: 'audioworklet_load_error_details',
+          error: (error as Error).message,
+          path_attempted: workletPath,
+          context_state: this.audioContext.state,
+          base_url: window.location.href,
+          timestamp: Date.now()
+        });
+        
+        // For production or file:// protocol, try different paths
+        const alternatePaths = [
+          './vosk-audio-worklet.js',
+          'vosk-audio-worklet.js', 
+          '../public/vosk-audio-worklet.js'
+        ];
+        
+        let loaded = false;
+        for (const altPath of alternatePaths) {
+          if (loaded) break;
+          try {
+            this.trail.light(7090, {
+              operation: 'trying_alternate_worklet_path',
+              workletPath: altPath,
+              timestamp: Date.now()
+            });
+            await this.audioContext.audioWorklet.addModule(altPath);
+            loaded = true;
+            this.trail.light(7091, {
+              operation: 'audioworklet_loaded_alternate',
+              successful_path: altPath,
+              timestamp: Date.now()
+            });
+          } catch (altError) {
+            this.trail.light(8093, {
+              operation: 'alternate_path_failed',
+              path: altPath,
+              error: (altError as Error).message,
+              timestamp: Date.now()
+            });
+          }
+        }
+        
+        if (!loaded) {
+          this.trail.fail(8092, error as Error);
+          throw new Error(`Failed to load AudioWorklet from any path. Original error: ${(error as Error).message}`);
+        }
+      }
       
       // LED 7091: AudioWorklet loaded successfully
       this.trail.light(7091, {
@@ -935,19 +1048,38 @@ export class VoiceCoachWebSocketClient {
       this.audioWorkletNode.port.onmessage = (event) => {
         const { type, data, sampleCount, chunkIndex } = event.data;
         
-        if (type === 'AUDIO_DATA' && this.socket?.readyState === WebSocket.OPEN) {
-          // LED 7075: High-performance audio chunk transmission
-          this.trail.light(7075, {
-            operation: 'audioworklet_pcm_transmission',
-            sampleCount: sampleCount,
-            byteSize: data.byteLength,
-            chunkIndex: chunkIndex,
-            timestamp: Date.now()
-          });
-          
-          // Send raw PCM data directly to Vosk
-          this.sendAudioChunk(data);
+        console.log('🎤 AudioWorklet message received:', { type, hasData: !!data, sampleCount, chunkIndex });
+        
+        if (type === 'AUDIO_DATA') {
+          // Check connection before sending
+          if (this.socket?.connected === true) {
+            // LED 7075: High-performance audio chunk transmission
+            this.trail.light(7075, {
+              operation: 'audioworklet_pcm_transmission',
+              sampleCount: sampleCount,
+              byteSize: data.byteLength,
+              chunkIndex: chunkIndex,
+              timestamp: Date.now()
+            });
+            
+            console.log('🚀 Sending audio chunk to server:', { byteSize: data.byteLength, chunkIndex });
+            
+            // Send raw PCM data directly to Vosk
+            this.sendAudioChunk(data);
+          } else {
+            // Socket not connected - try to reconnect
+            console.warn('⚠️ Socket disconnected at chunk #' + chunkIndex + ', attempting reconnect...');
+            
+            // If socket exists but disconnected, try to reconnect
+            if (this.socket && !this.socket.connected) {
+              this.socket.connect();
+            }
+            
+            // Log dropped chunk (we drop to avoid memory issues)
+            console.error('❌ Dropping audio chunk #' + chunkIndex + ' - socket not connected');
+          }
         } else if (type === 'RECORDING_STARTED') {
+          console.log('✅ AudioWorklet confirmed recording started');
           this.trail.light(7076, {
             operation: 'audioworklet_recording_confirmed',
             timestamp: Date.now()
@@ -963,6 +1095,14 @@ export class VoiceCoachWebSocketClient {
       
       // Start recording in AudioWorklet
       this.audioWorkletNode.port.postMessage('START_RECORDING');
+      
+      // Notify Socket.IO server to start transcription
+      if (this.socket?.connected) {
+        console.log('[WebSocket] Emitting start_transcription to server');
+        this.socket.emit('start_transcription');
+      } else {
+        console.error('[WebSocket] Cannot emit start_transcription - not connected!');
+      }
       this.isRecording = true;
 
       this.trail.light(7077, {
@@ -975,8 +1115,37 @@ export class VoiceCoachWebSocketClient {
       });
 
     } catch (error) {
+      // LED 8072: Enhanced error diagnostics for audio capture failure
       this.trail.fail(8072, error as Error);
+      this.trail.light(8073, {
+        operation: 'audio_capture_failure_diagnostics',
+        error_message: (error as Error).message,
+        error_name: (error as Error).name,
+        error_stack: (error as Error).stack?.split('\n').slice(0, 3).join(' | '),
+        audioContext_state: this.audioContext?.state,
+        audioContext_sampleRate: this.audioContext?.sampleRate,
+        mediaStream_active: this.mediaStream?.active,
+        mediaStream_tracks: this.mediaStream?.getTracks().length,
+        workletNode_exists: !!this.audioWorkletNode,
+        timestamp: Date.now()
+      });
+      
       this.onErrorCallback?.(`Failed to start optimized audio capture: ${(error as Error).message}`);
+      
+      // Clean up any partially initialized resources
+      if (this.audioWorkletNode) {
+        this.audioWorkletNode.disconnect();
+        this.audioWorkletNode = null;
+      }
+      if (this.source) {
+        this.source.disconnect();
+        this.source = null;
+      }
+      if (this.audioContext && this.audioContext.state !== 'closed') {
+        await this.audioContext.close();
+        this.audioContext = null;
+      }
+      
       throw error;
     }
   }
@@ -985,10 +1154,10 @@ export class VoiceCoachWebSocketClient {
   stopTranscription(): boolean {
     // LED 7060: Pre-stop validation
     this.trail.checkpoint(7060, 'transcription_stop_prerequisites',
-      () => this.socket?.readyState === WebSocket.OPEN,
+      () => this.socket?.connected === true,
       {
-        socketConnected: this.socket?.readyState === WebSocket.OPEN,
-        readyState: this.socket?.readyState,
+        socketConnected: this.socket?.connected === true,
+        connected: this.socket?.connected,
         timestamp: Date.now()
       }
     );
@@ -996,14 +1165,14 @@ export class VoiceCoachWebSocketClient {
     // Stop audio capture first
     this.stopAudioCapture();
     
-    if (this.socket?.readyState !== WebSocket.OPEN) {
+    if (!this.socket?.connected) {
       this.trail.fail(8031, new Error('Cannot stop transcription: not connected'));
       
       // LED 8020: Transcription stop failure analysis
       this.trail.light(8020, {
         operation: 'transcription_stop_failure',
         reason: 'socket_not_connected',
-        socketState: this.socket ? `readyState_${this.socket.readyState}` : 'socket_null',
+        socketState: this.socket ? `connected_${this.socket.connected}` : 'socket_null',
         timestamp: Date.now()
       });
       
@@ -1013,7 +1182,7 @@ export class VoiceCoachWebSocketClient {
     this.trail.light(7031, { 
       operation: 'stop_transcription_command', 
       timestamp: Date.now(),
-      readyState: this.socket.readyState,
+      connected: this.socket.connected,
       commandSent: true
     });
     
@@ -1050,6 +1219,11 @@ export class VoiceCoachWebSocketClient {
       // Stop AudioWorklet recording
       if (this.audioWorkletNode) {
         this.audioWorkletNode.port.postMessage('STOP_RECORDING');
+        
+        // Notify Socket.IO server to stop transcription
+        if (this.socket?.connected) {
+          this.socket.emit('stop_transcription');
+        }
         // LED 7093: AudioWorklet stop command sent
         this.trail.light(7093, {
           operation: 'audioworklet_stop_command',
@@ -1179,7 +1353,7 @@ export class VoiceCoachWebSocketClient {
     }
   }
 
-  // LED Breadcrumb 7040: Send audio chunk (binary data)
+  // LED Breadcrumb 7040: Send audio chunk via Socket.IO
   sendAudioChunk(audioData: ArrayBuffer | string): boolean {
     // LED 7062: Audio data validation
     const dataSize = audioData instanceof ArrayBuffer ? audioData.byteLength : audioData.length;
@@ -1192,7 +1366,7 @@ export class VoiceCoachWebSocketClient {
       }
     );
     
-    if (this.socket?.readyState !== WebSocket.OPEN) {
+    if (!this.socket?.connected) {
       this.trail.fail(8040, new Error('Cannot send audio: not connected'));
       
       // LED 8021: Audio transmission failure
@@ -1227,11 +1401,36 @@ export class VoiceCoachWebSocketClient {
       timestamp: Date.now()
     });
     
-    // Send binary audio data directly to native WebSocket
+    // Convert to base64 for Socket.IO transmission (matching Python server expectations)
+    let base64Data: string;
     if (audioData instanceof ArrayBuffer) {
-      this.socket.send(audioData);
+      // Convert ArrayBuffer to base64 string
+      const bytes = new Uint8Array(audioData);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      base64Data = btoa(binary);
     } else {
-      this.socket.send(JSON.stringify({ type: 'audio_chunk', data: audioData }));
+      // Already a string, assume it's base64
+      base64Data = audioData;
+    }
+    
+    // Send via Socket.IO 'audio_chunk' event
+    this.socket.emit('audio_chunk', base64Data);
+    
+    // Track chunk count
+    if (!this.chunkCount) this.chunkCount = 0;
+    this.chunkCount++;
+    
+    // DEBUG: Log first 10 chunks and every 50th chunk for monitoring
+    if (this.chunkCount <= 10 || this.chunkCount % 50 === 0) {
+      console.log(`🎤 [AUDIO DEBUG] Sent chunk #${this.chunkCount}, size: ${base64Data.length} chars (base64), connected: ${this.socket?.connected}`);
+      
+      // Also check if we're getting transcription events
+      if (this.chunkCount === 10) {
+        console.log('📊 [DEBUG] After 10 chunks - checking for transcription events...');
+      }
     }
     return true;
   }
@@ -1246,35 +1445,35 @@ export class VoiceCoachWebSocketClient {
     
     if (this.socket) {
       this.trail.light(7050, { 
-        operation: 'native_websocket_disconnect_start', 
+        operation: 'socket_io_disconnect_start', 
         timestamp: Date.now(),
-        readyState: this.socket.readyState,
-        wasConnected: this.socket.readyState === WebSocket.OPEN
+        connected: this.socket.connected,
+        wasConnected: this.socket.connected
       });
       
       // LED 7064: Pre-disconnect state capture
       this.trail.light(7064, {
         operation: 'pre_disconnect_state_capture',
-        connectionState: this.socket.readyState === WebSocket.OPEN,
-        readyState: this.socket.readyState,
+        connectionState: this.socket.connected,
+        connected: this.socket.connected,
         hasActiveListeners: true,
         timestamp: Date.now()
       });
       
       // Clean disconnect with proper cleanup
       try {
-        if (this.socket.readyState === WebSocket.OPEN) {
-          this.socket.close(1000, 'Client disconnect'); // Normal closure
+        if (this.socket.connected) {
+          this.socket.disconnect();
         }
         
         this.trail.lightWithVerification(7051, 
-          { operation: 'native_websocket_disconnected_cleanly', timestamp: Date.now() },
+          { operation: 'socket_io_disconnected_cleanly', timestamp: Date.now() },
           { expect: 'clean_disconnect', actual: 'clean_disconnect' }
         );
         
         // LED 7065: Post-disconnect cleanup verification
         this.trail.checkpoint(7065, 'disconnect_cleanup_verification',
-          () => this.socket === null || this.socket.readyState === WebSocket.CLOSED,
+          () => this.socket === null || !this.socket.connected,
           { cleanupComplete: true, timestamp: Date.now() }
         );
         
@@ -1339,11 +1538,18 @@ export class VoiceCoachWebSocketClient {
 
   // Connection status
   get isConnected(): boolean {
-    return this.socket?.readyState === WebSocket.OPEN || false;
+    return this.socket?.connected === true || false;
   }
 
   // Expose socket for advanced event handling (audio status)
   get socketInstance(): WebSocket | null {
+    // Return null as we're using Socket.IO now, not native WebSocket
+    // For Socket.IO access, use getSocketIO() instead
+    return this.nativeSocket;
+  }
+  
+  // Get Socket.IO instance
+  get socketIO(): Socket | null {
     return this.socket;
   }
 
@@ -1370,7 +1576,7 @@ export class VoiceCoachWebSocketClient {
     return {
       connected: this.isConnected,
       serverUrl: this.serverUrl,
-      readyState: this.socket?.readyState,
+      socketConnected: this.socket?.connected,
       reconnectAttempts: this.reconnectAttempts,
       breadcrumbSummary: this.getBreadcrumbSummary(),
       lastActivity: this.trail.sequence[this.trail.sequence.length - 1],
@@ -1378,7 +1584,7 @@ export class VoiceCoachWebSocketClient {
         totalLEDs: this.trail.sequence.length,
         failedOperations: this.trail.sequence.filter(led => !led.success).length,
         lastOperationTime: this.trail.sequence[this.trail.sequence.length - 1]?.timestamp,
-        socketHealth: this.socket?.readyState === WebSocket.OPEN || false
+        socketHealth: this.socket?.connected === true || false
       }
     };
   }

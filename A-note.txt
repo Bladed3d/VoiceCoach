@@ -1,3 +1,13 @@
 start app: npm run dev
 
 Change Claude statusline: npx ccstatusline@latest
+
+VS Code terminal command:
+
+  while($true) { cls; Write-Host "📁 Context System Monitor`n" -ForegroundColor Cyan;
+  Get-ChildItem -Path "docs/context" -Recurse -Filter "*.md" | Sort-Object LastWriteTime
+  -Descending | Select-Object -First 10 | ForEach-Object { $age = (Get-Date) - $_.LastWriteTime;
+   if ($age.TotalMinutes -lt 5) { Write-Host "🆕 " -NoNewline -ForegroundColor Green };
+  Write-Host "$($_.LastWriteTime.ToString('HH:mm:ss')) - $($_.FullName.Replace($pwd, '.'))" };
+  Write-Host "`nRefreshing every 3 seconds..." -ForegroundColor Gray; Start-Sleep -Seconds 3 }
+  

@@ -45,11 +45,35 @@ async function verifyPortsAvailable(ports) {
   return true;
 }
 
+async function killPythonServers() {
+  console.log('🎵 PRE_STARTUP: Cleaning up Python servers...');
+  
+  try {
+    // Kill all Python processes that might be our servers
+    // Using command line matching to find our specific server
+    const killPythonCmd = `wmic process where "name='python.exe' and (CommandLine like '%vosk-websocket-server%' or CommandLine like '%simple-vosk-server%')" delete >nul 2>&1`;
+    await execPromise(killPythonCmd, { windowsHide: true });
+    console.log('🎵 PRE_STARTUP: Python Vosk servers terminated');
+  } catch (error) {
+    // Expected when no processes found
+    console.log('🎵 PRE_STARTUP: No Python Vosk servers found');
+  }
+  
+  try {
+    // Also kill ChromaDB servers
+    const killChromaCmd = `wmic process where "name='python.exe' and CommandLine like '%chromadb%'" delete >nul 2>&1`;
+    await execPromise(killChromaCmd, { windowsHide: true });
+    console.log('🎵 PRE_STARTUP: ChromaDB servers terminated');
+  } catch (error) {
+    console.log('🎵 PRE_STARTUP: No ChromaDB servers found');
+  }
+}
+
 async function main() {
   console.log('🚀 VoiceCoach V2: Pre-startup port cleanup');
   console.log('');
   
-  const requiredPorts = [5000, 5175];
+  const requiredPorts = [5000, 5175, 8765, 8767]; // WebSocket (5000), Dev (5175), Native WS (8765), ChromaDB (8767)
   
   try {
     // Kill any existing VoiceCoach instances first
@@ -60,6 +84,9 @@ async function main() {
     } catch (error) {
       console.log('🎵 PRE_STARTUP: No existing instances found');
     }
+    
+    // Kill Python servers specifically
+    await killPythonServers();
     
     // Clear required ports
     await killProcessesOnPorts(requiredPorts);
@@ -81,7 +108,7 @@ async function main() {
     } else {
       console.log('');
       console.log('❌ VoiceCoach V2: Port cleanup failed!');
-      console.log('Please close applications using ports 5000 or 5175');
+      console.log('Please close applications using ports 5000, 5175, 8765 or 8767');
       process.exit(1);
     }
   } catch (error) {

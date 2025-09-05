@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Audio Transmission Test</title>
+    <style>
+        body { 
+            font-family: 'Courier New', monospace; 
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .instructions {
+            background: #e8f4f8;
+            border: 2px solid #0066cc;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        button { 
+            padding: 12px 24px; 
+            margin: 5px; 
+            font-size: 16px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background: #ccc;
+        }
+        #output { 
+            background: #1e1e1e; 
+            color: #d4d4d4;
+            padding: 15px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            border-radius: 4px;
+            min-height: 400px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .good { color: #4ec9b0; }
+        .bad { color: #f48771; }
+        .warn { color: #ffcc00; }
+        .data { color: #9cdcfe; }
+    </style>
+</head>
+<body>
+    <h1>🔌 WebSocket Audio Transmission Diagnostic</h1>
+    
+    <div class="instructions">
+        <strong>This tests what's actually being sent to Vosk server</strong><br>
+        1. Make sure VoiceCoach app is NOT running (to free port 5000)<br>
+        2. Click "Start Test Server" to run a diagnostic server<br>
+        3. Speak for 5-10 seconds<br>
+        4. Review what data format is being transmitted
+    </div>
+    
+    <button id="startBtn" onclick="startTest()">Start WebSocket Test</button>
+    <button id="stopBtn" onclick="stopTest()" disabled>Stop Test</button>
+    
+    <div id="output">Ready to test WebSocket transmission...</div>
+    
+    <script>
+        const output = document.getElementById('output');
+        let socket = null;
+        let audioContext = null;
+        let workletNode = null;
+        let mediaStream = null;
+        let source = null;
+        
+        function log(msg, className = '') {
+            const timestamp = new Date().toLocaleTimeString();
+            const line = document.createElement('div');
+            if (className) line.className = className;
+            line.textContent = `[${timestamp}] ${msg}`;
+            output.appendChild(line);
+            output.scrollTop = output.scrollHeight;
+            console.log(msg);
+        }
+        
+        async function startTest() {
+            output.innerHTML = '';
+            log('=== WEBSOCKET TRANSMISSION TEST ===\n');
+            
+            try {
+                // Connect to WebSocket (mimicking VoiceCoach)
+                log('Connecting to ws://localhost:5000/socket.io/...');
+                
+                // Import Socket.IO library
+                if (!window.io) {
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.socket.io/4.5.4/socket.io.min.js';
+                    document.head.appendChild(script);
+                    
+                    await new Promise(resolve => {
+                        script.onload = resolve;
+                    });
+                }
+                
+                socket = io('ws://localhost:5000', {
+                    transports: ['websocket'],
+                    reconnection: false
+                });
+                
+                socket.on('connect', () => {
+                    log('✓ WebSocket connected', 'good');
+                    setupAudioCapture();
+                });
+                
+                socket.on('connect_error', (error) => {
+                    log(`❌ Connection failed: ${error.message}`, 'bad');
+                    log('Make sure:', 'warn');
+                    log('1. VoiceCoach app is NOT running', 'warn');
+                    log('2. Run: python src/services/vosk-websocket-server.py', 'warn');
+                });
+                
+                socket.on('transcription_result', (data) => {
+                    log(`📝 Transcription: "${data.text}"`, 'good');
+                    if (data.confidence) {
+                        log(`   Confidence: ${data.confidence}`, 'data');
+                    }
+                });
+                
+            } catch (error) {
+                log(`ERROR: ${error.message}`, 'bad');
+            }
+        }
+        
+        async function setupAudioCapture() {
+            log('\nSetting up audio capture (mimicking VoiceCoach)...');
+            
+            try {
+                // Get microphone
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false,
+                        sampleRate: 16000,
+                        channelCount: 1
+                    }
+                });
+                
+                log('✓ Microphone access granted', 'good');
+                
+                // Create AudioContext at 16kHz
+                audioContext = new AudioContext({ sampleRate: 16000 });
+                log(`AudioContext: ${audioContext.sampleRate}Hz`, audioContext.sampleRate === 16000 ? 'good' : 'warn');
+                
+                // Load the same AudioWorklet as VoiceCoach
+                const workletCode = `
+                    class TestAudioProcessor extends AudioWorkletProcessor {
+                        constructor() {
+                            super();
+                            this.isRecording = false;
+                            this.chunkCount = 0;
+                            
+                            this.port.onmessage = (e) => {
+                                if (e.data === 'START_RECORDING') {
+                                    this.isRecording = true;
+                                    this.chunkCount = 0;
+                                } else if (e.data === 'STOP_RECORDING') {
+                                    this.isRecording = false;
+                                }
+                            };
+                        }
+                        
+                        process(inputs, outputs, parameters) {
+                            if (!this.isRecording) return true;
+                            
+                            const input = inputs[0];
+                            if (!input || !input[0] || input[0].length === 0) return true;
+                            
+                            const inputChannel = input[0];
+                            
+                            // Convert Float32 to Int16 (exactly like VoiceCoach)
+                            const int16Array = new Int16Array(inputChannel.length);
+                            for (let i = 0; i < inputChannel.length; i++) {
+                                const clamped = Math.max(-1, Math.min(1, inputChannel[i]));
+                                int16Array[i] = Math.floor(clamped * 32767);
+                            }
+                            
+                            this.port.postMessage({
+                                type: 'AUDIO_DATA',
+                                data: int16Array.buffer,
+                                chunkIndex: this.chunkCount++,
+                                samples: inputChannel.length
+                            }, [int16Array.buffer]);
+                            
+                            return true;
+                        }
+                    }
+                    registerProcessor('test-audio-processor', TestAudioProcessor);
+                `;
+                
+                const blob = new Blob([workletCode], { type: 'application/javascript' });
+                const workletUrl = URL.createObjectURL(blob);
+                await audioContext.audioWorklet.addModule(workletUrl);
+                
+                workletNode = new AudioWorkletNode(audioContext, 'test-audio-processor');
+                
+                let totalChunks = 0;
+                let totalBytes = 0;
+                let chunkSizes = [];
+                
+                workletNode.port.onmessage = (e) => {
+                    if (e.data.type === 'AUDIO_DATA') {
+                        totalChunks++;
+                        const audioData = new Int16Array(e.data.data);
+                        const byteLength = audioData.byteLength;
+                        totalBytes += byteLength;
+                        chunkSizes.push(byteLength);
+                        
+                        // Calculate audio level
+                        const avgLevel = Array.from(audioData)
+                            .reduce((a, b) => a + Math.abs(b), 0) / audioData.length;
+                        
+                        // Log every 10th chunk
+                        if (totalChunks % 10 === 0) {
+                            log(`Chunk ${totalChunks}: ${byteLength} bytes, level: ${(avgLevel/32767*100).toFixed(1)}%`, 'data');
+                        }
+                        
+                        // Send to WebSocket (exactly like VoiceCoach does)
+                        if (socket && socket.connected) {
+                            // VoiceCoach sends base64 encoded audio
+                            const base64Data = btoa(String.fromCharCode(...new Uint8Array(audioData.buffer)));
+                            
+                            socket.emit('audio_chunk', base64Data);
+                            
+                            // Log first chunk details
+                            if (totalChunks === 1) {
+                                log('\n📊 TRANSMISSION FORMAT:', 'warn');
+                                log(`  Data type: Base64 string`, 'data');
+                                log(`  Chunk size: ${byteLength} bytes`, 'data');
+                                log(`  Base64 length: ${base64Data.length} chars`, 'data');
+                                log(`  Sample count: ${audioData.length}`, 'data');
+                                log(`  First 10 samples: [${Array.from(audioData.slice(0, 10)).join(', ')}]`, 'data');
+                            }
+                        }
+                        
+                        // Analysis every 50 chunks
+                        if (totalChunks % 50 === 0) {
+                            const avgChunkSize = totalBytes / totalChunks;
+                            const totalSeconds = (totalChunks * 128) / 16000; // 128 samples per chunk typical
+                            log(`\n📈 After ${totalChunks} chunks:`, 'warn');
+                            log(`  Total data sent: ${(totalBytes/1024).toFixed(1)} KB`, 'data');
+                            log(`  Average chunk: ${avgChunkSize.toFixed(0)} bytes`, 'data');
+                            log(`  Duration: ~${totalSeconds.toFixed(1)} seconds`, 'data');
+                        }
+                    }
+                };
+                
+                // Connect audio pipeline
+                source = audioContext.createMediaStreamSource(mediaStream);
+                source.connect(workletNode);
+                
+                // Start recording
+                log('\n🎤 STARTING TRANSMISSION - SPEAK NOW!\n', 'warn');
+                workletNode.port.postMessage('START_RECORDING');
+                socket.emit('start_transcription');
+                
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                
+            } catch (error) {
+                log(`Setup error: ${error.message}`, 'bad');
+            }
+        }
+        
+        function stopTest() {
+            log('\n=== STOPPING TEST ===');
+            
+            if (workletNode) {
+                workletNode.port.postMessage('STOP_RECORDING');
+                workletNode.disconnect();
+            }
+            
+            if (source) source.disconnect();
+            if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+            if (audioContext) audioContext.close();
+            
+            if (socket) {
+                socket.emit('stop_transcription');
+                socket.disconnect();
+            }
+            
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            
+            log('Test complete. Check server console for detailed analysis.', 'good');
+        }
+    </script>
+</body>
+</html>

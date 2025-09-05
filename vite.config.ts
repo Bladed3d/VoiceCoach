@@ -16,7 +16,7 @@ export default defineConfig(async () => {
   },
     server: {
       port: 5175,
-      host: 'localhost',
+      host: true,  // Serve on all network interfaces (localhost, 127.0.0.1, etc.)
       strictPort: true,
       watch: {
         ignored: ['**/rag/**']

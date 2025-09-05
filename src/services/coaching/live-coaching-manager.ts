@@ -129,7 +129,7 @@ export class LiveCoachingManager {
   /**
    * Load a pre-processed document directly (no phases)
    */
-  loadDocument(processedDoc: any): boolean {
+  async loadDocument(processedDoc: any): Promise<boolean> {
     try {
       // Create a simplified document structure without phases
       const simplifiedDoc = {

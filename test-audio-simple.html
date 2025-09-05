@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Audio Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        button { padding: 10px; margin: 5px; font-size: 16px; }
+        #output { background: #f0f0f0; padding: 10px; white-space: pre; }
+        .good { color: green; }
+        .bad { color: red; }
+        .warn { color: orange; }
+    </style>
+</head>
+<body>
+    <h1>Simple Audio Level Test</h1>
+    <p>This tests your microphone levels without AudioWorklet complexity</p>
+    
+    <button id="startBtn">Start Recording (5 seconds)</button>
+    <button id="playBtn" style="display:none">Play Recording</button>
+    
+    <div id="output"></div>
+    
+    <script>
+        const output = document.getElementById('output');
+        let recordedAudio = null;
+        
+        function log(msg, className = '') {
+            const line = document.createElement('div');
+            line.className = className;
+            line.textContent = msg;
+            output.appendChild(line);
+            console.log(msg);
+        }
+        
+        document.getElementById('startBtn').addEventListener('click', async () => {
+            output.innerHTML = '';
+            log('=== SIMPLE AUDIO TEST ===\n');
+            
+            try {
+                // Get microphone with your app's constraints
+                log('Getting microphone...');
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false,
+                        sampleRate: 16000,
+                        channelCount: 1
+                    }
+                });
+                
+                log('✓ Microphone access granted', 'good');
+                
+                // Create AudioContext like your app
+                const audioContext = new AudioContext({ sampleRate: 16000 });
+                log(`AudioContext: ${audioContext.sampleRate}Hz`);
+                
+                // Use ScriptProcessor for simplicity (no AudioWorklet)
+                const source = audioContext.createMediaStreamSource(stream);
+                const processor = audioContext.createScriptProcessor(4096, 1, 1);
+                
+                let allSamples = [];
+                let chunkCount = 0;
+                let startTime = Date.now();
+                
+                processor.onaudioprocess = (e) => {
+                    const inputData = e.inputBuffer.getChannelData(0);
+                    chunkCount++;
+                    
+                    // Convert to Int16 like your app does
+                    const int16Array = new Int16Array(inputData.length);
+                    for (let i = 0; i < inputData.length; i++) {
+                        const clamped = Math.max(-1, Math.min(1, inputData[i]));
+                        int16Array[i] = clamped * 32767;
+                    }
+                    
+                    // Store samples
+                    allSamples.push(...int16Array);
+                    
+                    // Calculate levels
+                    const avgLevel = Array.from(int16Array)
+                        .reduce((a, b) => a + Math.abs(b), 0) / int16Array.length;
+                    const maxLevel = Math.max(...Array.from(int16Array).map(Math.abs));
+                    
+                    // Log every 5th chunk
+                    if (chunkCount % 5 === 0) {
+                        const levelPercent = (avgLevel / 32767 * 100).toFixed(1);
+                        const maxPercent = (maxLevel / 32767 * 100).toFixed(1);
+                        log(`Chunk ${chunkCount}: avg=${levelPercent}%, peak=${maxPercent}%`);
+                    }
+                    
+                    // Stop after 5 seconds
+                    if (Date.now() - startTime > 5000) {
+                        processor.disconnect();
+                        source.disconnect();
+                        stream.getTracks().forEach(t => t.stop());
+                        audioContext.close();
+                        
+                        analyzeRecording();
+                    }
+                };
+                
+                source.connect(processor);
+                processor.connect(audioContext.destination);
+                
+                log('\n🎤 RECORDING - SPEAK NOW!\n', 'warn');
+                document.getElementById('startBtn').disabled = true;
+                
+                function analyzeRecording() {
+                    log('\n=== RECORDING COMPLETE ===\n');
+                    
+                    recordedAudio = new Int16Array(allSamples);
+                    const duration = recordedAudio.length / 16000;
+                    log(`Duration: ${duration.toFixed(2)} seconds`);
+                    log(`Samples: ${recordedAudio.length}`);
+                    
+                    // Overall analysis
+                    const avgLevel = allSamples.reduce((a, b) => a + Math.abs(b), 0) / allSamples.length;
+                    const maxLevel = Math.max(...allSamples.map(Math.abs));
+                    const minLevel = Math.min(...allSamples.map(Math.abs));
+                    
+                    log(`\nAudio Levels:`);
+                    log(`  Average: ${avgLevel.toFixed(0)}/32767 (${(avgLevel/32767*100).toFixed(2)}%)`);
+                    log(`  Peak: ${maxLevel}/32767 (${(maxLevel/32767*100).toFixed(2)}%)`);
+                    
+                    // Count silent samples
+                    const silentSamples = allSamples.filter(s => Math.abs(s) < 10).length;
+                    const silentPercent = (silentSamples / allSamples.length * 100).toFixed(1);
+                    log(`  Silent samples: ${silentPercent}%`);
+                    
+                    // Diagnosis
+                    log('\n=== DIAGNOSIS ===\n');
+                    
+                    if (avgLevel < 100) {
+                        log('❌ CRITICAL: Audio is WAY too quiet!', 'bad');
+                        log('Average level should be 1000-5000, yours is ' + avgLevel.toFixed(0), 'bad');
+                        log('\nThis explains your poor Vosk accuracy!', 'bad');
+                        log('\nSOLUTIONS:', 'warn');
+                        log('1. Increase Windows microphone level to 100%');
+                        log('2. Enable microphone boost in Windows');
+                        log('3. Move microphone closer to mouth');
+                        log('4. Try setting autoGainControl: true');
+                    } else if (avgLevel < 500) {
+                        log('⚠️ WARNING: Audio level is low', 'warn');
+                        log('This will reduce accuracy', 'warn');
+                    } else if (avgLevel > 25000) {
+                        log('⚠️ WARNING: Audio might be clipping', 'warn');
+                        log('Reduce microphone gain slightly', 'warn');
+                    } else {
+                        log('✓ Audio levels look GOOD!', 'good');
+                        log('Problem must be in WebSocket transmission or server', 'good');
+                    }
+                    
+                    // Show how to save for analysis
+                    log('\n--- Next Steps ---');
+                    log('Click "Play Recording" to hear what was captured');
+                    log('If it sounds clear but Vosk fails, issue is in transmission');
+                    
+                    document.getElementById('startBtn').disabled = false;
+                    document.getElementById('playBtn').style.display = 'inline';
+                }
+                
+            } catch (error) {
+                log(`ERROR: ${error.message}`, 'bad');
+                document.getElementById('startBtn').disabled = false;
+            }
+        });
+        
+        document.getElementById('playBtn').addEventListener('click', () => {
+            if (!recordedAudio) return;
+            
+            log('\nPlaying recording...');
+            
+            // Convert back to Float32 for playback
+            const float32 = new Float32Array(recordedAudio.length);
+            for (let i = 0; i < recordedAudio.length; i++) {
+                float32[i] = recordedAudio[i] / 32767;
+            }
+            
+            const audioContext = new AudioContext();
+            const buffer = audioContext.createBuffer(1, float32.length, 16000);
+            buffer.getChannelData(0).set(float32);
+            
+            const source = audioContext.createBufferSource();
+            source.buffer = buffer;
+            source.connect(audioContext.destination);
+            source.start();
+            
+            log('Listen for:');
+            log('- Volume (too quiet?)');
+            log('- Clarity (distorted?)');
+            log('- Your voice (or silence?)');
+        });
+    </script>
+</body>
+</html>
