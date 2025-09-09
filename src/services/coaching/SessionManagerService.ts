@@ -1011,6 +1011,7 @@ export class SessionManagerService {
       coachingPrompts: [],
       transcriptions: [],
       liveTranscript: '',
+      liveTranscriptSpeaker: 'user', // Initialize with user as default
       volumeState: {
         level: 0,
         isMonitoring: false,
@@ -1036,12 +1037,23 @@ export class SessionManagerService {
   private setupWebSocketHandlers(): void {
     this.wsClient.onTranscript((transcript: TranscriptEvent) => {
       if (transcript.type === 'final_transcript') {
+        // Use current speaker from volume service or fallback to 'prospect'
+        const currentSpeaker = this.volumeService.getCurrentSpeaker();
+        
         const newTranscription: TranscriptionItem = {
           id: Date.now() + this.transcriptIdCounter++, // Ensure unique ID
-          speaker: 'unknown',
+          speaker: currentSpeaker,
           text: transcript.text,
           timestamp: Date.now()
         };
+        
+        // LED 6309: Final transcript with speaker identification
+        this.trail.light(6309, {
+          operation: 'final_transcript_created',
+          speaker: currentSpeaker,
+          textLength: transcript.text.length,
+          timestamp: Date.now()
+        });
         
         this.updateSessionState({
           transcriptions: [...this.sessionState.transcriptions, newTranscription],
@@ -1132,6 +1144,21 @@ export class SessionManagerService {
     // Tab/headphone volume handler  
     this.volumeService.onTabVolumeChange((volumeState: VolumeState) => {
       this.updateSessionState({ tabVolumeState: volumeState });
+    });
+    
+    // Speaker change handler - updates live transcript speaker context
+    this.volumeService.onSpeakerChange((speaker: 'user' | 'prospect', confidence: number) => {
+      // LED 6308: Speaker change detected
+      this.trail.light(6308, {
+        operation: 'speaker_change_detected',
+        speaker,
+        confidence,
+        timestamp: Date.now()
+      });
+      
+      this.updateSessionState({ 
+        liveTranscriptSpeaker: speaker 
+      });
     });
   }
 

@@ -9,6 +9,7 @@ import { TranscriptionItem } from '../../types/coaching';
 interface TranscriptionPanelProps {
   transcriptions: TranscriptionItem[];
   liveTranscript: string;
+  liveTranscriptSpeaker?: 'user' | 'prospect';
   isRecording: boolean;
   onClear?: () => void;
   onCollapse?: () => void;
@@ -17,6 +18,7 @@ interface TranscriptionPanelProps {
 export const TranscriptionPanel: React.FC<TranscriptionPanelProps> = ({
   transcriptions,
   liveTranscript,
+  liveTranscriptSpeaker = 'user',
   isRecording,
   onClear,
   onCollapse
@@ -63,9 +65,25 @@ export const TranscriptionPanel: React.FC<TranscriptionPanelProps> = ({
           <>
             {/* Live partial transcript - only show when recording */}
             {isRecording && liveTranscript && (
-              <div className="text-sm p-3 rounded bg-yellow-900/20 text-yellow-300 border border-yellow-600/30">
+              <div className={`text-sm p-3 rounded border ${
+                liveTranscriptSpeaker === 'user' 
+                  ? 'bg-blue-900/20 text-blue-300 border-blue-600/30' 
+                  : 'bg-green-900/20 text-green-300 border-green-600/30'
+              }`}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="font-semibold">🎤 Live</span>
+                  <span className="font-semibold flex items-center space-x-2">
+                    {liveTranscriptSpeaker === 'user' ? (
+                      <>
+                        <span className="text-blue-400">🎤</span>
+                        <span>You (Live)</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-green-400">👤</span>
+                        <span>Prospect (Live)</span>
+                      </>
+                    )}
+                  </span>
                   <span className="text-xs opacity-60">typing...</span>
                 </div>
                 <div className="break-words italic">{liveTranscript}</div>
@@ -92,13 +110,23 @@ export const TranscriptionPanel: React.FC<TranscriptionPanelProps> = ({
                     key={t.id} 
                     className={`text-sm p-3 rounded ${
                       t.speaker === 'user' 
-                        ? 'bg-blue-900/20 text-blue-300' 
-                        : 'bg-purple-900/20 text-purple-300'
+                        ? 'bg-blue-900/20 text-blue-300 border-l-4 border-blue-400' 
+                        : 'bg-green-900/20 text-green-300 border-l-4 border-green-400'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-semibold">
-                        {t.speaker === 'user' ? '🎤 You' : '🎧 Speaker'}
+                      <span className="font-semibold flex items-center space-x-2">
+                        {t.speaker === 'user' ? (
+                          <>
+                            <span className="text-blue-400">🎤</span>
+                            <span>You</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-green-400">👤</span>
+                            <span>Prospect</span>
+                          </>
+                        )}
                       </span>
                       <span className="text-xs opacity-60">
                         {new Date(t.timestamp).toLocaleTimeString()}

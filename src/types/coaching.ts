@@ -64,6 +64,7 @@ export interface SessionState {
   coachingPrompts: CoachingPrompt[];
   transcriptions: TranscriptionItem[];
   liveTranscript: string;
+  liveTranscriptSpeaker?: 'user' | 'prospect'; // Real-time speaker context for live transcripts
   volumeState?: VolumeState; // Legacy single volume state
   micVolumeState?: VolumeState; // Microphone volume
   tabVolumeState?: VolumeState; // Tab/headphone volume

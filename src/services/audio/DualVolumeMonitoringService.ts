@@ -30,6 +30,14 @@ export class DualVolumeMonitoringService {
   // Callbacks
   private micVolumeCallback?: (volumeState: VolumeState) => void;
   private tabVolumeCallback?: (volumeState: VolumeState) => void;
+  private speakerChangeCallback?: (speaker: 'user' | 'prospect', confidence: number) => void;
+  
+  // Real-time speaker detection state
+  private currentSpeaker: 'user' | 'prospect' = 'user';
+  private lastMicLevel = 0;
+  private lastTabLevel = 0;
+  private speakerChangeDebounce = 0;
+  private readonly SPEAKER_DEBOUNCE_FRAMES = 8; // Require 8 consistent frames (~133ms) to change speaker
 
   constructor() {
     this.trail = new BreadcrumbTrail('DualVolumeMonitoringService');
@@ -249,6 +257,10 @@ export class DualVolumeMonitoringService {
     this.tabVolumeCallback = callback;
   }
 
+  onSpeakerChange(callback: (speaker: 'user' | 'prospect', confidence: number) => void): void {
+    this.speakerChangeCallback = callback;
+  }
+
   /**
    * Update microphone volume level
    */
@@ -292,6 +304,10 @@ export class DualVolumeMonitoringService {
       }
 
       this.notifyMicVolumeChange(volumeState);
+      
+      // Store for real-time speaker detection
+      this.lastMicLevel = volumePercent;
+      this.detectSpeakerRealTime();
 
       // Continue monitoring
       this.micAnimationFrame = requestAnimationFrame(() => this.updateMicVolumeLevel());
@@ -346,6 +362,10 @@ export class DualVolumeMonitoringService {
       }
 
       this.notifyTabVolumeChange(volumeState);
+      
+      // Store for real-time speaker detection
+      this.lastTabLevel = volumePercent;
+      this.detectSpeakerRealTime();
 
       // Continue monitoring
       this.tabAnimationFrame = requestAnimationFrame(() => this.updateTabVolumeLevel());
@@ -380,6 +400,120 @@ export class DualVolumeMonitoringService {
         this.trail.fail(8260, error as Error);
       }
     }
+  }
+
+  /**
+   * Real-time speaker detection using same volume data as audio meters
+   * Runs at 60fps for immediate speaker context
+   */
+  private detectSpeakerRealTime(): void {
+    // Only run if both monitoring sources are active
+    if (!this.isMicMonitoring || !this.isTabMonitoring) {
+      return;
+    }
+
+    const micLevel = this.lastMicLevel;
+    const tabLevel = this.lastTabLevel;
+    
+    // LED 7261: Real-time speaker analysis (throttled)
+    if (Math.random() < 0.01) { // ~1 in 100 frames
+      this.trail.light(7261, {
+        operation: 'realtime_speaker_analysis',
+        micLevel,
+        tabLevel,
+        currentSpeaker: this.currentSpeaker,
+        timestamp: Date.now()
+      });
+    }
+
+    // Optimized thresholds with speaker stickiness
+    const micThreshold = 18;
+    const tabThreshold = 12; 
+    const dominanceGap = 12;
+    const speakerBias = 6; // Bias toward keeping current speaker
+    
+    let detectedSpeaker: 'user' | 'prospect';
+    let confidence: number;
+    
+    // Apply speaker bias - make it harder to switch away from current speaker
+    const currentSpeakerBonus = this.currentSpeaker === 'prospect' ? speakerBias : 0;
+    const effectiveTabLevel = tabLevel + currentSpeakerBonus;
+    
+    const currentUserBonus = this.currentSpeaker === 'user' ? speakerBias : 0;
+    const effectiveMicLevel = micLevel + currentUserBonus;
+    
+    // Prioritize tab audio (prospect) with stickiness
+    if (effectiveTabLevel >= tabThreshold && effectiveTabLevel > micLevel) {
+      detectedSpeaker = 'prospect';
+      confidence = Math.min(95, effectiveTabLevel + Math.max(0, effectiveTabLevel - micLevel));
+      
+      // LED 7262: Prospect detected in real-time
+      this.trail.light(7262, {
+        operation: 'realtime_prospect_detected',
+        tabLevel,
+        micLevel,
+        effectiveTabLevel,
+        confidence,
+        timestamp: Date.now()
+      });
+    }
+    // Clear microphone dominance (user speaking) with stickiness
+    else if (effectiveMicLevel >= micThreshold && effectiveMicLevel > (tabLevel + dominanceGap)) {
+      detectedSpeaker = 'user';
+      confidence = Math.min(95, effectiveMicLevel + Math.max(0, effectiveMicLevel - tabLevel));
+      
+      // LED 7263: User detected in real-time
+      this.trail.light(7263, {
+        operation: 'realtime_user_detected',
+        micLevel,
+        tabLevel,
+        effectiveMicLevel,
+        confidence,
+        timestamp: Date.now()
+      });
+    }
+    // Insufficient confidence to change - keep current speaker
+    else {
+      detectedSpeaker = this.currentSpeaker; // Keep current with stickiness
+      confidence = 50;
+      return; // No change needed
+    }
+
+    // Debounce speaker changes to avoid rapid switching
+    if (detectedSpeaker !== this.currentSpeaker) {
+      this.speakerChangeDebounce++;
+      
+      if (this.speakerChangeDebounce >= this.SPEAKER_DEBOUNCE_FRAMES) {
+        // LED 7264: Speaker change confirmed
+        this.trail.light(7264, {
+          operation: 'realtime_speaker_change',
+          fromSpeaker: this.currentSpeaker,
+          toSpeaker: detectedSpeaker,
+          confidence,
+          debounceFrames: this.speakerChangeDebounce,
+          timestamp: Date.now()
+        });
+        
+        this.currentSpeaker = detectedSpeaker;
+        this.speakerChangeDebounce = 0;
+        
+        // Notify callback with minimal console output
+        if (this.speakerChangeCallback) {
+          console.log(`🎯 ${detectedSpeaker.toUpperCase()} ${confidence}%`);
+          this.speakerChangeCallback(detectedSpeaker, confidence);
+        }
+      }
+    } else {
+      // Reset debounce if speaker stays the same
+      this.speakerChangeDebounce = 0;
+    }
+  }
+
+  /**
+   * Get current detected speaker
+   */
+  getCurrentSpeaker(): 'user' | 'prospect' {
+    return this.currentSpeaker;
   }
 
   /**

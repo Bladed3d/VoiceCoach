@@ -774,6 +774,7 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
               <TranscriptionPanel 
                 transcriptions={transcriptions}
                 liveTranscript={liveTranscript}
+                liveTranscriptSpeaker={sessionState?.liveTranscriptSpeaker}
                 isRecording={isRecording}
                 onClear={clearTranscriptions}
                 onCollapse={toggleTranscriptionPanel}

@@ -35,12 +35,21 @@ export class OllamaInstructionLoaderBrowser {
       if (savedSettings) {
         const settings = JSON.parse(savedSettings);
         if (settings.ollama?.instructionFile) {
+          const oldPath = this.instructionFilePath;
           this.instructionFilePath = `ollama-prompts/${settings.ollama.instructionFile}`;
           console.log('📂 Using saved instruction file:', this.instructionFilePath);
+          
+          this.trail.light(6408, {
+            operation: 'instruction_file_preference_loaded',
+            old_file: oldPath,
+            new_file: this.instructionFilePath,
+            source: 'localStorage'
+          });
         }
       }
     } catch (error) {
       console.warn('Failed to load instruction file preference:', error);
+      this.trail.fail(8408, error as Error);
     }
   }
   
@@ -52,11 +61,13 @@ export class OllamaInstructionLoaderBrowser {
       // If already loaded in memory, use it (no expiration!)
       if (this.instructionTemplate && this.instructionTemplate.length > 0) {
         console.log('📋 Using in-memory Ollama instructions (no expiration)');
+        console.log('📂 Current instruction file:', this.instructionFilePath);
         // LED 6401: Using loaded instructions
         this.trail.light(6401, {
           operation: 'instruction_memory_hit',
           template_length: this.instructionTemplate.length,
-          loaded_once: true
+          loaded_once: true,
+          current_file: this.instructionFilePath
         });
         return true;
       }
@@ -184,8 +195,10 @@ export class OllamaInstructionLoaderBrowser {
     sentiment?: string;
   }): string {
     
-    // DEBUG: Log what we received
+    // DEBUG: Log what we received and which file we're using
     console.log('🔧 INSTRUCTION LOADER - buildPrompt() called with:', {
+      instructionFile: this.instructionFilePath,
+      templateLength: this.instructionTemplate.length,
       transcriptLength: context.transcript?.length || 0,
       transcriptContent: context.transcript || '[EMPTY]',
       hasKnowledge: !!context.knowledge,
@@ -244,7 +257,9 @@ export class OllamaInstructionLoaderBrowser {
       prompt_built: true,
       variables_replaced: 8,
       final_length: prompt.length,
-      transcript_was_empty: !context.transcript || context.transcript.trim().length === 0
+      transcript_was_empty: !context.transcript || context.transcript.trim().length === 0,
+      instruction_file_used: this.instructionFilePath,
+      template_length: this.instructionTemplate.length
     });
     
     return prompt;
@@ -316,16 +331,22 @@ export class OllamaInstructionLoaderBrowser {
     this.instructionFilePath = `ollama-prompts/${fileName}`;
     console.log('🔀 Switching instruction file to:', this.instructionFilePath);
     
-    // Clear cache and reload
+    // Clear cache and memory template to force reload
     localStorage.removeItem('ollama_instructions_cache');
+    this.instructionTemplate = ''; // Clear memory cache to force reload
+    
+    console.log('🧹 Cleared caches, forcing reload...');
     await this.loadInstructions();
     
     // LED tracking for instruction file change
     this.trail.light(6405, {
       operation: 'instruction_file_changed',
       new_file: fileName,
-      path: this.instructionFilePath
+      path: this.instructionFilePath,
+      template_loaded: this.instructionTemplate.length > 0
     });
+    
+    console.log('✅ Instruction file change complete. Template length:', this.instructionTemplate.length);
   }
   
   /**
