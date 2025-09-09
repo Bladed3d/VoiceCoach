@@ -566,9 +566,15 @@ export class SessionManagerService {
     } else {
       // Use traditional RAG document approach
       knowledgeContext = this.ragDocument ? JSON.stringify({
-        techniques: this.ragDocument.high_impact_techniques?.slice(0, 5) || [],
-        objections: this.ragDocument.objection_handlers?.slice(0, 3) || [],
-        frameworks: this.ragDocument.frameworks?.slice(0, 3) || []
+        techniques: Array.isArray(this.ragDocument.high_impact_techniques) 
+          ? this.ragDocument.high_impact_techniques.slice(0, 5) 
+          : (this.ragDocument.techniques?.slice(0, 5) || []),
+        objections: Array.isArray(this.ragDocument.objection_handlers) 
+          ? this.ragDocument.objection_handlers.slice(0, 3) 
+          : (this.ragDocument.objection_handling?.slice(0, 3) || []),
+        frameworks: Array.isArray(this.ragDocument.frameworks) 
+          ? this.ragDocument.frameworks.slice(0, 3) 
+          : (this.ragDocument.response_patterns ? Object.entries(this.ragDocument.response_patterns).slice(0, 3) : [])
       }) : '';
     }
 

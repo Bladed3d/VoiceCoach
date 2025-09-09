@@ -7,12 +7,10 @@
 import { BreadcrumbTrail } from '../../../lib/breadcrumb-system';
 
 export type SalesStage = 
-  | 'prospecting' 
+  | 'opening'      // New stage name (was prospecting)
   | 'discovery' 
-  | 'demo' 
-  | 'proposal' 
-  | 'objection_handling' 
-  | 'negotiation' 
+  | 'presentation' // New stage name (was demo/proposal)
+  | 'objection'    // Simplified name (was objection_handling)
   | 'closing'
   | 'unknown';
 
@@ -22,46 +20,50 @@ interface StageKeywords {
 
 export class SalesStageDetector {
   private trail: BreadcrumbTrail;
-  private lastDetectedStage: SalesStage = 'discovery';
+  private lastDetectedStage: SalesStage = 'opening';  // Changed default
   private stageHistory: SalesStage[] = [];
   
-  // Keyword patterns for each stage
+  // Keyword patterns for each stage - aligned with new JSON structure
   private stageKeywords: StageKeywords = {
-    prospecting: [
+    opening: [
+      // From new JSON keywords
+      'rapport', 'trust', 'empathy', 'similarity', 'tone', 'mirror', 'reflect',
+      // Original prospecting keywords
       'cold call', 'introduction', 'referred by', 'mutual connection',
       'research', 'company background', 'initial contact', 'reaching out',
-      'heard about', 'came across'
+      'heard about', 'came across', 'greeting', 'appreciate', 'thank you'
     ],
     discovery: [
-      'pain point', 'challenge', 'problem', 'current situation',
-      'goals', 'objectives', 'ideal solution', 'budget', 'timeline',
-      'decision maker', 'process', 'criteria', 'needs', 'requirements',
-      'struggling with', 'looking for', 'help us'
+      // From new JSON keywords
+      'pain', 'challenge', 'frustration', 'problem', 'need', 'want', 'fear', 'desire',
+      // Original discovery keywords
+      'pain point', 'current situation', 'goals', 'objectives', 'ideal solution', 
+      'budget', 'timeline', 'decision maker', 'process', 'criteria', 'needs', 
+      'requirements', 'struggling with', 'looking for', 'help us'
     ],
-    demo: [
-      'demonstration', 'show you', 'walk through', 'features',
-      'capabilities', 'how it works', 'screen share', 'example',
-      'let me show', 'see how', 'functionality', 'platform'
+    presentation: [
+      // From new JSON keywords
+      'solution', 'benefit', 'value', 'outcome', 'result', 'improvement', 'advantage',
+      // Combined demo/proposal keywords
+      'demonstration', 'show you', 'walk through', 'features', 'capabilities', 
+      'how it works', 'screen share', 'example', 'let me show', 'see how', 
+      'functionality', 'platform', 'proposal', 'quote', 'pricing', 'package', 
+      'options', 'recommendation', 'solution design', 'implementation'
     ],
-    proposal: [
-      'proposal', 'quote', 'pricing', 'package', 'options',
-      'recommendation', 'solution design', 'implementation',
-      'contract terms', 'service level', 'deliverables'
-    ],
-    objection_handling: [
-      'concern', 'worried', 'not sure', 'hesitant', 'doubt',
-      'problem with', 'issue', 'but', 'however', 'expensive',
-      'think about it', 'need to consider', 'talk to my'
-    ],
-    negotiation: [
-      'negotiate', 'discount', 'better price', 'terms', 'contract',
-      'agreement', 'concession', 'deal', 'final offer', 'flexibility',
-      'work with us', 'meet in the middle'
+    objection: [
+      // From new JSON keywords
+      'but', 'however', 'concern', 'worry', 'problem', 'issue', 'expensive', 'budget',
+      // Original objection_handling keywords
+      'worried', 'not sure', 'hesitant', 'doubt', 'problem with', 
+      'think about it', 'need to consider', 'talk to my', 'too expensive',
+      'not convinced', 'skeptical'
     ],
     closing: [
-      'decision', 'move forward', 'get started', 'sign',
-      'agree', 'commitment', 'next steps', 'onboarding',
-      'when can we start', 'ready to proceed', 'seal the deal'
+      // From new JSON keywords
+      'next', 'move forward', 'implement', 'start', 'commitment', 'agree', 'decision',
+      // Original closing keywords
+      'get started', 'sign', 'next steps', 'onboarding', 'when can we start', 
+      'ready to proceed', 'seal the deal', 'timeline', 'process'
     ]
   };
   

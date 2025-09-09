@@ -1,0 +1,447 @@
+{
+  "stages": {
+    "opening": {
+      "name": "Opening & Rapport",
+      "keywords": ["introduction", "rapport", "first impression", "trust building", "frame control"],
+      "goal": "Establish authority, transfer belief, and set proper frame while building trust",
+      "duration": "2-5 minutes",
+      "exitCriteria": ["Prospect engaged and responding", "Authority established", "Trust bridge initiated"],
+      "bridges": [
+        { "text": "I promise that I will do my absolute best to give you a high return on your attention because it's the most valuable thing you have", "priority": "CRITICAL" },
+        { "text": "My goal here isn't for you to buy, but for you to decide - for you, not for me. I'll be the same either way", "priority": "CRITICAL" },
+        { "text": "I want to help you help yourself. There's a difference - it's nuanced but it's real", "priority": "HIGH" },
+        { "text": "I use a lot of rapport and humor in my selling, and I'd be like 'hey [name]...' [insert situational humor]", "priority": "STANDARD" }
+      ],
+      "recovery": [
+        "What brings you here today - are you just hopping on calls for information, or is there a problem you're trying to solve?",
+        "Do you do this all the time - hop on lots of different programs to find out information - or is there something specific you're looking for?"
+      ]
+    },
+    "discovery": {
+      "name": "Discovery & Pain Points",
+      "keywords": ["pain point", "goal", "struggle", "current situation", "dream outcome"],
+      "goal": "Identify core pain, amplify consequences, and establish what they really want",
+      "duration": "8-15 minutes",
+      "exitCriteria": ["Clear pain identified", "Goal articulated", "Emotional investment established"],
+      "bridges": [
+        { "text": "What are you most afraid of having happen if you don't solve this?", "priority": "CRITICAL" },
+        { "text": "How long have you been struggling with this? How's another [timeframe] sound if nothing changes?", "priority": "CRITICAL" },
+        { "text": "Are you tired of another year of 'almost'? Almost hitting your goals, almost getting to [specific outcome]?", "priority": "HIGH" },
+        { "text": "Do you think you're in this position because you've struggled to make decisions in the past?", "priority": "HIGH" },
+        { "text": "What would need to happen in the first 90 days for you to feel confident this was the right decision?", "priority": "STANDARD" }
+      ],
+      "recovery": [
+        "Help me understand - what's the real problem you're trying to solve here?",
+        "Let's get specific - what does success look like for you?",
+        "What happens if you don't fix this in the next year?"
+      ]
+    },
+    "presentation": {
+      "name": "Solution Presentation",
+      "keywords": ["solution", "value", "benefit", "proof", "outcome"],
+      "goal": "Present solution with logical proof and value demonstration",
+      "duration": "10-20 minutes",
+      "exitCriteria": ["Solution clearly explained", "Value demonstrated", "Proof provided"],
+      "bridges": [
+        { "text": "How many people would you need to see for it to be more unreasonable not to believe than to believe? 10? 50? Here's a thousand - tell me when to stop", "priority": "CRITICAL" },
+        { "text": "This isn't about whether this works - I've already proven that. The question is whether you work", "priority": "CRITICAL" },
+        { "text": "You're going to learn these lessons either way - do you want it to take 12 weeks or 12 years?", "priority": "HIGH" },
+        { "text": "Edison took however long to make a light bulb, then we just bought the lesson from him. That's how civilization moves faster", "priority": "HIGH" },
+        { "text": "There's no entrepreneur school, no one teaches this stuff, but there are people who teach it for this specific industry", "priority": "STANDARD" }
+      ],
+      "recovery": [
+        "What questions do you have about how this actually works?",
+        "What would you need to see to believe this is possible for you?",
+        "Does this make logical sense so far?"
+      ]
+    },
+    "objection": {
+      "name": "Objection Handling",
+      "keywords": ["objection", "concern", "doubt", "skepticism", "hesitation"],
+      "goal": "Address logical concerns using Hormozi's 5 distortion framework",
+      "duration": "15-30 minutes",
+      "exitCriteria": ["All logical objections addressed", "Core distortions overcome", "Person in power speaking"],
+      "bridges": [
+        { "text": "The reason you're telling yourself not to do this is the reason you should do it", "priority": "CRITICAL" },
+        { "text": "Don't let a bad decision burn you twice - once when you made the poor investment, but a second time when you let that stop you from a good investment", "priority": "CRITICAL" },
+        { "text": "You're asking for permission instead of support. It's your life, not theirs", "priority": "CRITICAL" },
+        { "text": "If you didn't get a gasp from the price, you didn't go high enough", "priority": "HIGH" },
+        { "text": "The fact that it's a lot for you is good - it means you're going to try hard", "priority": "HIGH" },
+        { "text": "Every self-made billionaire started with nothing, just like you. The difference wasn't resources, it was being resourceful", "priority": "HIGH" },
+        { "text": "When then is a logical fallacy - like saying 'I'll save money when I'm rich'", "priority": "STANDARD" }
+      ],
+      "recovery": [
+        "What's the real concern here?",
+        "Help me understand what you're really afraid of",
+        "Is there something I haven't explained clearly enough?"
+      ]
+    },
+    "closing": {
+      "name": "Closing & Next Steps",
+      "keywords": ["decision", "commitment", "next steps", "enrollment", "start"],
+      "goal": "Help them make a decision and take ownership of their choice",
+      "duration": "5-15 minutes",
+      "exitCriteria": ["Decision made", "Payment processed", "Next steps clear"],
+      "bridges": [
+        { "text": "Let's make the decision together. Do you believe this will help you achieve what you want? Do you trust me to fulfill my word? Do you think it'll work for you?", "priority": "CRITICAL" },
+        { "text": "You're only one decision away from changing your life forever", "priority": "CRITICAL" },
+        { "text": "Which risk-free option do you want - the one that guarantees you won't get there, or the one that has potential to get you where you want to go?", "priority": "CRITICAL" },
+        { "text": "Do you think making this decision will get you closer or further from your goal?", "priority": "HIGH" },
+        { "text": "If I was giving you a Ferrari for $5,000 right now, you'd find the money. So find the money - let's do it", "priority": "HIGH" },
+        { "text": "Either you win or you learn, and both get you closer to where you want to go", "priority": "STANDARD" }
+      ],
+      "recovery": [
+        "What's holding you back from saying yes right now?",
+        "What would need to change for this to be a definite yes?",
+        "Are we going to do this together or not?"
+      ]
+    }
+  },
+  
+  "progressions": {
+    "opening->discovery": {
+      "triggers": ["Rapport established", "Trust initiated", "Prospect engaged"],
+      "minDuration": 120,
+      "requiredCriteria": 2
+    },
+    "discovery->presentation": {
+      "triggers": ["Pain identified", "Goal articulated", "Emotional investment established"],
+      "minDuration": 480,
+      "requiredCriteria": 2
+    },
+    "presentation->objection": {
+      "triggers": ["Objection raised", "Skepticism expressed", "Concern voiced"],
+      "minDuration": 300,
+      "requiredCriteria": 1
+    },
+    "presentation->closing": {
+      "triggers": ["All questions answered", "Value acknowledged", "Ready to decide"],
+      "minDuration": 600,
+      "requiredCriteria": 3
+    },
+    "objection->closing": {
+      "triggers": ["Objection resolved", "Logic accepted", "In power speaking"],
+      "minDuration": 180,
+      "requiredCriteria": 2
+    }
+  },
+  
+  "customerTypes": {
+    "logical_buyer": {
+      "characteristics": ["Wants facts and proof", "Makes reasoned decisions", "Values long-term thinking"],
+      "approach": "Use statistical proof, logical frameworks, and step-by-step reasoning",
+      "closing_style": "Three-question close: believe it works, trust me, works for you"
+    },
+    "emotional_buyer": {
+      "characteristics": ["Driven by feelings", "Wants to believe", "Needs excitement"],
+      "approach": "Transfer belief and conviction, use stories and social proof",
+      "closing_style": "Conviction close with emotional amplification"
+    },
+    "skeptical_buyer": {
+      "characteristics": ["Questions everything", "Past bad experiences", "Risk averse"],
+      "approach": "Address distortions systematically, use 'don't let it burn you twice'",
+      "closing_style": "Guarantee-based close with risk reversal"
+    }
+  },
+  
+  "frameworks": {
+    "conviction_framework": {
+      "principle": "Selling is a transference of belief over a bridge of trust",
+      "requirements": ["You must believe to transfer belief", "Trust bridge must exist", "Conviction must be deeper than their excuses"],
+      "application": "Fill your own conviction first, then transfer through certainty and care"
+    },
+    "power_distortion_framework": {
+      "principle": "People cast power to three sources: circumstances, others, self",
+      "distortions": {
+        "circumstances": ["Time", "Money", "Fit"],
+        "others": ["Authority/Decision maker"],
+        "self": ["Avoidance/Stalling"]
+      },
+      "approach": "Peel layers from surface to core, address each systematically"
+    },
+    "value_equation": {
+      "formula": "Dream Outcome + Perceived Likelihood - Time Delay - Effort & Sacrifice = Value",
+      "application": "Maximize dream outcome and likelihood while minimizing time and effort",
+      "positioning": "Position solution as highest value using this equation"
+    },
+    "decision_framework": {
+      "principle": "Deciding means 'to cut off' - which future are we killing?",
+      "three_questions": [
+        "Do you believe this will help you achieve what you want?",
+        "Do you trust me to fulfill my word?", 
+        "Do you think it will work for you?"
+      ],
+      "close": "If yes to all three, moral obligation to help them get the money"
+    }
+  },
+  
+  "universal": {
+    "stall_recovery": [
+      "I need to think about it → This isn't a fast decision - you've been making this decision for [timeframe]. How long do you want [problem] to be on your list?",
+      "Not a good time → Totally understand. Do you think you're going to be busy again in the future? Then don't you think it's best to start now when you are busy?",
+      "Can't afford it → The fact that it's a lot for you is good. Every self-made person started with nothing - it's about being resourceful, not having resources",
+      "Need to talk to spouse → Are you asking for permission or support? They're not happy with your current struggle, why would they oppose something that fixes it?"
+    ],
+    "mirroring": {
+      "technique": "Step into their shoes first, then walk them through your epiphany",
+      "example": "I used to feel the same way... I found this out... it's a logical fallacy called...",
+      "purpose": "Not attacking them, helping them from the inside out"
+    },
+    "labeling": {
+      "childlike_curiosity": "When someone objects: 'Huh, that's so weird, I wouldn't have thought that. Tell me more about that'",
+      "seek_understanding": "Seek to understand, not to argue. Maintain curiosity even in high-stakes moments",
+      "emotional_labeling": "What are you most afraid of having happen? What's the worst thing you envision?"
+    },
+    "calibrated_questions": [
+      "What are you most afraid of having happen if you buy?",
+      "What would need to happen in the first 90 days for you to feel confident?",
+      "How many people would you need to see for it to be more unreasonable not to believe?",
+      "Do you think making this decision gets you closer or further from your goal?",
+      "What's different between perfect and what we've got here?",
+      "If the rules were reversed and your [spouse] needed this, would you support them?"
+    ]
+  },
+  
+  "stories": [
+    {
+      "trigger": "client_skeptical_about_roi",
+      "narrative": "Sarah was a CFO at a manufacturing company, incredibly skeptical about ROI claims. She said 'I've heard these promises before.' So I asked her, 'What would need to happen in the first 90 days for you to feel confident this was the right decision?' That simple question changed everything. She gave me exact success metrics, we built our proposal around those. Six months later, she became our biggest advocate.",
+      "lesson": "Ask prospects to define their own success criteria",
+      "impact": "Turned skeptic into biggest advocate",
+      "stage": "discovery"
+    },
+    {
+      "trigger": "resourcefulness_over_resources",
+      "narrative": "In Shoe Dog, Phil Knight was about to lose Nike multiple times. This one time he needed tremendous money, maxed all credit, banks wouldn't lend. Instead of giving up, he went to his vendors and said 'You need to pay my payroll for me because otherwise I'll be out of business.' He was resourceful, not resource-dependent.",
+      "lesson": "Every self-made billionaire started with nothing - success is about resourcefulness",
+      "impact": "Eliminates money objections by shifting mindset",
+      "stage": "objection"
+    },
+    {
+      "trigger": "identity_change_needed",
+      "narrative": "I was with Layla at Sephora, saw two 12-15 year old girls getting excited about makeup. Staff member said 'Now that you're becoming women, you need to start budgeting for this stuff every month.' Girls were thrilled - 'We're becoming women!' When you have new identity, you have new priorities.",
+      "lesson": "Identity change requires priority change - alignment with who you want to become",
+      "impact": "Helps prospects step into new identity with new spending patterns",
+      "stage": "objection"
+    },
+    {
+      "trigger": "bad_past_experiences",
+      "narrative": "Girl texted yesterday: 'Crazy to think I had a sales call with you six years ago and I'm kicking myself for not jumping on this.' I said 'You let a bad decision burn you twice - once when you made the poor investment, second when you let that stop you from a good investment.'",
+      "lesson": "Don't let past failures prevent future success",
+      "impact": "Overcomes objections based on previous bad experiences",
+      "stage": "objection"
+    }
+  ],
+  
+  "statistics": [
+    {
+      "claim": "red_zone_offense_predicts_success",
+      "data": "Top 5 red zone offenses made playoffs 90% of the time over last 5 years",
+      "context": "Closing ability makes up for deficiencies in other business areas",
+      "application": "Emphasize importance of closing skills development"
+    },
+    {
+      "claim": "sales_conversion_breakdown", 
+      "data": "10% never buy, 10% always buy, fight for middle 80%",
+      "context": "Focus training and energy on the persuadable majority",
+      "application": "Set realistic expectations and focus efforts appropriately"
+    },
+    {
+      "claim": "decision_maker_power",
+      "data": "100% of successful people started with same resources as you: nothing",
+      "context": "Resources don't predict success, resourcefulness does",
+      "application": "Counter money/resource objections"
+    }
+  ],
+  
+  "metaphors": [
+    {
+      "concept": "objections_hide_deeper_truth",
+      "metaphor": "Peeling an onion - surface excuses (circumstances) → others → self → core truth",
+      "explanation": "Objections start with external blame, move to others, finally to self - peel each layer",
+      "usage": "Navigate from surface objections to core decision-making",
+      "stage": "objection"
+    },
+    {
+      "concept": "education_as_buying_time",
+      "metaphor": "Edison's light bulb lesson - he took time to learn, we buy the lesson to save time",
+      "explanation": "Human civilization advances by buying others' lessons rather than learning from scratch",
+      "usage": "Justify investment in education/coaching programs",
+      "stage": "presentation"
+    },
+    {
+      "concept": "decision_etymology",
+      "metaphor": "'Decide' means 'to cut off' - which future are we killing today?",
+      "explanation": "Every decision kills alternative futures - choose which one to eliminate",
+      "usage": "Frame decision-making as active choice, not passive waiting",
+      "stage": "closing"
+    },
+    {
+      "concept": "skills_as_bridge_building",
+      "metaphor": "Each skill/program is a brick in the bridge from where you are to where you want to be",
+      "explanation": "No single program is salvation, but each gets you closer to your goal",
+      "usage": "Set realistic expectations while maintaining momentum",
+      "stage": "presentation"
+    }
+  ],
+  
+  "humor": [
+    {
+      "situation": "opening_rapport_building",
+      "technique": "Self-deprecating about success story: 'My life has gone significantly better - I went from sleeping on gym floor to my mom's basement (actually penthouse)'",
+      "effect": "Breaks tension and creates relatability despite success",
+      "timing": "Opening to establish rapport"
+    },
+    {
+      "situation": "spouse_objection_handling",
+      "technique": "Exaggerated nightmare scenario: 'If your husband says he wants you to stay overweight, sit on couch with Cheetos fingers, create generational unhealth...'",
+      "effect": "Makes ridiculous objection obvious through absurd extension",
+      "timing": "Authority objection handling"
+    },
+    {
+      "situation": "fear_identification",
+      "technique": "Worst case scenario joke: 'I take your credit card, swipe as much as possible, go to Vegas, put it all on black, then Monaco where they can't extradite me'",
+      "effect": "Breaks tension around fear while identifying real concern",
+      "timing": "Objection handling - fear exploration"
+    }
+  ],
+  
+  "psychology": [
+    {
+      "principle": "belief_transference",
+      "mechanism": "Selling is transference of belief over bridge of trust",
+      "application": "Must believe deeply yourself before you can transfer belief to others",
+      "timing": "Continuous throughout entire sales process",
+      "ethics": "Only transfer belief in something that truly helps them"
+    },
+    {
+      "principle": "power_dynamics",
+      "mechanism": "People cast power to external sources when they feel powerless",
+      "application": "Help them reclaim power by addressing each distortion systematically",
+      "timing": "Objection handling phase primarily",
+      "ethics": "Return power to them for their benefit, not your sale"
+    },
+    {
+      "principle": "cognitive_distortions",
+      "mechanism": "Albert Ellis's 3 core distortions: circumstances must be perfect, others must treat me fairly, I must do well or I'm no good",
+      "application": "Identify which distortion they're operating from and address the logic",
+      "timing": "Throughout objection handling",
+      "ethics": "Help them see reality clearly, not manipulate their thinking"
+    },
+    {
+      "principle": "identity_alignment", 
+      "mechanism": "People's spending reflects their identity and predicts their future",
+      "application": "Help them align spending with desired identity, not current one",
+      "timing": "Value and fit objection handling",
+      "ethics": "Guide toward beneficial identity shifts, not wasteful spending"
+    }
+  ],
+  
+  "recovery": [
+    {
+      "trigger": "they_need_to_think_about_it",
+      "response": "Totally understand. What are the main criteria you're thinking through? Let's think about it right now - I'm here, I'm the only source of information you have",
+      "technique": "Remove time delay by providing immediate information access",
+      "followup": "Walk through three-question decision framework",
+      "stage": "closing"
+    },
+    {
+      "trigger": "not_sure_if_its_for_me",
+      "response": "If this were perfect, would you do it? [Get yes] Then what's different between perfect and what we've got here?",
+      "technique": "Hypothetical agreement then gap analysis",
+      "followup": "Address specific gaps or realize it's not about the program",
+      "stage": "objection"
+    },
+    {
+      "trigger": "cant_afford_it_too_expensive",
+      "response": "The fact that it's a lot for you is good - it means you're going to try hard. If it does what we say, is it worth it? [Yes] Great, then it's not about price, it's about whether you believe me",
+      "technique": "Reframe price as commitment indicator, then isolate real objection",
+      "followup": "Provide more proof or address trust issues",
+      "stage": "objection"
+    },
+    {
+      "trigger": "need_to_talk_to_spouse",
+      "response": "What do you think they wouldn't like about this? [Listen] Are they happy with your current struggle? Why would they oppose something that fixes what already makes them unhappy?",
+      "technique": "Isolate objection and reframe as support vs permission",
+      "followup": "Position as better partner through self-improvement",
+      "stage": "objection"
+    },
+    {
+      "trigger": "not_a_good_time_too_busy",
+      "response": "Totally understand. Do you want this to last long-term? Do you think you'll be busy again in the future? Then don't you think it's best to start when you're busy?",
+      "technique": "Logical sequence showing when/then fallacy",
+      "followup": "Emphasize need for support during busy periods",
+      "stage": "objection"
+    }
+  ],
+  
+  "word_choice": [
+    {
+      "word": "decide",
+      "etymology": "Latin 'decidere' - to cut off, to kill off",
+      "power": "Frames decision as actively choosing which future to eliminate",
+      "usage": "Which future are we killing off today - your dreams or your current struggle?"
+    },
+    {
+      "word": "investment",
+      "psychology": "Implies return and growth vs cost and expense",
+      "power": "Reframes spending as value-building rather than money loss",
+      "usage": "This investment in yourself compounds over time and can never be taken from you"
+    },
+    {
+      "word": "resourceful",
+      "psychology": "Internal capability vs external circumstances",
+      "power": "Shifts from victim mindset to empowerment mindset",
+      "usage": "Every successful person started with nothing - it's about being resourceful, not having resources"
+    },
+    {
+      "word": "closer",
+      "psychology": "Progress vs perfection, direction vs destination",
+      "power": "Reduces perfectionism and fear of wrong choice",
+      "usage": "Do you think this gets you closer or further from your goal? We don't need to be snipers, just directionally right"
+    }
+  ],
+  
+  "objection_patterns": {
+    "time_objections": {
+      "surface": ["Not a good time", "Too busy", "Maybe in the future"],
+      "core": "When/then logical fallacy - waiting for perfect circumstances",
+      "approach": ["Macro: Always busy, need support when busy", "Micro: Phone shows actual time usage", "When/then: Logical fallacy like 'save money when rich'"],
+      "close": "You're going to be busy forever - wouldn't you want the most help when you need it most?"
+    },
+    "money_objections": {
+      "surface": ["Can't afford it", "Too expensive", "Don't have the money"],
+      "core": "Resource scarcity vs resourcefulness limitation", 
+      "approach": ["Lot is good: means you'll try", "If it works, worth it", "Resourcefulness over resources", "You'll buy the program anyway - 12 weeks or 12 years"],
+      "close": "Every self-made person started with nothing - find the money like you do for emergencies"
+    },
+    "fit_objections": {
+      "surface": ["Not sure it's for me", "Don't like this aspect", "Doesn't match my style"],
+      "core": "Identity misalignment with desired outcome",
+      "approach": ["New identity needs new priorities", "Change the change - what you've been doing created current results", "Hypothetical: if perfect would you do it"],
+      "close": "Are you in enough pain? Is staying the same worse than changing?"
+    },
+    "authority_objections": {
+      "surface": ["Need to talk to spouse", "Have to check with partner"],
+      "core": "Asking permission instead of requesting support",
+      "approach": ["What wouldn't they like", "Are they happy with current struggle", "Support vs permission"],
+      "close": "If you don't own this decision, you'll blame them when nothing changes"
+    },
+    "avoidance_objections": {
+      "surface": ["Need to think about it", "Not sure", "Let me consider"],
+      "core": "Fear of making wrong decision or inability to decide",
+      "approach": ["Past: not fast decision, sunk cost", "Present: decision framework - 3 questions", "Future: which option gets you closer"],
+      "close": "Which risk-free option - guaranteed failure or potential success?"
+    }
+  },
+  
+  "metadata": {
+    "source_document": "Hormozi-Best-Sales-Training.txt",
+    "processing_date": "2025-09-08T15:45:30.000Z",
+    "total_techniques": 127,
+    "industries_covered": ["fitness", "coaching", "education", "high-ticket services"],
+    "specific_products": ["gym memberships", "weight loss programs", "business coaching", "masterminds"],
+    "frameworks_extracted": ["Power Distortion Framework", "Conviction Framework", "Value Equation", "Decision Framework", "Three-Question Close"],
+    "key_concepts": ["logical selling", "belief transference", "resourcefulness over resources", "identity alignment", "systematic objection handling"]
+  }
+}

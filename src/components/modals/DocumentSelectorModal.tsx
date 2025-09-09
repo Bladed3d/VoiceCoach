@@ -32,6 +32,17 @@ const DocumentSelectorModal: React.FC<DocumentSelectorModalProps> = ({
   const [selected, setSelected] = useState<Set<string>>(new Set(currentSelection));
   const [loading, setLoading] = useState(false);
 
+  // Update selected when currentSelection prop changes
+  useEffect(() => {
+    // Clean up the current selection - remove duplicates and empty strings
+    const cleanedSelection = Array.from(new Set(currentSelection.filter(doc => doc && doc.length > 0)));
+    setSelected(new Set(cleanedSelection));
+    
+    if (cleanedSelection.length !== currentSelection.length) {
+      console.log(`🧹 Cleaned selection in modal: ${currentSelection.length} -> ${cleanedSelection.length}`);
+    }
+  }, [currentSelection]);
+
   useEffect(() => {
     if (isOpen) {
       loadDocuments();
@@ -99,6 +110,18 @@ const DocumentSelectorModal: React.FC<DocumentSelectorModalProps> = ({
     });
     onSelectionChange(selectedArray);
     onClose();
+  };
+
+  const handleClearCache = () => {
+    // Clear the localStorage to fix stuck selections
+    localStorage.removeItem('voicecoach-selected-documents');
+    setSelected(new Set());
+    onSelectionChange([]);
+    console.log('✅ Cleared document selection cache');
+    trail.light(7209, { 
+      operation: 'cache_cleared',
+      reason: 'user_requested'
+    });
   };
 
   const getDocumentIcon = (type: string) => {
@@ -188,8 +211,19 @@ const DocumentSelectorModal: React.FC<DocumentSelectorModalProps> = ({
 
         {/* Footer */}
         <div className="flex justify-between items-center pt-4 border-t border-slate-700">
-          <div className="text-sm text-slate-400">
-            {selected.size} document{selected.size !== 1 ? 's' : ''} selected
+          <div className="flex items-center space-x-4">
+            <div className="text-sm text-slate-400">
+              {selected.size} document{selected.size !== 1 ? 's' : ''} selected
+            </div>
+            {selected.size > 0 && (
+              <button
+                onClick={handleClearCache}
+                className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                title="Clear all selections and reset"
+              >
+                Clear All
+              </button>
+            )}
           </div>
           <div className="flex space-x-2">
             <button

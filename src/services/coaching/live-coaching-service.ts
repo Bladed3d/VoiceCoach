@@ -176,14 +176,35 @@ export class LiveCoachingService {
         hasPatterns: !!document.response_patterns || !!document.documentContent?.response_patterns
       });
 
-      // Store the document with simplified structure
-      this.currentDocument = {
-        name: document.name,
-        originalContent: document.originalContent,
-        documentContent: document.documentContent || document,
-        techniques: document.techniques || document.documentContent?.techniques,
-        response_patterns: document.response_patterns || document.documentContent?.response_patterns
-      };
+      // Store the document - support both old and new formats
+      const docContent = document.documentContent || document;
+      
+      // Check if this is the new stage-based format
+      if (docContent.stages) {
+        // New stage-based format
+        this.currentDocument = {
+          name: document.name,
+          originalContent: document.originalContent,
+          documentContent: docContent,
+          stages: docContent.stages,
+          progressions: docContent.progressions,
+          universal: docContent.universal,
+          customerTypes: docContent.customerTypes,
+          frameworks: docContent.frameworks,
+          // For backward compatibility, extract techniques from stages
+          techniques: this.extractTechniquesFromStages(docContent),
+          response_patterns: this.extractResponsePatternsFromStages(docContent)
+        };
+      } else {
+        // Old format
+        this.currentDocument = {
+          name: document.name,
+          originalContent: document.originalContent,
+          documentContent: docContent,
+          techniques: docContent.techniques || docContent.predictive_techniques,
+          response_patterns: docContent.response_patterns
+        };
+      }
       
       // NEW: Index the document for intelligent prompt building
       const indexSuccess = await this.ollamaService.loadAndIndexDocument(
@@ -458,6 +479,143 @@ export class LiveCoachingService {
 
   getConversationHistory(): Array<{ speaker: 'user' | 'prospect'; text: string; timestamp: string }> {
     return [...this.conversationHistory];
+  }
+
+  /**
+   * Extract techniques from stage-based document for backward compatibility
+   */
+  private extractTechniquesFromStages(document: any): any[] {
+    const techniques: any[] = [];
+    
+    if (!document.stages) return techniques;
+    
+    // Extract from each stage
+    for (const [stageName, stage] of Object.entries(document.stages)) {
+      const stageData = stage as any;
+      
+      // Convert bridges to techniques
+      if (stageData.bridges) {
+        stageData.bridges.forEach((bridge: any, index: number) => {
+          techniques.push({
+            technique_name: `${stageData.name} - Bridge ${index + 1}`,
+            stage: stageName,
+            priority: bridge.priority,
+            conversation_paths: [{
+              trigger: stageData.keywords?.join(' ') || stageName,
+              immediate_response: {
+                exact_words: bridge.text,
+                strategy: `${stageName} stage, priority: ${bridge.priority}`
+              }
+            }]
+          });
+        });
+      }
+      
+      // Convert recovery patterns to techniques
+      if (stageData.recovery) {
+        stageData.recovery.forEach((recovery: string, index: number) => {
+          techniques.push({
+            technique_name: `${stageData.name} - Recovery ${index + 1}`,
+            stage: stageName,
+            conversation_paths: [{
+              trigger: 'conversation stalled',
+              immediate_response: {
+                exact_words: recovery,
+                strategy: `Recovery for ${stageName} stage`
+              }
+            }]
+          });
+        });
+      }
+      
+      // Include actual techniques if present
+      if (stageData.techniques) {
+        stageData.techniques.forEach((technique: any) => {
+          techniques.push({
+            technique_name: technique.name,
+            stage: stageName,
+            description: technique.description,
+            conversation_paths: [{
+              trigger: technique.timing || stageName,
+              immediate_response: {
+                exact_words: technique.example,
+                strategy: technique.name
+              }
+            }]
+          });
+        });
+      }
+    }
+    
+    // Add universal techniques
+    if (document.universal) {
+      // Add mirroring
+      if (document.universal.mirroring) {
+        techniques.push({
+          technique_name: 'Universal - Mirroring',
+          stage: 'all',
+          conversation_paths: [{
+            trigger: 'any',
+            immediate_response: {
+              exact_words: 'Repeat last 1-3 words',
+              strategy: 'mirroring'
+            }
+          }]
+        });
+      }
+      
+      // Add labeling
+      if (document.universal.labeling) {
+        techniques.push({
+          technique_name: 'Universal - Labeling',
+          stage: 'all',
+          conversation_paths: [{
+            trigger: 'emotional response',
+            immediate_response: {
+              exact_words: 'It sounds like you\'re [emotion]',
+              strategy: 'labeling'
+            }
+          }]
+        });
+      }
+    }
+    
+    return techniques;
+  }
+  
+  /**
+   * Extract response patterns from stage-based document
+   */
+  private extractResponsePatternsFromStages(document: any): any {
+    const patterns: any = {};
+    
+    if (!document.stages) return patterns;
+    
+    // Extract objection patterns
+    if (document.stages.objection) {
+      const objectionStage = document.stages.objection as any;
+      
+      if (objectionStage.objection_patterns) {
+        patterns.objection_responses = {};
+        objectionStage.objection_patterns.forEach((pattern: any) => {
+          patterns.objection_responses[pattern.objection] = {
+            real_concern: pattern.real_concern,
+            response: pattern.response
+          };
+        });
+      }
+    }
+    
+    // Extract recovery patterns
+    patterns.recovery_patterns = {};
+    for (const [stageName, stage] of Object.entries(document.stages)) {
+      const stageData = stage as any;
+      if (stageData.recovery) {
+        patterns.recovery_patterns[stageName] = stageData.recovery;
+      }
+    }
+    
+    return patterns;
   }
 
   disconnect(): void {

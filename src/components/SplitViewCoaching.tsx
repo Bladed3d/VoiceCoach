@@ -163,13 +163,27 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
     if (savedDocs) {
       try {
         const docs = JSON.parse(savedDocs);
-        setSelectedDocuments(docs);
+        // Filter out any invalid or duplicate entries
+        const validDocs = Array.from(new Set(docs.filter((doc: string) => doc && doc.length > 0)));
+        setSelectedDocuments(validDocs);
+        
+        // Update localStorage if we cleaned up the data
+        if (validDocs.length !== docs.length) {
+          localStorage.setItem('voicecoach-selected-documents', JSON.stringify(validDocs));
+          console.log(`🧹 Cleaned up document selection: ${docs.length} -> ${validDocs.length} documents`);
+        }
+        
         trail.light(7208, {
           operation: 'loaded_saved_documents',
-          count: docs.length
+          original_count: docs.length,
+          cleaned_count: validDocs.length,
+          documents: validDocs
         });
       } catch (error) {
         console.error('Failed to load saved documents:', error);
+        // Clear invalid data
+        localStorage.removeItem('voicecoach-selected-documents');
+        setSelectedDocuments([]);
       }
     }
   }, []);

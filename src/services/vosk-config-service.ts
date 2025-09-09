@@ -141,8 +141,8 @@ export class VoskConfigService {
         changes: changes.filter(c => criticalChanges.includes(c))
       });
 
-      // Send config update to Python server if connected
-      await this.sendConfigToServer(config);
+      // Don't send to server - it will get config when it starts via command-line args
+      // await this.sendConfigToServer(config);
       
       // Trigger AudioWorklet reconfiguration via event
       window.dispatchEvent(new CustomEvent('vosk-config-critical-change', {
@@ -155,8 +155,8 @@ export class VoskConfigService {
         changes
       });
 
-      // Send config to server
-      await this.sendConfigToServer(config);
+      // Don't send to server - it will get config when it starts via command-line args
+      // await this.sendConfigToServer(config);
     }
   }
 
