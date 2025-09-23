@@ -10,7 +10,7 @@ export const defaultLiveCoachingConfig: LiveCoachingConfig = {
     model: 'qwen2.5:14b-instruct-q4_K_M',  // Default only - user selects in UI
     temperature: 0.3,
     topP: 0.9,
-    maxTokens: 300
+    maxTokens: 800
   },
   websocket: {
     serverUrl: 'ws://127.0.0.1:5000'

@@ -111,6 +111,9 @@ export class OllamaCoachingService {
         temperature: this.config.temperature
       });
 
+      // CRITICAL DEBUG: Log the exact model being sent to Ollama
+      console.log('🔍 CRITICAL DEBUG - Model being sent to Ollama API:', this.config.model);
+
       const response = await fetch(`${this.config.baseUrl}/api/generate`, {
         method: 'POST',
         headers: {
@@ -345,7 +348,8 @@ export class OllamaCoachingService {
 
   private parseCoachingResponse(ollamaResponse: string, context: CoachingContext): CoachingResponse | null {
     try {
-      console.log('🔵 RAW OLLAMA RESPONSE (first 500 chars):', ollamaResponse.substring(0, 500));
+      console.log('🔵 RAW OLLAMA RESPONSE (FULL):', ollamaResponse);
+      console.log('🔍 RESPONSE LENGTH:', ollamaResponse.length);
       
       // Extract JSON from response (Ollama sometimes adds extra text)
       const jsonMatch = ollamaResponse.match(/\{[\s\S]*\}/);
@@ -401,11 +405,41 @@ export class OllamaCoachingService {
         };
       }
       
-      // Handle predictive format
+      // Handle predictive format with rich coaching data
       if (parsed.say_now) {
-        // New predictive format
-        const suggestion = `${parsed.say_now}${parsed.next_move ? `\n➡️ Next: ${parsed.next_move}` : ''}${parsed.path_goal ? `\n🎯 Goal: ${parsed.path_goal}` : ''}`;
-        
+        console.log('✅ PREDICTIVE FORMAT DETECTED - Extracting rich coaching data');
+
+        // Build enhanced suggestion with clear "Say now:" prefix
+        let suggestion = `Say now: ${parsed.say_now}`;
+
+        // Add strategic follow-up information
+        if (parsed.next_move) {
+          suggestion += `\n\n➡️ Next: ${parsed.next_move}`;
+        }
+
+        // Add strategic goal context
+        if (parsed.path_goal) {
+          suggestion += `\n\n🎯 Goal: ${parsed.path_goal}`;
+        }
+
+        // Add predicted response for preparation
+        if (parsed.predicted_response) {
+          suggestion += `\n\n💭 They'll likely say: "${parsed.predicted_response}"`;
+        }
+
+        // Add alternative strategy if available
+        if (parsed.alternative) {
+          suggestion += `\n\n🔄 Alternative: ${parsed.alternative}`;
+        }
+
+        console.log('📋 Enhanced suggestion built:', {
+          sayNow: parsed.say_now,
+          hasNextMove: !!parsed.next_move,
+          hasGoal: !!parsed.path_goal,
+          hasPrediction: !!parsed.predicted_response,
+          hasAlternative: !!parsed.alternative
+        });
+
         return {
           suggestion: suggestion,
           priority: this.determinePriority(parsed),
@@ -568,13 +602,23 @@ Create a comprehensive synthesis that combines both analyses into actionable coa
   }
 
   updateConfig(config: Partial<OllamaConfig>): void {
+    console.log('🔧 OLLAMA CONFIG UPDATE:', {
+      old_model: this.config.model,
+      new_model: config.model,
+      full_config: config
+    });
+
     this.config = { ...this.config, ...config };
     this.isConnected = false; // Force reconnection test
-    
+
+    console.log('✅ OLLAMA CONFIG UPDATED TO:', this.config.model);
+
     this.trail.light(6130, {
       operation: 'config_updated',
       newBaseUrl: config.baseUrl,
-      newModel: config.model
+      newModel: config.model,
+      old_model: this.config.model,
+      config_object: this.config
     });
   }
 

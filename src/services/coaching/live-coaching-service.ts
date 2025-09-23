@@ -78,23 +78,29 @@ export class LiveCoachingService {
       this.onTranscriptCallback?.(transcript);
 
       // Add to conversation history and trigger real-time analysis
-      if (transcript.type === 'final_transcript' && transcript.text.trim()) {
-        console.log('📝 FINAL TRANSCRIPT RECEIVED:', transcript.text);
+      const isSignificantTranscript = (
+        transcript.type === 'final_transcript' ||
+        (transcript.type === 'partial_transcript' && transcript.text.trim().length >= this.config.coaching.minTranscriptLength)
+      );
+
+      if (isSignificantTranscript && transcript.text.trim()) {
+        console.log(`📝 ${transcript.type.toUpperCase()} RECEIVED:`, transcript.text);
         this.addToConversationHistory('prospect', transcript.text, transcript.timestamp);
-        
+
         // CRITICAL DEBUG: Track accumulation
         const beforeLength = this.pendingTranscript?.length || 0;
         this.pendingTranscript += transcript.text + ' ';
-        
+
         // MEMORY SAFETY: Keep only last 2000 chars to prevent unbounded growth
         if (this.pendingTranscript.length > 2000) {
           this.pendingTranscript = this.pendingTranscript.slice(-1500); // Keep last 1500 chars
           console.log('🔄 Trimmed pending transcript to prevent memory leak');
         }
-        
+
         const afterLength = this.pendingTranscript.length;
-        
+
         console.log('🔴 TRANSCRIPT ACCUMULATION:', {
+          transcriptType: transcript.type,
           receivedText: transcript.text,
           receivedLength: transcript.text.length,
           beforeAccumulation: beforeLength,
@@ -102,9 +108,9 @@ export class LiveCoachingService {
           pendingContent: this.pendingTranscript,
           minRequired: this.config.coaching.minTranscriptLength
         });
-        
+
         console.log('📊 PENDING TRANSCRIPT LENGTH:', this.pendingTranscript.length, 'MIN REQUIRED:', this.config.coaching.minTranscriptLength);
-        
+
         // Trigger IMMEDIATE coaching analysis for live coaching
         if (this.config.coaching.enableRealTimeAnalysis && this.pendingTranscript.length >= this.config.coaching.minTranscriptLength) {
           console.log('🎯 TRIGGERING REAL-TIME ANALYSIS!');

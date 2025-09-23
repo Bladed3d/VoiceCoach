@@ -1254,7 +1254,49 @@ ipcMain.handle('ollama-generate', async (event, { prompt, model = 'qwen2.5:14b-i
             try {
               const result = JSON.parse(data);
               console.log('✅ IPC Handler: Ollama generation successful');
-              resolve({ success: true, response: result.response });
+
+              // Enhanced parsing logic moved from renderer process
+              const rawResponse = result.response;
+              console.log('🔍 RAW OLLAMA RESPONSE:', rawResponse);
+
+              let suggestion = rawResponse;
+
+              // Try to parse JSON response for rich coaching data
+              if (rawResponse && typeof rawResponse === 'string') {
+                try {
+                  const parsed = JSON.parse(rawResponse.trim());
+
+                  // Handle predictive format with rich coaching data
+                  if (parsed.say_now) {
+                    console.log('✅ PREDICTIVE FORMAT DETECTED - Extracting rich coaching data');
+                    suggestion = `Say now: ${parsed.say_now}`;
+
+                    if (parsed.next_move) {
+                      suggestion += `\n\n➡️ Next: ${parsed.next_move}`;
+                    }
+                    if (parsed.path_goal) {
+                      suggestion += `\n\n🎯 Goal: ${parsed.path_goal}`;
+                    }
+                    if (parsed.predicted_response) {
+                      suggestion += `\n\n💭 They'll likely say: "${parsed.predicted_response}"`;
+                    }
+                    if (parsed.alternative) {
+                      suggestion += `\n\n🔄 Alternative: ${parsed.alternative}`;
+                    }
+
+                    console.log('🎯 Enhanced suggestion created:', suggestion.substring(0, 100) + '...');
+                  }
+                  // Handle standard format
+                  else if (parsed.suggestion) {
+                    suggestion = parsed.suggestion;
+                  }
+                } catch (parseError) {
+                  console.log('📝 Non-JSON response, using as plain text');
+                  // Keep original response if not valid JSON
+                }
+              }
+
+              resolve({ success: true, response: suggestion });
             } catch (parseError) {
               console.log('❌ IPC Handler: Failed to parse Ollama generation response');
               resolve({ success: false, error: 'Failed to parse response' });
@@ -2234,9 +2276,28 @@ ipcMain.handle('start-transcription', async (event, voskConfigFromRenderer) => {
     // LED 1033: Server process created
     console.log('🎵 LED 1033: APP_LIFECYCLE - Server process created {"operation":"process_spawned","pid":' + (pythonWebSocketServer ? pythonWebSocketServer.pid : 'null') + ',"timestamp":' + Date.now() + '} ElectronMain_1033');
     
-    // LED 6500: Start ChromaDB server alongside Vosk
-    console.log('🎵 LED 6500: CHROMADB - Starting ChromaDB semantic search server {"operation":"chromadb_server_start","port":8767,"timestamp":' + Date.now() + '}');
-    
+    // LED 6500: Check if ChromaDB should be started (respecting config setting)
+    let shouldStartChromaDB = false;
+    try {
+      const liveCoachingConfigPath = path.join(__dirname, 'src', 'config', 'live-coaching-config.ts');
+      if (fs.existsSync(liveCoachingConfigPath)) {
+        // Read the config file to check useChromaDB setting
+        const configContent = fs.readFileSync(liveCoachingConfigPath, 'utf-8');
+        shouldStartChromaDB = configContent.includes('useChromaDB: true');
+        console.log('🎵 LED 6500: CHROMADB - Config check result: useChromaDB=' + shouldStartChromaDB);
+      } else {
+        // Default to false if config not found
+        console.log('🎵 LED 6500: CHROMADB - Config file not found, defaulting to disabled');
+      }
+    } catch (configError) {
+      console.log('🎵 LED 6500: CHROMADB - Config read error, defaulting to disabled:', configError.message);
+    }
+
+    if (!shouldStartChromaDB) {
+      console.log('🎵 LED 6500: CHROMADB - ChromaDB disabled in config (useChromaDB: false), skipping startup');
+    } else {
+      console.log('🎵 LED 6500: CHROMADB - Starting ChromaDB semantic search server {"operation":"chromadb_server_start","port":8767,"timestamp":' + Date.now() + '}');
+
     try {
       const chromaDBScript = path.join(__dirname, 'src', 'services', 'chromadb-server.py');
       
@@ -2300,6 +2361,7 @@ ipcMain.handle('start-transcription', async (event, voskConfigFromRenderer) => {
       console.error('❌ LED 8501: CHROMADB - Error starting ChromaDB server:', chromaError);
       // Continue without ChromaDB - will fall back to keyword search
     }
+    } // End of ChromaDB startup conditional block
     
     // Handle spawn errors immediately
     pythonWebSocketServer.on('error', (error) => {
@@ -2376,8 +2438,22 @@ ipcMain.handle('start-transcription', async (event, voskConfigFromRenderer) => {
         const isPermissionError = errorOutput.includes('Permission denied');
         const isNetworkError = errorOutput.includes('network') || errorOutput.includes('socket');
         const isCritical = isPortError || isModuleError || isPermissionError;
-        
-        console.log('❌ LED 8011 FAILED [ElectronMain]: ERROR_HANDLING Python WebSocket Server error: ' + errorOutput);
+
+        // Check if this is actually a normal operational message, not an error
+        const isNormalOperation = errorOutput.includes('Sending packet MESSAGE') ||
+                                errorOutput.includes('transcription') ||
+                                errorOutput.includes('audio_chunk') ||
+                                errorOutput.includes('POST /socket.io/') ||
+                                errorOutput.includes('200 -') ||
+                                errorOutput.includes('breadcrumb');
+
+        if (isNormalOperation) {
+          // This is normal WebSocket communication, not an error
+          console.log('🎵 LED 6031: VOSK_OPERATION - Normal transcription activity: ' + errorOutput.substring(0, 100) + '...');
+        } else {
+          // This is an actual error
+          console.log('❌ LED 8011 FAILED [ElectronMain]: ERROR_HANDLING Python WebSocket Server error: ' + errorOutput);
+        }
         
         console.log('🎵 LED 8038: ERROR_HANDLING - Error categorization {"operation":"error_analysis","is_port_error":' + isPortError + ',"is_module_error":' + isModuleError + ',"is_permission_error":' + isPermissionError + ',"is_network_error":' + isNetworkError + ',"is_critical":' + isCritical + '} ElectronMain_8038');
         

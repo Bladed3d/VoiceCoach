@@ -310,12 +310,52 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
       console.error('Failed to pull model:', error);
     }
     
+    // Preload model into memory for faster coaching responses
+    try {
+      console.log(`🔥 Preloading model into memory: ${modelName}`);
+      trail.light(7126, {
+        model_preload_started: modelName,
+        timestamp: Date.now()
+      });
+
+      const preloadResponse = await fetch('http://localhost:11434/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: modelName,
+          prompt: 'ready',
+          options: {
+            num_predict: 1,  // Minimal response
+            temperature: 0.1
+          },
+          stream: false,
+          keep_alive: '5m'  // Keep model loaded for 5 minutes
+        })
+      });
+
+      if (preloadResponse.ok) {
+        const result = await preloadResponse.json();
+        trail.light(7127, {
+          model_preload_complete: modelName,
+          load_duration_ms: result.load_duration ? Math.round(result.load_duration / 1000000) : 0,
+          total_duration_ms: result.total_duration ? Math.round(result.total_duration / 1000000) : 0,
+          timestamp: Date.now()
+        });
+        console.log(`✅ Model preloaded successfully: ${modelName} (${result.load_duration ? Math.round(result.load_duration / 1000000) : 0}ms load time)`);
+      } else {
+        throw new Error(`Preload failed: ${preloadResponse.status}`);
+      }
+    } catch (error) {
+      console.error(`❌ Failed to preload model ${modelName}:`, error);
+      trail.fail(8126, error as Error);
+    }
+
     trail.light(7123, {
       model_change: 'completed',
       new_model: modelName,
       persisted: true
     });
-    
+
     console.log(`🎵 Model changed to: ${modelName}`);
   };
 
