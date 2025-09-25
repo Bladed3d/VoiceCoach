@@ -38,6 +38,7 @@ export class SessionManagerService {
   private callStartTime: Date | null = null; // Track call start for enhanced Ollama
   private conversationHistory: Array<{ speaker: 'user' | 'prospect'; text: string; timestamp: string }> = [];
   private transcriptIdCounter = 0; // Unique ID counter to prevent duplicate keys
+  private onTranscriptProcessedCallback?: (transcript: TranscriptEvent, speaker: 'user' | 'prospect') => void;
 
   constructor() {
     console.log('🚀 SessionManagerService: Constructor starting...');
@@ -227,6 +228,21 @@ export class SessionManagerService {
           const liveCoachingInitialized = await this.liveCoachingManager.initialize();
           if (liveCoachingInitialized) {
             console.log('✅ LiveCoachingManager initialized successfully');
+
+            // Connect LiveCoachingService to SessionManagerService for transcript processing
+            const liveCoachingService = this.liveCoachingManager.getService();
+            liveCoachingService.setSessionManager(this);
+
+            // LiveCoachingService has already registered its transcript processor via setSessionManager above
+            // No additional registration needed - the callback is already set
+
+            console.log('🎯 LiveCoachingService connected to SessionManager for unified transcript processing');
+
+            // LED 6309: Unified transcript processing integration
+            this.trail.light(6309, {
+              operation: 'unified_transcript_processing_complete',
+              timestamp: Date.now()
+            });
           } else {
             console.warn('⚠️ LiveCoachingManager initialization failed - coaching may not work');
           }
@@ -432,7 +448,8 @@ export class SessionManagerService {
 
     // Check if we have any knowledge source available
     if (!this.useSemanticSearch && !this.ragDocument) {
-      return; // Skip if no knowledge available
+      console.log('⚠️ No RAG document loaded, but proceeding with basic coaching');
+      // Continue anyway - better basic prompts than no prompts
     }
 
     try {
@@ -942,6 +959,18 @@ export class SessionManagerService {
   }
 
   /**
+   * Register callback for transcript processing events
+   */
+  onTranscriptProcessed(callback: (transcript: TranscriptEvent, speaker: 'user' | 'prospect') => void): void {
+    this.onTranscriptProcessedCallback = callback;
+
+    this.trail.light(6310, {
+      operation: 'transcript_callback_registered',
+      timestamp: Date.now()
+    });
+  }
+
+  /**
    * Clear transcription history (manual user action)
    */
   clearTranscriptions(): void {
@@ -1037,32 +1066,55 @@ export class SessionManagerService {
   private setupWebSocketHandlers(): void {
     this.wsClient.onTranscript((transcript: TranscriptEvent) => {
       if (transcript.type === 'final_transcript') {
-        // Use current speaker from volume service or fallback to 'prospect'
-        const currentSpeaker = this.volumeService.getCurrentSpeaker();
-        
+        // Use current speaker from volume service or fallback based on capture mode
+        // FIXED: Proper speaker identification logic
+        let currentSpeaker: 'user' | 'prospect';
+
+        if (this.sessionState.captureMode === 'microphone') {
+          // Microphone only = user speaking
+          currentSpeaker = 'user';
+        } else {
+          // Full conversation mode - use volume service or default logic
+          const volumeBasedSpeaker = this.volumeService.getCurrentSpeaker();
+          currentSpeaker = volumeBasedSpeaker || 'prospect'; // Default to prospect for mixed audio
+        }
+
         const newTranscription: TranscriptionItem = {
           id: Date.now() + this.transcriptIdCounter++, // Ensure unique ID
           speaker: currentSpeaker,
           text: transcript.text,
           timestamp: Date.now()
         };
-        
+
         // LED 6309: Final transcript with speaker identification
         this.trail.light(6309, {
           operation: 'final_transcript_created',
           speaker: currentSpeaker,
           textLength: transcript.text.length,
+          captureMode: this.sessionState.captureMode,
           timestamp: Date.now()
         });
-        
+
         this.updateSessionState({
           transcriptions: [...this.sessionState.transcriptions, newTranscription],
           liveTranscript: ''
         });
 
-        // Generate Ollama coaching for final transcripts
+        // Generate Ollama coaching for final transcripts (RESTORED from backup)
         if (transcript.text.length > 50) {
           this.generateOllamaCoaching(transcript.text);
+        }
+
+        // Notify LiveCoachingService about the processed transcript with speaker info
+        if (this.onTranscriptProcessedCallback) {
+          this.onTranscriptProcessedCallback(transcript, currentSpeaker);
+
+          this.trail.light(6311, {
+            operation: 'transcript_forwarded_to_coaching',
+            speaker: currentSpeaker,
+            textLength: transcript.text.length,
+            timestamp: Date.now()
+          });
         }
       } else {
         this.updateSessionState({
@@ -1081,7 +1133,7 @@ export class SessionManagerService {
         context: suggestion.context,
         timestamp: Date.parse(suggestion.timestamp)
       };
-      
+
       this.updateSessionState({
         coachingPrompts: [...this.sessionState.coachingPrompts, newPrompt],
         sessionData: {
@@ -1107,11 +1159,11 @@ export class SessionManagerService {
         streamActive: mediaStream.active,
         timestamp: Date.now()
       });
-      
+
       // For backward compatibility with single stream
       this.volumeService.startMicMonitoring(mediaStream);
     });
-    
+
     // Handle dual streams for separate volume monitoring
     this.wsClient.onDualStreams((micStream: MediaStream | null, tabStream: MediaStream | null) => {
       // LED 6306: Dual streams received for volume monitoring
@@ -1121,11 +1173,11 @@ export class SessionManagerService {
         hasTabStream: !!tabStream,
         timestamp: Date.now()
       });
-      
+
       if (micStream) {
         this.volumeService.startMicMonitoring(micStream);
       }
-      
+
       if (tabStream) {
         this.volumeService.startTabMonitoring(tabStream);
       }
