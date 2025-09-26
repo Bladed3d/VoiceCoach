@@ -1,0 +1,368 @@
+{
+  "id": "golf-coaching-6k",
+  "name": "Golf Coaching Package ($6,000/year)",
+  "description": "Professional golf coaching package sales script with Tiger Woods-level training",
+  "price": "$6,124",
+  "duration": "1 year",
+  "stages": [
+    {
+      "number": 1,
+      "name": "Rapport",
+      "title": "Lay a foundation for roles and who I am",
+      "objective": "Learn about them, their wants, their fears, invite them to brag about successes and disclose fears (in a playful way)",
+      "keyPhrases": [
+        "tell me about your golf game",
+        "how's your day going",
+        "certified golf coaching specialist",
+        "listen to your goals"
+      ],
+      "detectionPhrases": [
+        "thanks for taking the time",
+        "my role here is to listen",
+        "see if our program aligns"
+      ],
+      "toolWeights": {
+        "mirroring": 0.5,
+        "proactiveValidation": 0.15,
+        "calibratedQuestions": 0.25,
+        "weNotI": 0.1,
+        "takeAway": 0.0,
+        "noMeansYes": 0.0
+      },
+      "mefsFocus": ["mental", "emotional"],
+      "languageRules": {
+        "useWe": true,
+        "avoidPressure": true,
+        "buildTrust": true
+      },
+      "examples": {
+        "mirroring": {
+          "trigger": "I am unhappy with my short game. I got a new putter but it didn't help.",
+          "response": "got a new putter?"
+        },
+        "proactiveValidation": {
+          "trigger": "I am tired of having the worst score with my friends.",
+          "response": "I agree, and they won't shut up with the jokes at your expense, right?"
+        },
+        "calibratedQuestion": {
+          "trigger": "I tried a local coach but it didn't work out well.",
+          "response": "What was your budget for your coach?"
+        }
+      },
+      "transition": {
+        "tool": "buyIn",
+        "phrase": "Is it OK if WE discuss 3 of the most common problems we help golfers overcome?"
+      }
+    },
+    {
+      "number": 2,
+      "name": "Problem Intro",
+      "title": "Why are we talking?",
+      "objective": "Introduce common pain points in golf coaching, then focus on prospect's specific pain and problems",
+      "keyPhrases": [
+        "frustrated with inconsistent swings",
+        "mental blocks during rounds",
+        "emotional frustration",
+        "financial waste on ineffective lessons",
+        "scheduling conflicts"
+      ],
+      "detectionPhrases": [
+        "many golfers like you",
+        "these issues can make golf",
+        "what specifically brought you"
+      ],
+      "toolWeights": {
+        "mirroring": 0.4,
+        "emotionalResponseValidation": 0.3,
+        "calibratedQuestions": 0.2,
+        "weNotI": 0.1,
+        "takeAway": 0.0
+      },
+      "mefsFocus": ["mental", "emotional"],
+      "languageRules": {
+        "useWe": true,
+        "focusOnPain": true,
+        "validateEmotions": true
+      },
+      "examples": {
+        "emotionalResponseValidation": {
+          "trigger": "I am tired of paying for no results. My coach is an idiot.",
+          "response": "Certainly isn't fair to pay for something you aren't getting."
+        }
+      }
+    },
+    {
+      "number": 3,
+      "name": "Solution Intro",
+      "title": "How can we make this better?",
+      "objective": "High-level overview of package as superior alternative, teasing benefits without diving deep",
+      "keyPhrases": [
+        "professional golf coaching package",
+        "unlimited video analysis",
+        "4-day immersive live session",
+        "world-renowned pro",
+        "Tiger Woods level"
+      ],
+      "detectionPhrases": [
+        "is it ok if we discuss",
+        "5 benefits we give our members",
+        "designed to transform"
+      ],
+      "toolWeights": {
+        "buyIn": 0.4,
+        "accusationAudit": 0.3,
+        "calibratedQuestions": 0.2,
+        "weNotI": 0.1
+      },
+      "mefsFocus": ["mental", "emotional", "financial"],
+      "languageRules": {
+        "useWe": true,
+        "presentValue": true,
+        "addressPriceEarly": true
+      },
+      "examples": {
+        "accusationAudit": {
+          "trigger": "Price concern anticipated",
+          "response": "At first you might think that 6 grand is a lot of money, but 68% of our customers feel it saves them time and money, and lots of frustration, over amateur coaches that take your money for no results."
+        },
+        "calibratedQuestion": {
+          "trigger": "Value demonstration",
+          "response": "Last month a client of ours won $9k at $1,000 per hole bets against his buddies. Smiling ear to ear he said, 'best investment in myself I have ever made.' How difficult would it be for you to get away for 4 days next month to play and learn from a pro golf coach?"
+        }
+      }
+    },
+    {
+      "number": 4,
+      "name": "Problem Application",
+      "title": "How does this problem apply to prospect (MEFS)?",
+      "objective": "Probe how the general problem impacts them personally across MEFS to build emotional connection",
+      "keyPhrases": [
+        "let's talk about how this plays out for you",
+        "does inconsistent coaching leave you second-guessing",
+        "how frustrating is it",
+        "spending money on local coaches"
+      ],
+      "detectionPhrases": [
+        "plays out for you",
+        "second-guessing your shots",
+        "spending money without real results"
+      ],
+      "toolWeights": {
+        "calibratedQuestions": 0.5,
+        "mirroring": 0.2,
+        "emotionalResponseValidation": 0.2,
+        "weNotI": 0.1
+      },
+      "mefsFocus": ["mental", "emotional", "financial", "schedule"],
+      "languageRules": {
+        "useWe": true,
+        "focusOnPersonalImpact": true,
+        "allMEFS": true
+      },
+      "examples": {
+        "calibratedQuestion": {
+          "trigger": "Emotional validation opportunity",
+          "response": "5 weeks ago a client said, 'If I knew how good it would feel to finally play this game I love at a higher level, I would have signed up years ago!' How would you feel to finally get the improvement to your short game that you deserve?"
+        }
+      }
+    },
+    {
+      "number": 5,
+      "name": "Current Solution",
+      "title": "What is their solution if they don't work with us?",
+      "objective": "Explore their current approach to highlight gaps, using MEFS to quantify dissatisfaction",
+      "keyPhrases": [
+        "what are you doing now for coaching",
+        "does it build your confidence",
+        "is it cost-effective",
+        "how does it fit into your life"
+      ],
+      "detectionPhrases": [
+        "doing now for coaching",
+        "local coach has cost you money",
+        "should be fun not frustrating"
+      ],
+      "toolWeights": {
+        "noMeansYes": 0.4,
+        "calibratedQuestions": 0.3,
+        "mirroring": 0.2,
+        "weNotI": 0.1
+      },
+      "mefsFocus": ["mental", "emotional", "financial", "schedule"],
+      "languageRules": {
+        "useWe": true,
+        "beginNoMeansYes": true,
+        "summarizePain": true
+      },
+      "examples": {
+        "noMeansYes": {
+          "trigger": "Summarizing their situation",
+          "response": "It seems like your local coach has cost you money and given you grief. Your buddies are like mine, tormenting you when you give them reasons, so stop! And golf should be fun, not frustrating. So from what WE have discussed, is there anything about our program that would make you feel uncomfortable in packing your bags to golf with real pros in a few weeks?"
+        }
+      }
+    },
+    {
+      "number": 6,
+      "name": "Our Difference",
+      "title": "How can we make a difference? MEFS (easier, faster, better, happier, $$)",
+      "objective": "Contrast package benefits against their current solution, emphasizing improvements in MEFS",
+      "keyPhrases": [
+        "here's how we can make a real difference",
+        "tiger woods-level strategies",
+        "better value than ongoing local fees",
+        "video submissions fit your time"
+      ],
+      "detectionPhrases": [
+        "make a real difference",
+        "mentally our pros provide",
+        "emotionally you'll feel"
+      ],
+      "toolWeights": {
+        "weNotI": 0.4,
+        "calibratedQuestions": 0.3,
+        "noMeansYes": 0.2,
+        "buyIn": 0.1
+      },
+      "mefsFocus": ["mental", "emotional", "financial", "schedule"],
+      "languageRules": {
+        "useWe": true,
+        "contrastBenefits": true,
+        "addressAllMEFS": true
+      }
+    },
+    {
+      "number": 7,
+      "name": "Ideal Solution",
+      "title": "What would their ideal solution look like? (MEFS)",
+      "objective": "Let them describe their dream outcome to align visions and reveal desires",
+      "keyPhrases": [
+        "perfect coaching solution",
+        "what would it include",
+        "how would it sharpen your game mindset",
+        "what would make you happiest"
+      ],
+      "detectionPhrases": [
+        "design the perfect",
+        "what would it include",
+        "how flexible would it need"
+      ],
+      "toolWeights": {
+        "calibratedQuestions": 0.5,
+        "mirroring": 0.3,
+        "weNotI": 0.2
+      },
+      "mefsFocus": ["mental", "emotional", "financial", "schedule"],
+      "languageRules": {
+        "useWe": true,
+        "letThemSell": true,
+        "alignVisions": true
+      }
+    },
+    {
+      "number": 8,
+      "name": "Alignment Check",
+      "title": "Where are we NOT aligned?",
+      "objective": "Address any misalignments head-on to resolve objections and confirm fit",
+      "keyPhrases": [
+        "where are we not aligned",
+        "what concerns do you have",
+        "maybe this isn't right for you",
+        "if it's not completely obvious"
+      ],
+      "detectionPhrases": [
+        "i am just not sure",
+        "not aligned",
+        "don't do it"
+      ],
+      "toolWeights": {
+        "takeAway": 0.5,
+        "djVoice": 0.3,
+        "silence": 0.2,
+        "weNotI": 0.0
+      },
+      "mefsFocus": ["mental", "emotional", "financial", "schedule"],
+      "languageRules": {
+        "useWe": false,
+        "beAssertive": true,
+        "useTakeAway": true,
+        "allowSilence": true
+      },
+      "examples": {
+        "takeAway": {
+          "trigger": "I am just not sure",
+          "response": "John if it is not completely obvious that this is exactly what you have been looking for to finally improve your golf game and feel great every time you play, then don't do it!"
+        },
+        "followUp": {
+          "trigger": "After silence",
+          "response": "John I am not going to let you do this unless you can convince me that you are excited about it, can afford it, and will enjoy golf more than ever have a year long pro instructor."
+        }
+      }
+    },
+    {
+      "number": 9,
+      "name": "Close",
+      "title": "Sale",
+      "objective": "Close naturally once alignment is achieved, confirming commitment",
+      "keyPhrases": [
+        "with us aligned mentally",
+        "natural fit",
+        "shall we get you started",
+        "walk you through enrollment"
+      ],
+      "detectionPhrases": [
+        "aligned mentally",
+        "natural fit",
+        "get you started"
+      ],
+      "toolWeights": {
+        "assumptiveClose": 0.6,
+        "weNotI": 0.2,
+        "buyIn": 0.2
+      },
+      "mefsFocus": ["mental", "emotional", "financial", "schedule"],
+      "languageRules": {
+        "useWe": true,
+        "assumeTheClose": true,
+        "confirmCommitment": true
+      }
+    }
+  ],
+  "globalRules": {
+    "earlyStages": {
+      "stages": [1, 2, 3, 4],
+      "rules": {
+        "alwaysUseWe": true,
+        "avoidTakeAway": true,
+        "focusMentalEmotional": true,
+        "buildRapport": true
+      }
+    },
+    "middleStages": {
+      "stages": [5, 6, 7],
+      "rules": {
+        "introduceNoMeansYes": true,
+        "addressAllMEFS": true,
+        "contrastSolutions": true
+      }
+    },
+    "lateStages": {
+      "stages": [8, 9],
+      "rules": {
+        "allowTakeAway": true,
+        "beAssertive": true,
+        "useSilence": true,
+        "assumeTheClose": true
+      }
+    }
+  },
+  "transitions": {
+    "1to2": "Is it OK if WE discuss 3 of the most common problems we help golfers overcome?",
+    "2to3": "Is it OK if we discuss the 5 benefits WE give our members?",
+    "3to4": "Let's talk about how this plays out for you.",
+    "4to5": "What are you doing now for coaching?",
+    "5to6": "Here's how we can make a real difference:",
+    "6to7": "If you could design the perfect coaching solution, what would it include?",
+    "7to8": "Based on what you've shared, where are we NOT aligned?",
+    "8to9": "Great, with us aligned mentally..."
+  }
+}

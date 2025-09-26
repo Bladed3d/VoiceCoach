@@ -1,0 +1,381 @@
+{
+  "id": "generic-sales-template",
+  "name": "Generic Sales Template",
+  "description": "Customizable template based on the Alignment Sales Process using MEFS methodology",
+  "price": "[Price/Structure]",
+  "duration": "[Duration]",
+  "stages": [
+    {
+      "number": 1,
+      "name": "Rapport",
+      "title": "Lay a foundation for roles and who I am",
+      "objective": "Build trust by introducing yourself, your expertise, and positioning as a helpful guide",
+      "keyPhrases": [
+        "[your name]",
+        "[your role/expertise]",
+        "listen to your goals",
+        "see if our [product/service] aligns"
+      ],
+      "detectionPhrases": [
+        "thanks for taking the time",
+        "my role here is to listen",
+        "how's your day going"
+      ],
+      "toolWeights": {
+        "mirroring": 0.4,
+        "proactiveValidation": 0.2,
+        "calibratedQuestions": 0.3,
+        "weNotI": 0.1,
+        "takeAway": 0.0,
+        "noMeansYes": 0.0
+      },
+      "mefsFocus": ["mental", "emotional"],
+      "languageRules": {
+        "useWe": true,
+        "avoidPressure": true,
+        "buildTrust": true
+      },
+      "placeholders": {
+        "yourName": "[Your Name]",
+        "yourRole": "[Your Role/Expertise]",
+        "experience": "[Your Experience/Company Background]",
+        "productService": "[Product/Service]"
+      }
+    },
+    {
+      "number": 2,
+      "name": "Problem Intro",
+      "title": "Why are we talking?",
+      "objective": "Introduce common pain points related to your industry to establish relevance",
+      "keyPhrases": [
+        "many [target audience] like you",
+        "[common problems]",
+        "mental [e.g., overwhelm]",
+        "emotional [e.g., stress]",
+        "financial [e.g., wasted costs]",
+        "scheduling [e.g., time conflicts]"
+      ],
+      "detectionPhrases": [
+        "reason we're chatting",
+        "these issues can hold you back",
+        "what specifically brought you"
+      ],
+      "toolWeights": {
+        "mirroring": 0.4,
+        "calibratedQuestions": 0.3,
+        "proactiveValidation": 0.2,
+        "weNotI": 0.1
+      },
+      "mefsFocus": ["mental", "emotional"],
+      "languageRules": {
+        "useWe": true,
+        "focusOnPain": true,
+        "establishRelevance": true
+      },
+      "placeholders": {
+        "targetAudience": "[Target Audience, e.g., businesses/individuals]",
+        "commonProblems": "[Common Problems, e.g., inefficiencies, frustrations]",
+        "desiredOutcome": "[Desired Outcome, e.g., growth/enjoyment]"
+      }
+    },
+    {
+      "number": 3,
+      "name": "Solution Intro",
+      "title": "How can we make this better?",
+      "objective": "Provide a high-level overview of your offering, teasing benefits",
+      "keyPhrases": [
+        "our [product/service] is designed",
+        "for [price/structure]",
+        "[key features/benefits]",
+        "tailored to [unique value]"
+      ],
+      "detectionPhrases": [
+        "designed to address that",
+        "this isn't generic",
+        "personalized support"
+      ],
+      "toolWeights": {
+        "buyIn": 0.4,
+        "calibratedQuestions": 0.3,
+        "weNotI": 0.2,
+        "accusationAudit": 0.1
+      },
+      "mefsFocus": ["mental", "emotional", "financial"],
+      "languageRules": {
+        "useWe": true,
+        "presentValue": true,
+        "teaseNotTell": true
+      },
+      "placeholders": {
+        "productService": "[Product/Service]",
+        "priceStructure": "[Price/Structure, e.g., $X per year/month]",
+        "keyFeatures": "[Key Features/Benefits, e.g., personalized support, tools, sessions]",
+        "uniqueValue": "[Unique Value, e.g., deliver faster results]"
+      }
+    },
+    {
+      "number": 4,
+      "name": "Problem Application",
+      "title": "How does this problem apply to prospect (MEFS)?",
+      "objective": "Probe how the general problem impacts them personally across MEFS",
+      "keyPhrases": [
+        "let's talk about how this plays out for you",
+        "mentally does [general problem] leave you",
+        "emotionally how [e.g., frustrating] is it",
+        "financially have you [e.g., spent money without results]",
+        "on your schedule does it [e.g., disrupt your routine]"
+      ],
+      "detectionPhrases": [
+        "plays out for you",
+        "second-guessing decisions",
+        "disrupt your routine"
+      ],
+      "toolWeights": {
+        "calibratedQuestions": 0.5,
+        "mirroring": 0.3,
+        "proactiveValidation": 0.1,
+        "weNotI": 0.1
+      },
+      "mefsFocus": ["mental", "emotional", "financial", "schedule"],
+      "languageRules": {
+        "useWe": true,
+        "focusOnPersonalImpact": true,
+        "probeAllMEFS": true
+      },
+      "placeholders": {
+        "generalProblem": "[General Problem]",
+        "mentalExample": "[e.g., second-guessing decisions]",
+        "emotionalExample": "[e.g., frustrating]",
+        "financialExample": "[e.g., spent money without results]",
+        "scheduleExample": "[e.g., disrupt your routine]"
+      }
+    },
+    {
+      "number": 5,
+      "name": "Current Solution",
+      "title": "What is their solution now? MEFS",
+      "objective": "Explore their current approach to highlight gaps",
+      "keyPhrases": [
+        "what are you using/doing now for [related need]",
+        "mentally does it [e.g., build confidence]",
+        "emotionally does it [e.g., reduce stress]",
+        "financially is it [e.g., cost-effective]",
+        "schedule-wise how does it fit"
+      ],
+      "detectionPhrases": [
+        "using now for",
+        "build confidence",
+        "easy or a hassle"
+      ],
+      "toolWeights": {
+        "calibratedQuestions": 0.4,
+        "mirroring": 0.3,
+        "noMeansYes": 0.2,
+        "weNotI": 0.1
+      },
+      "mefsFocus": ["mental", "emotional", "financial", "schedule"],
+      "languageRules": {
+        "useWe": true,
+        "highlightGaps": true,
+        "prepareForContrast": true
+      },
+      "placeholders": {
+        "relatedNeed": "[Related Need]",
+        "confidenceExample": "[e.g., build confidence]",
+        "stressExample": "[e.g., reduce stress]",
+        "costExample": "[e.g., cost-effective]",
+        "scheduleExample": "[e.g., easy or a hassle]"
+      }
+    },
+    {
+      "number": 6,
+      "name": "Our Difference",
+      "title": "How can we make a difference? MEFS (easier, faster, better, happier, $$)",
+      "objective": "Contrast your offering's benefits against their current solution",
+      "keyPhrases": [
+        "here's how we can make a real difference",
+        "mentally our [product/service] provides [e.g., clear strategies]",
+        "emotionally you'll [e.g., feel more satisfied]",
+        "financially at [price] it's better value",
+        "schedule-wise [e.g., flexible access] makes it easier"
+      ],
+      "detectionPhrases": [
+        "make a real difference",
+        "faster than",
+        "better value than",
+        "easier and happier"
+      ],
+      "toolWeights": {
+        "weNotI": 0.4,
+        "calibratedQuestions": 0.3,
+        "buyIn": 0.2,
+        "contrastFraming": 0.1
+      },
+      "mefsFocus": ["mental", "emotional", "financial", "schedule"],
+      "languageRules": {
+        "useWe": true,
+        "contrastBenefits": true,
+        "emphasizeValue": true
+      },
+      "placeholders": {
+        "productService": "[Product/Service]",
+        "mentalBenefit": "[e.g., clear strategies]",
+        "currentDrawback": "[Current Drawback]",
+        "emotionalBenefit": "[e.g., feel more satisfied]",
+        "price": "[Price]",
+        "currentIssue": "[Current Issue]",
+        "moneySaving": "[e.g., money long-term]",
+        "flexibilityBenefit": "[e.g., flexible access]"
+      }
+    },
+    {
+      "number": 7,
+      "name": "Ideal Solution",
+      "title": "What would their ideal solution look like? (MEFS)",
+      "objective": "Let them describe their dream outcome to align visions",
+      "keyPhrases": [
+        "perfect [product/service]",
+        "what would it include",
+        "mentally how would it [e.g., sharpen your focus]",
+        "emotionally what would make you happiest",
+        "financially what value would justify the investment",
+        "schedule-wise how flexible would it need to be"
+      ],
+      "detectionPhrases": [
+        "design the perfect",
+        "what would it include",
+        "how flexible would it need"
+      ],
+      "toolWeights": {
+        "calibratedQuestions": 0.5,
+        "mirroring": 0.3,
+        "weNotI": 0.2
+      },
+      "mefsFocus": ["mental", "emotional", "financial", "schedule"],
+      "languageRules": {
+        "useWe": true,
+        "letThemSell": true,
+        "alignVisions": true
+      },
+      "placeholders": {
+        "productService": "[Product/Service]",
+        "mentalFocus": "[e.g., sharpen your focus]"
+      }
+    },
+    {
+      "number": 8,
+      "name": "Alignment Check",
+      "title": "Where are we NOT aligned?",
+      "objective": "Address misalignments to resolve objections",
+      "keyPhrases": [
+        "sounds like we're aligned on [e.g., mental clarity, emotional satisfaction]",
+        "maybe not fully on [e.g., the financial side]",
+        "what concerns do you have there",
+        "so we can address them"
+      ],
+      "detectionPhrases": [
+        "aligned on",
+        "not fully on",
+        "what concerns do you have"
+      ],
+      "toolWeights": {
+        "takeAway": 0.4,
+        "calibratedQuestions": 0.3,
+        "djVoice": 0.2,
+        "weNotI": 0.1
+      },
+      "mefsFocus": ["mental", "emotional", "financial", "schedule"],
+      "languageRules": {
+        "useWe": true,
+        "addressConcerns": true,
+        "beDirectButHelpful": true
+      },
+      "placeholders": {
+        "alignedAreas": "[e.g., mental clarity, emotional satisfaction]",
+        "concernArea": "[e.g., the financial side]"
+      }
+    },
+    {
+      "number": 9,
+      "name": "Close",
+      "title": "Sale",
+      "objective": "Close once alignment is achieved",
+      "keyPhrases": [
+        "with us aligned mentally on [e.g., building confidence]",
+        "emotionally on [e.g., reducing stress]",
+        "financially on [e.g., the value]",
+        "schedule-wise with [e.g., flexibility]",
+        "natural fit",
+        "shall we get you started",
+        "walk you through enrollment"
+      ],
+      "detectionPhrases": [
+        "aligned mentally",
+        "natural fit",
+        "get you started"
+      ],
+      "toolWeights": {
+        "assumptiveClose": 0.6,
+        "weNotI": 0.2,
+        "buyIn": 0.2
+      },
+      "mefsFocus": ["mental", "emotional", "financial", "schedule"],
+      "languageRules": {
+        "useWe": true,
+        "assumeTheClose": true,
+        "summarizeAlignment": true
+      },
+      "placeholders": {
+        "mentalAlignment": "[e.g., building confidence]",
+        "emotionalAlignment": "[e.g., reducing stress]",
+        "financialAlignment": "[e.g., the value]",
+        "scheduleAlignment": "[e.g., flexibility]",
+        "productService": "[Product/Service]"
+      }
+    }
+  ],
+  "globalRules": {
+    "earlyStages": {
+      "stages": [1, 2, 3, 4],
+      "rules": {
+        "alwaysUseWe": true,
+        "avoidTakeAway": true,
+        "focusMentalEmotional": true,
+        "buildRapport": true
+      }
+    },
+    "middleStages": {
+      "stages": [5, 6, 7],
+      "rules": {
+        "introduceNoMeansYes": true,
+        "addressAllMEFS": true,
+        "contrastSolutions": true
+      }
+    },
+    "lateStages": {
+      "stages": [8, 9],
+      "rules": {
+        "allowTakeAway": true,
+        "beDirectButHelpful": true,
+        "assumeTheClose": true
+      }
+    }
+  },
+  "customization": {
+    "instructions": "Replace all placeholders in brackets with your specific details",
+    "requiredFields": [
+      "name",
+      "price",
+      "productService",
+      "targetAudience",
+      "commonProblems",
+      "keyFeatures",
+      "uniqueValue"
+    ],
+    "optionalFields": [
+      "experience",
+      "companyBackground",
+      "specificExamples"
+    ]
+  }
+}
