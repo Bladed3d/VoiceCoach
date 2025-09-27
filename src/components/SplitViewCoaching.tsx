@@ -25,6 +25,7 @@ import {
 import { useCoachingSession } from '../hooks/useCoachingSession';
 import { useResizablePanels } from '../hooks/useResizablePanels';
 import { useSalesScript } from '../hooks/useSalesScript';
+// import { useMEFSTracking } from '../hooks/useMEFSTracking';
 import { DualVolumeIndicator } from './common/DualVolumeIndicator';
 import { CoachingPanel } from './coaching/CoachingPanel';
 import { SalesScriptPanel } from './coaching/SalesScriptPanel';
@@ -33,6 +34,7 @@ import { CollapsedPanel } from './common/CollapsedPanel';
 import { KnowledgeBaseHub } from './KnowledgeBaseHub';
 import SettingsModal from './modals/SettingsModal';
 import DocumentSelectorModal from './modals/DocumentSelectorModal';
+// import MEFSIndicators from './coaching/MEFSIndicators';
 import { AudioCaptureSelector, AudioCaptureMode } from './coaching/AudioCaptureSelector';
 import { BreadcrumbTrail } from '../lib/breadcrumb-system';
 
@@ -45,7 +47,7 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
   const trail = new BreadcrumbTrail('SplitViewCoaching');
   
   // Modular session management
-  const { sessionState, isInitialized, startSession, stopSession, clearTranscriptions, clearCoachingPrompts } = useCoachingSession();
+  const { sessionState, isInitialized, conversationHistory, startSession, stopSession, clearTranscriptions, clearCoachingPrompts } = useCoachingSession();
   
   // Resizable panels management
   const {
@@ -63,6 +65,9 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
   
   // Sales script management
   const { scriptItems, markItemUsed, clearUsedItems } = useSalesScript();
+
+  // MEFS tracking for real-time sentiment analysis (disabled for cleanup)
+  // const mefsTracking = useMEFSTracking();
   
   // Local UI state only
   const [showKnowledgeBaseHub, setShowKnowledgeBaseHub] = useState(false);
@@ -74,8 +79,11 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
     return localStorage.getItem('voicecoach-use-chromadb') === 'true';
   });
   const [currentView, setCurrentView] = useState('Split View');
-  const [audioCaptureMode, setAudioCaptureMode] = useState<AudioCaptureMode>('microphone');
+  const [audioCaptureMode, setAudioCaptureMode] = useState<AudioCaptureMode>('full-conversation');
   const [showViewDropdown, setShowViewDropdown] = useState(false);
+  const [currentScriptStage, setCurrentScriptStage] = useState<number>(1);
+  const [promptCounter, setPromptCounter] = useState<number>(1);
+  const [transcriptCounter, setTranscriptCounter] = useState<number>(1);
   
   // Model selection state - synchronized with Settings
   const [availableModels, setAvailableModels] = useState<any[]>([]);
@@ -95,6 +103,36 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
   const [showModelDropdown, setShowModelDropdown] = useState(false);
   const [modelLoading, setModelLoading] = useState(false);
   
+  // MEFS tracking integration - process conversation updates (disabled - causing crashes)
+  // React.useEffect(() => {
+  //   try {
+  //     if (conversationHistory?.length > 0 && isRecording && mefsTracking && typeof mefsTracking.processConversationEntry === 'function') {
+  //       const latestEntry = conversationHistory[conversationHistory.length - 1];
+  //       if (latestEntry?.speaker && latestEntry?.text) {
+  //         // Process the latest conversation entry through MEFS analysis
+  //         mefsTracking.processConversationEntry(latestEntry.speaker, latestEntry.text, conversationHistory);
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error('MEFS processing error:', error);
+  //   }
+  // }, [conversationHistory, isRecording, mefsTracking]);
+
+  // Start/stop MEFS tracking with recording (disabled for debugging)
+  // React.useEffect(() => {
+  //   try {
+  //     if (mefsTracking && typeof mefsTracking.startTracking === 'function') {
+  //       if (isRecording) {
+  //         mefsTracking.startTracking();
+  //       } else if (typeof mefsTracking.stopTracking === 'function') {
+  //         mefsTracking.stopTracking();
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error('MEFS tracking control error:', error);
+  //   }
+  // }, [isRecording, mefsTracking]);
+
   // Component lifecycle and microphone change event tracking
   React.useEffect(() => {
     trail.light(7107, {
@@ -124,11 +162,27 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
       });
     };
     
+    // Handle model changes from Settings modal
+    const handleModelChangeEvent = (event: CustomEvent) => {
+      const { model, source } = event.detail;
+      if (source === 'settings' && model !== selectedModel) {
+        trail.light(7123, {
+          model_sync: 'settings_to_splitview',
+          old_model: selectedModel,
+          new_model: model
+        });
+        setSelectedModel(model);
+        console.log('🔄 Model synchronized from Settings to SplitView:', model);
+      }
+    };
+
     window.addEventListener('audioModeChanged', handleAudioModeChange as EventListener);
-    
+    window.addEventListener('modelChanged', handleModelChangeEvent as EventListener);
+
     return () => {
       trail.light(7110, { component_unmount: 'SplitViewCoaching' });
       window.removeEventListener('audioModeChanged', handleAudioModeChange as EventListener);
+      window.removeEventListener('modelChanged', handleModelChangeEvent as EventListener);
     };
   }, []);
   
@@ -262,6 +316,11 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
     
     localStorage.setItem('voicecoach-settings', JSON.stringify(updatedSettings));
     console.log('✅ Model synchronized with Settings:', modelName);
+
+    // Dispatch event to notify Settings modal (if it's open)
+    window.dispatchEvent(new CustomEvent('modelChanged', {
+      detail: { model: modelName, source: 'splitview' }
+    }));
     
     // Update the Ollama service configuration with the new model
     try {
@@ -371,12 +430,30 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
     );
   }
 
-  const { isRecording, wsStatus, ollamaStatus, sessionData, coachingPrompts, transcriptions, liveTranscript, volumeState, micVolumeState, tabVolumeState, captureMode } = sessionState;
+  const { isRecording, wsStatus, ollamaStatus, sessionData, coachingPrompts, transcriptions, liveTranscript, volumeState, micVolumeState, tabVolumeState, captureMode } = sessionState || {};
 
   const formatDuration = (ms: number) => {
     const seconds = Math.floor(ms / 1000);
     const minutes = Math.floor(seconds / 60);
     return minutes > 0 ? `${minutes}m ${seconds % 60}s` : `${seconds}s`;
+  };
+
+  // Handle stage selection from SalesScriptPanel
+  const handleStageSelected = (stageNumber: number) => {
+    setCurrentScriptStage(stageNumber);
+    setPromptCounter(1); // Reset prompt counter when stage changes
+    setTranscriptCounter(1); // Reset transcript counter when stage changes
+
+    // Log the stage selection with numbering format
+    const stageId = `[${stageNumber}.${promptCounter}.${transcriptCounter}]`;
+    console.log(`${stageId} STAGE SELECTED: Stage ${stageNumber}`);
+
+    trail.light(7250, {
+      operation: 'script_stage_selected',
+      stageNumber: stageNumber,
+      stageId: stageId,
+      timestamp: Date.now()
+    });
   };
 
 
@@ -665,13 +742,23 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
         {/* Volume Meter Component */}
         {isRecording && (
           <div className="mt-4">
-            <DualVolumeIndicator 
+            <DualVolumeIndicator
               micVolumeState={micVolumeState || volumeState || { level: 0, isMonitoring: false, status: 'silent' }}
               tabVolumeState={tabVolumeState || { level: 0, isMonitoring: false, status: 'silent' }}
               captureMode={audioCaptureMode}
             />
           </div>
         )}
+
+        {/* MEFS Alignment Indicators - Temporarily Disabled for Cleanup */}
+        {/* <div className="mt-4">
+          <MEFSIndicators
+            scores={mefsTracking?.scores || { Mental: 50, Emotional: 50, Financial: 50, Schedule: 50 }}
+            stage={mefsTracking?.stage || (isRecording ? 'Analyzing...' : 'Ready')}
+            sentiment={mefsTracking?.sentiment || 'Neutral'}
+            isActive={isRecording && !!mefsTracking?.isActive}
+          />
+        </div> */}
       </div>
 
       {/* Metrics Dashboard */}
@@ -777,12 +864,14 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
                 onMouseDown={(e) => startResize('script', e.clientX)}
                 title="Drag to resize panel"
               />
-              <SalesScriptPanel 
+              <SalesScriptPanel
                 scriptItems={scriptItems}
                 isRecording={isRecording}
+                conversationHistory={conversationHistory}
                 onMarkUsed={markItemUsed}
                 onClearUsed={clearUsedItems}
                 onCollapse={toggleScriptPanel}
+                onStageSelected={handleStageSelected}
               />
             </div>
           )

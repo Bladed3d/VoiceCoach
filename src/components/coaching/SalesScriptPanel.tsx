@@ -3,7 +3,7 @@
  * Displays script-aware coaching with progress tracking and stage guidance
  */
 import React, { useState, useEffect } from 'react';
-import { Book, CheckCircle, X, Target, AlertTriangle, TrendingUp, Lightbulb } from 'lucide-react';
+import { Book, CheckCircle, X, Target, AlertTriangle, TrendingUp, Lightbulb, Activity } from 'lucide-react';
 import { SalesScriptService, SalesScript, ScriptProgress } from '../../services/coaching/sales-script-service';
 import { ScriptProgressTracker, StageDetectionResult, ConversationEntry } from '../../services/coaching/script-progress-tracker';
 import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
@@ -11,20 +11,28 @@ import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
 interface SalesScriptPanelProps {
   scriptItems: any[];
   isRecording: boolean;
+  conversationHistory?: Array<{ speaker: 'user' | 'prospect'; text: string; timestamp: string }>;
   onMarkUsed: (itemId: string) => void;
   onClearUsed: () => void;
   onCollapse?: () => void;
+  onStageSelected?: (stageNumber: number) => void;
 }
 
 export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
   scriptItems: _scriptItems,
-  isRecording: _isRecording,
+  isRecording,
+  conversationHistory: rawConversationHistory = [],
   onMarkUsed: _onMarkUsed,
   onClearUsed: _onClearUsed,
-  onCollapse
+  onCollapse,
+  onStageSelected
 }) => {
-  // Mock conversation history for script tracking
-  const conversationHistory: ConversationEntry[] = [];
+  // Convert conversation history format for script tracking
+  const conversationHistory: ConversationEntry[] = rawConversationHistory.map(entry => ({
+    speaker: entry.speaker,
+    text: entry.text,
+    timestamp: entry.timestamp
+  }));
   const [trail] = useState(() => new BreadcrumbTrail('SalesScriptPanel'));
   const [scriptService] = useState(() => new SalesScriptService());
   const [progressTracker] = useState(() => new ScriptProgressTracker(scriptService));
@@ -33,6 +41,8 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
   const [_progress, setProgress] = useState<ScriptProgress | null>(null);
   const [stageAnalysis, setStageAnalysis] = useState<StageDetectionResult | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [selectedStage, setSelectedStage] = useState<number>(1);
+  const [sentimentData, setSentimentData] = useState<Array<{timestamp: number, value: number}>>([]);
 
   // Component mount LED
   useEffect(() => {
@@ -168,45 +178,42 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
 
             {currentScript && (
               <>
-                {/* Stage Progress */}
-                <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
+                {/* Current Sentiment */}
+                <div className="bg-slate-900/30 rounded-lg p-4 border border-slate-600/50">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-slate-300">Current Stage</h3>
-                    {stageAnalysis && (
-                      <span className={`text-xs font-medium ${getStageProgressColor(stageAnalysis.stageCompletion)}`}>
-                        {stageAnalysis.stageCompletion}% Complete
-                      </span>
-                    )}
+                    <div className="flex items-center space-x-2">
+                      <Activity className="w-4 h-4 text-green-400" />
+                      <h3 className="text-sm font-semibold text-slate-300">Current Sentiment</h3>
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      Stage {selectedStage}: {currentScript.stages.find(s => s.number === selectedStage)?.name}
+                    </div>
                   </div>
 
-                  {stageAnalysis ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">
-                          Stage {stageAnalysis.detectedStage}: {currentScript.stages.find(s => s.number === stageAnalysis.detectedStage)?.name}
-                        </span>
-                        <span className="text-xs text-slate-400">
-                          {stageAnalysis.confidence}% confidence
-                        </span>
+                  {/* Sentiment Graph Area */}
+                  <div className="h-24 bg-slate-800/50 rounded border border-slate-600 p-2 relative">
+                    {sentimentData.length > 0 ? (
+                      <div className="h-full flex items-center justify-center">
+                        <div className="text-center">
+                          <div className={`text-xl font-bold ${
+                            sentimentData[sentimentData.length - 1]?.value > 0 ? 'text-green-400' :
+                            sentimentData[sentimentData.length - 1]?.value < 0 ? 'text-red-400' : 'text-yellow-400'
+                          }`}>
+                            {sentimentData[sentimentData.length - 1]?.value > 0 ? '📈' :
+                             sentimentData[sentimentData.length - 1]?.value < 0 ? '📉' : '➡️'}
+                          </div>
+                          <div className="text-xs text-slate-400 mt-1">
+                            {sentimentData[sentimentData.length - 1]?.value > 0 ? 'Positive' :
+                             sentimentData[sentimentData.length - 1]?.value < 0 ? 'Negative' : 'Neutral'}
+                          </div>
+                        </div>
                       </div>
-
-                      <div className="w-full bg-slate-700 rounded-full h-2">
-                        <div
-                          className={`h-2 rounded-full transition-all duration-300 ${
-                            stageAnalysis.stageCompletion >= 80 ? 'bg-green-500' :
-                            stageAnalysis.stageCompletion >= 50 ? 'bg-yellow-500' : 'bg-red-500'
-                          }`}
-                          style={{ width: `${stageAnalysis.stageCompletion}%` }}
-                        />
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-slate-400 text-sm">
+                        {isRecording ? 'Monitoring sentiment...' : 'Start recording to track sentiment'}
                       </div>
-
-                      <p className="text-xs text-slate-400">
-                        {currentScript.stages.find(s => s.number === stageAnalysis.detectedStage)?.objective}
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-slate-400">Start conversation to track progress</p>
-                  )}
+                    )}
+                  </div>
                 </div>
 
                 {/* Tool Recommendations */}
@@ -279,25 +286,41 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
                   </div>
                 )}
 
-                {/* Script Overview */}
-                <div className="bg-slate-900/30 rounded-lg p-4 border border-slate-600/50">
-                  <h3 className="text-sm font-semibold text-slate-300 mb-3">Script Overview</h3>
+                {/* Script Overview - Clickable Stage Buttons */}
+                <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      <Target className="w-4 h-4 text-primary-400" />
+                      <h3 className="text-sm font-semibold text-slate-300">Script Overview</h3>
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      {currentScript.stages.length} stages
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-3 gap-2 text-xs">
                     {currentScript.stages.map((stage) => (
-                      <div
+                      <button
                         key={stage.number}
-                        className={`p-2 rounded text-center transition-all ${
-                          stageAnalysis?.detectedStage === stage.number
-                            ? 'bg-primary-600 text-white'
-                            : stageAnalysis && stageAnalysis.detectedStage > stage.number
-                              ? 'bg-green-800/50 text-green-300'
-                              : 'bg-slate-700/50 text-slate-400'
+                        onClick={() => {
+                          setSelectedStage(stage.number);
+                          onStageSelected?.(stage.number);
+                          console.log(`[STAGE ${stage.number} SELECTED] ${stage.name}`);
+                        }}
+                        className={`p-2 rounded text-center transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-400 ${
+                          selectedStage === stage.number
+                            ? 'bg-primary-600 text-white shadow-lg ring-2 ring-primary-400'
+                            : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600/50'
                         }`}
+                        title={`Select Stage ${stage.number}: ${stage.name}`}
                       >
                         <div className="font-medium">{stage.number}</div>
                         <div className="text-xs truncate">{stage.name}</div>
-                      </div>
+                      </button>
                     ))}
+                  </div>
+                  <div className="mt-3 text-xs text-slate-500 text-center">
+                    Click stage buttons to guide coaching prompts
                   </div>
                 </div>
               </>

@@ -34,6 +34,7 @@ export class SessionManagerService {
   private ragDocument: any = null;
   private liveCoachingManager: LiveCoachingManager | null = null;
   private useSemanticSearch: boolean = false; // Disabled - ChromaDB not initialized
+  private isGeneratingOllama: boolean = false; // Prevent rapid-fire Ollama calls
   private lastSearchResults: SemanticSearchResult[] = []; // Store results for priority mapping
   private callStartTime: Date | null = null; // Track call start for enhanced Ollama
   private conversationHistory: Array<{ speaker: 'user' | 'prospect'; text: string; timestamp: string }> = [];
@@ -448,9 +449,18 @@ export class SessionManagerService {
 
     // Check if we have any knowledge source available
     if (!this.useSemanticSearch && !this.ragDocument) {
-      console.log('⚠️ No RAG document loaded, but proceeding with basic coaching');
+      this.trail.fail(8350, new Error('No RAG document selected - coaching will be severely limited'), {
+        operation: 'coaching_no_document_selected',
+        useSemanticSearch: this.useSemanticSearch,
+        hasRagDocument: !!this.ragDocument,
+        transcriptLength: transcriptionText.length,
+        timestamp: Date.now()
+      });
       // Continue anyway - better basic prompts than no prompts
     }
+
+    // Set flag to prevent concurrent calls
+    this.isGeneratingOllama = true;
 
     try {
       const selectedModel = getSelectedModel();
@@ -464,13 +474,21 @@ export class SessionManagerService {
         timestamp: Date.now()
       });
 
+      // PERFORMANCE: Measure prompt building duration
+      const promptStartTime = Date.now();
       const prompt = await this.buildCoachingPrompt(transcriptionText);
-      
+      const promptBuildDuration = Date.now() - promptStartTime;
+
+      // PERFORMANCE: Measure Ollama call duration
+      const ollamaStartTime = Date.now();
+
       // Use desktop-native IPC call for Ollama generation
       const result = await (window as any).electronAPI.ollamaGenerate({
         prompt: prompt,
         model: selectedModel
       });
+
+      const ollamaDuration = Date.now() - ollamaStartTime;
 
       if (!result.success) {
         throw new Error(`Ollama generation failed: ${result.error}`);
@@ -516,17 +534,27 @@ export class SessionManagerService {
           }
         });
 
+        const totalDuration = promptBuildDuration + ollamaDuration;
+
         this.trail.light(6331, {
           operation: 'ollama_coaching_suggestion_generated',
           suggestion_length: suggestion.length,
+          prompt_build_ms: promptBuildDuration,
+          ollama_duration_ms: ollamaDuration,
+          total_duration_ms: totalDuration,
+          performance: totalDuration < 1000 ? 'fast' :
+                      totalDuration < 3000 ? 'acceptable' : 'slow',
           timestamp: Date.now()
         });
 
-        console.log('🤖 Ollama Coaching:', suggestion);
+        console.log(`🤖 Ollama Coaching (${totalDuration}ms: prompt ${promptBuildDuration}ms + ollama ${ollamaDuration}ms):`, suggestion);
       }
     } catch (error) {
       this.trail.fail(8330, error as Error);
       console.error('❌ Ollama coaching generation failed:', error);
+    } finally {
+      // Always clear the flag to allow future calls
+      this.isGeneratingOllama = false;
     }
   }
 
@@ -581,18 +609,33 @@ export class SessionManagerService {
         }) : '';
       }
     } else {
-      // Use traditional RAG document approach
-      knowledgeContext = this.ragDocument ? JSON.stringify({
-        techniques: Array.isArray(this.ragDocument.high_impact_techniques) 
-          ? this.ragDocument.high_impact_techniques.slice(0, 5) 
-          : (this.ragDocument.techniques?.slice(0, 5) || []),
-        objections: Array.isArray(this.ragDocument.objection_handlers) 
-          ? this.ragDocument.objection_handlers.slice(0, 3) 
-          : (this.ragDocument.objection_handling?.slice(0, 3) || []),
-        frameworks: Array.isArray(this.ragDocument.frameworks) 
-          ? this.ragDocument.frameworks.slice(0, 3) 
-          : (this.ragDocument.response_patterns ? Object.entries(this.ragDocument.response_patterns).slice(0, 3) : [])
-      }) : '';
+      // OPTIMIZED: Use CONCISE knowledge context to prevent 5959-char prompt bloat
+      console.error('🚨 PROMPT OPTIMIZATION: Building concise knowledge context...');
+
+      const rawKnowledge = this.ragDocument ? {
+        techniques: Array.isArray(this.ragDocument.high_impact_techniques)
+          ? this.ragDocument.high_impact_techniques.slice(0, 2)  // REDUCED from 5 to 2
+          : (this.ragDocument.techniques?.slice(0, 2) || []),
+        objections: Array.isArray(this.ragDocument.objection_handlers)
+          ? this.ragDocument.objection_handlers.slice(0, 1)  // REDUCED from 3 to 1
+          : (this.ragDocument.objection_handling?.slice(0, 1) || [])
+        // REMOVED frameworks completely to save space
+      } : null;
+
+      // Convert to concise text format instead of verbose JSON
+      if (rawKnowledge) {
+        const techniques = rawKnowledge.techniques.map((t: any) =>
+          typeof t === 'string' ? t.substring(0, 100) : JSON.stringify(t).substring(0, 100)
+        );
+        const objections = rawKnowledge.objections.map((o: any) =>
+          typeof o === 'string' ? o.substring(0, 150) : JSON.stringify(o).substring(0, 150)
+        );
+
+        knowledgeContext = `TECHNIQUES: ${techniques.join('; ')} | OBJECTIONS: ${objections.join('; ')}`;
+        console.error('⚡ OPTIMIZED KNOWLEDGE LENGTH:', knowledgeContext.length, 'chars');
+      } else {
+        knowledgeContext = '';
+      }
     }
 
     // Run conversation analysis for rich context
@@ -603,13 +646,26 @@ export class SessionManagerService {
       transcript: transcriptionText,
       knowledge: knowledgeContext,
       salesStage: analysis.salesStage, // Now using advanced detection
-      callDuration: this.callStartTime ? 
+      callDuration: this.callStartTime ?
         Math.round((Date.now() - this.callStartTime.getTime()) / 1000 / 60) : 0,
       objections: analysis.objections.map(o => o.type), // Rich objection detection
       topics: undefined, // Could extract from conversation
       sentiment: analysis.momentum // Using momentum as sentiment proxy
     });
-    
+
+    // CRITICAL: FAIL LOUDLY if prompt is too long
+    console.error('🚨 FINAL PROMPT LENGTH CHECK:', prompt.length, 'characters');
+
+    if (prompt.length > 2000) {
+      console.error('❌ CRITICAL FAILURE: Prompt is', prompt.length, 'chars - TOO LONG!');
+      console.error('❌ PROMPT CONTENT PREVIEW:', prompt.substring(0, 500) + '...[TRUNCATED]...' + prompt.substring(prompt.length - 200));
+      console.error('🚨 CONTINUING ANYWAY - but this needs optimization!');
+    } else if (prompt.length > 1500) {
+      console.error('⚠️ WARNING: Prompt is', prompt.length, 'chars - approaching limit');
+    } else {
+      console.error('✅ PROMPT LENGTH ACCEPTABLE:', prompt.length, 'chars');
+    }
+
     return prompt;
   }
 
@@ -959,6 +1015,34 @@ export class SessionManagerService {
   }
 
   /**
+   * Get conversation history for script progress tracking
+   * LED Range: 7500-7509
+   */
+  getConversationHistory(): Array<{ speaker: 'user' | 'prospect'; text: string; timestamp: string }> {
+    this.trail.light(7500, {
+      operation: 'conversation_history_accessed',
+      historyLength: this.conversationHistory.length,
+      timestamp: Date.now()
+    });
+
+    return [...this.conversationHistory];
+  }
+
+  /**
+   * Get recent conversation entries for context analysis
+   */
+  getRecentConversation(count: number = 10): Array<{ speaker: 'user' | 'prospect'; text: string; timestamp: string }> {
+    this.trail.light(7501, {
+      operation: 'recent_conversation_accessed',
+      requestedCount: count,
+      availableCount: this.conversationHistory.length,
+      timestamp: Date.now()
+    });
+
+    return this.conversationHistory.slice(-count);
+  }
+
+  /**
    * Register callback for transcript processing events
    */
   onTranscriptProcessed(callback: (transcript: TranscriptEvent, speaker: 'user' | 'prospect') => void): void {
@@ -1074,9 +1158,10 @@ export class SessionManagerService {
           // Microphone only = user speaking
           currentSpeaker = 'user';
         } else {
-          // Full conversation mode - use volume service or default logic
+          // Full conversation mode - use volume service with conservative default
           const volumeBasedSpeaker = this.volumeService.getCurrentSpeaker();
-          currentSpeaker = volumeBasedSpeaker || 'prospect'; // Default to prospect for mixed audio
+          // CONSERVATIVE: Default to 'user' to prevent false Ollama triggers during testing
+          currentSpeaker = volumeBasedSpeaker || 'user';
         }
 
         const newTranscription: TranscriptionItem = {
@@ -1100,9 +1185,45 @@ export class SessionManagerService {
           liveTranscript: ''
         });
 
-        // Generate Ollama coaching for final transcripts (RESTORED from backup)
-        if (transcript.text.length > 50) {
-          this.generateOllamaCoaching(transcript.text);
+        // Generate Ollama coaching ONLY for prospect speech with simple debouncing
+        if (transcript.text.length > 50 && currentSpeaker === 'prospect') {
+          // LED: Transcript received for coaching analysis
+          this.trail.light(6351, {
+            operation: 'transcript_received_for_coaching',
+            speaker: currentSpeaker,
+            textLength: transcript.text.length,
+            isGenerating: this.isGeneratingOllama,
+            hasRagDocument: !!this.ragDocument,
+            useSemanticSearch: this.useSemanticSearch,
+            timestamp: Date.now()
+          });
+
+          // Simple debouncing: only if not currently generating
+          if (!this.isGeneratingOllama) {
+            this.trail.light(6352, {
+              operation: 'coaching_generation_starting',
+              ragDocumentStatus: !!this.ragDocument ? 'loaded' : 'not_loaded',
+              semanticSearchStatus: this.useSemanticSearch ? 'enabled' : 'disabled',
+              timestamp: Date.now()
+            });
+            this.generateOllamaCoaching(transcript.text);
+          } else {
+            this.trail.light(6353, {
+              operation: 'coaching_generation_blocked',
+              reason: 'already_generating',
+              timestamp: Date.now()
+            });
+          }
+        } else {
+          this.trail.light(6354, {
+            operation: 'coaching_generation_skipped',
+            speaker: currentSpeaker,
+            textLength: transcript.text.length,
+            reason: transcript.text.length <= 50 ? 'text_too_short' : 'wrong_speaker',
+            requiresProspectSpeech: true,
+            minLength: 50,
+            timestamp: Date.now()
+          });
         }
 
         // Notify LiveCoachingService about the processed transcript with speaker info
