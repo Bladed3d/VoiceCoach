@@ -40,6 +40,11 @@ export class SessionManagerService {
   private conversationHistory: Array<{ speaker: 'user' | 'prospect'; text: string; timestamp: string }> = [];
   private transcriptIdCounter = 0; // Unique ID counter to prevent duplicate keys
   private onTranscriptProcessedCallback?: (transcript: TranscriptEvent, speaker: 'user' | 'prospect') => void;
+  // Simple counters for numbering
+  private currentStage = 1;
+  private promptCounter = 0;
+  private currentPromptNumber = 0; // Track the prompt number that transcripts should inherit
+  private transcriptCounter = 0;
 
   constructor() {
     console.log('🚀 SessionManagerService: Constructor starting...');
@@ -516,6 +521,8 @@ export class SessionManagerService {
                           topResult.priority === 'HIGH' ? 'high' : 'medium';
         }
 
+        this.promptCounter++;
+        this.currentPromptNumber = this.promptCounter; // Update current prompt number for transcripts
         const newPrompt: CoachingPrompt = {
           id: Date.now() * 1000 + this.transcriptIdCounter++, // Ensure unique ID
           priority: promptPriority,
@@ -523,7 +530,8 @@ export class SessionManagerService {
           category: coachingData.category || 'real_time_coaching',
           trigger: 'transcript_analysis',
           context: transcriptionText.slice(-200), // Last 200 chars for context
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          stageId: `[${this.currentStage}.${this.promptCounter}]`
         };
         
         this.updateSessionState({
@@ -1164,11 +1172,13 @@ export class SessionManagerService {
           currentSpeaker = volumeBasedSpeaker || 'user';
         }
 
+        this.transcriptCounter++;
         const newTranscription: TranscriptionItem = {
           id: Date.now() + this.transcriptIdCounter++, // Ensure unique ID
           speaker: currentSpeaker,
           text: transcript.text,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          stageId: `[${this.currentStage}.${this.currentPromptNumber}.${this.transcriptCounter}]`
         };
 
         // LED 6309: Final transcript with speaker identification
@@ -1245,6 +1255,8 @@ export class SessionManagerService {
     });
 
     this.wsClient.onCoaching((suggestion: CoachingSuggestion) => {
+      this.promptCounter++;
+      this.currentPromptNumber = this.promptCounter; // Update current prompt number for transcripts
       const newPrompt: CoachingPrompt = {
         id: Date.now() * 1000 + this.transcriptIdCounter++, // Ensure unique ID
         priority: suggestion.priority.toLowerCase() as any,
@@ -1252,7 +1264,8 @@ export class SessionManagerService {
         category: suggestion.category,
         trigger: suggestion.trigger,
         context: suggestion.context,
-        timestamp: Date.parse(suggestion.timestamp)
+        timestamp: Date.parse(suggestion.timestamp),
+        stageId: `[${this.currentStage}.${this.promptCounter}]`
       };
 
       this.updateSessionState({
@@ -1388,11 +1401,19 @@ export class SessionManagerService {
   private forceCleanup(): void {
     this.stopSessionTimer();
     this.volumeService.stopMonitoring();
-    
+
     this.updateSessionState({
       isRecording: false,
       wsStatus: 'Error during disconnect',
       liveTranscript: ''
     });
   }
+
+  public setCurrentStage(stageNumber: number): void {
+    console.log(`🎯 SessionManager: Setting stage to ${stageNumber}, resetting prompt counter`);
+    this.currentStage = stageNumber;
+    this.promptCounter = 0; // Reset prompt counter when stage changes
+    this.currentPromptNumber = 0; // Reset current prompt number for transcripts
+  }
+
 }

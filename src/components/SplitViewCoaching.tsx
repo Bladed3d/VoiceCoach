@@ -47,7 +47,7 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
   const trail = new BreadcrumbTrail('SplitViewCoaching');
   
   // Modular session management
-  const { sessionState, isInitialized, conversationHistory, startSession, stopSession, clearTranscriptions, clearCoachingPrompts } = useCoachingSession();
+  const { sessionState, isInitialized, conversationHistory, startSession, stopSession, clearTranscriptions, clearCoachingPrompts, getSessionManager } = useCoachingSession();
   
   // Resizable panels management
   const {
@@ -82,8 +82,6 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
   const [audioCaptureMode, setAudioCaptureMode] = useState<AudioCaptureMode>('full-conversation');
   const [showViewDropdown, setShowViewDropdown] = useState(false);
   const [currentScriptStage, setCurrentScriptStage] = useState<number>(1);
-  const [promptCounter, setPromptCounter] = useState<number>(1);
-  const [transcriptCounter, setTranscriptCounter] = useState<number>(1);
   
   // Model selection state - synchronized with Settings
   const [availableModels, setAvailableModels] = useState<any[]>([]);
@@ -440,18 +438,23 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
 
   // Handle stage selection from SalesScriptPanel
   const handleStageSelected = (stageNumber: number) => {
+    console.log(`🔥 SplitView: handleStageSelected called with stage ${stageNumber}`);
     setCurrentScriptStage(stageNumber);
-    setPromptCounter(1); // Reset prompt counter when stage changes
-    setTranscriptCounter(1); // Reset transcript counter when stage changes
 
-    // Log the stage selection with numbering format
-    const stageId = `[${stageNumber}.${promptCounter}.${transcriptCounter}]`;
-    console.log(`${stageId} STAGE SELECTED: Stage ${stageNumber}`);
+    // Update SessionManagerService with new stage
+    const sessionManager = getSessionManager();
+    if (sessionManager) {
+      console.log(`🔥 SplitView: Calling sessionManager.setCurrentStage(${stageNumber})`);
+      sessionManager.setCurrentStage(stageNumber);
+    } else {
+      console.log(`❌ SplitView: No sessionManager found!`);
+    }
+
+    console.log(`STAGE ${stageNumber} SELECTED`);
 
     trail.light(7250, {
       operation: 'script_stage_selected',
       stageNumber: stageNumber,
-      stageId: stageId,
       timestamp: Date.now()
     });
   };
@@ -833,7 +836,7 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
             isolation: 'isolate'
           }}
         >
-          <CoachingPanel 
+          <CoachingPanel
             coachingPrompts={coachingPrompts}
             isRecording={isRecording}
             onClearHistory={clearCoachingPrompts}
@@ -900,7 +903,7 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
                 onMouseDown={(e) => startResize('transcription', e.clientX)}
                 title="Drag to resize panel"
               />
-              <TranscriptionPanel 
+              <TranscriptionPanel
                 transcriptions={transcriptions}
                 liveTranscript={liveTranscript}
                 liveTranscriptSpeaker={sessionState?.liveTranscriptSpeaker}
