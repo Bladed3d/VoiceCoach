@@ -11,7 +11,7 @@ let mainWindow;
 let pythonWebSocketServer;
 let chromaDBServer;
 let conversationHistory = [];
-let coachingTriggers = null;
+// REMOVED: Obsolete coaching triggers system - replaced with Ollama-based coaching
 
 // Window state persistence
 let windowState = {
@@ -392,163 +392,20 @@ const createWindow = () => {
   console.log('🎯 VoiceCoach V2: Main window created successfully');
   console.log('🎵 LED 1000: APP_LIFECYCLE - Window created successfully {"operation":"window_created","timestamp":' + Date.now() + '} ElectronMain_1000');
   
-  // LED Breadcrumb 1000: Load coaching triggers on startup
-  loadCoachingTriggers();
+  // LED Breadcrumb 1000: App startup complete (obsolete coaching triggers system removed)
 };
 
-// Load coaching triggers from processed document
-async function loadCoachingTriggers() {
-  try {
-    // LED 1009: Coaching triggers file system access
-    const userDataPath = app.getPath('userData');
-    const triggersPath = path.join(userDataPath, 'coaching-insights.json');
-    
-    console.log('🎵 LED 1009: APP_LIFECYCLE - Attempting to load coaching triggers {"operation":"triggers_file_access","path":"' + triggersPath + '","timestamp":' + Date.now() + '} ElectronMain_1009');
-    
-    const content = await fs.readFile(triggersPath, 'utf-8');
-    coachingTriggers = JSON.parse(content);
-    
-    // LED 1001: Enhanced coaching triggers validation
-    const promptCount = coachingTriggers.coachingPrompts ? Object.keys(coachingTriggers.coachingPrompts).length : 0;
-    const hasObjectionHandling = coachingTriggers.coachingPrompts?.objection_handling ? Object.keys(coachingTriggers.coachingPrompts.objection_handling).length : 0;
-    const hasDiscovery = coachingTriggers.coachingPrompts?.discovery ? Object.keys(coachingTriggers.coachingPrompts.discovery).length : 0;
-    
-    console.log('🎵 LED 1001: APP_LIFECYCLE - Coaching triggers loaded successfully {"operation":"coaching_triggers_loaded","count":' + promptCount + ',"objection_triggers":' + hasObjectionHandling + ',"discovery_triggers":' + hasDiscovery + ',"timestamp":' + Date.now() + '} ElectronMain_1001');
-  } catch (error) {
-    console.log('❌ LED 8001 FAILED [ElectronMain]: ERROR_HANDLING Coaching triggers file read error: ' + error.message);
-    console.log('🎵 LED 1002: APP_LIFECYCLE - Using default coaching triggers {"operation":"default_triggers_loaded","reason":"no_saved_file","timestamp":' + Date.now() + '} ElectronMain_1002');
-    // Default coaching triggers
-    coachingTriggers = {
-      coachingPrompts: {
-        objection_handling: {
-          "price": "That's a valid concern. Let's discuss the value this brings...",
-          "budget": "I understand budget is important. What budget range were you thinking?",
-          "timing": "When would be a better time to revisit this?",
-          "competition": "What other options are you considering? Let me show how we compare..."
-        },
-        discovery: {
-          "challenge": "Tell me more about that challenge...",
-          "goal": "What would success look like for you?",
-          "process": "How are you handling this currently?",
-          "decision": "Who else is involved in this decision?"
-        }
-      }
-    };
-  }
-}
+// REMOVED: Obsolete loadCoachingTriggers() function
+// This has been replaced with Ollama-based contextual coaching
+// which provides superior real-time analysis without hardcoded fallbacks
 
-// Analyze transcript for coaching triggers
-function triggerCoachingAnalysis(transcript) {
-  const analysisStartTime = Date.now();
-  
-  try {
-    // LED 1016: Coaching analysis initialization
-    console.log('🎵 LED 1016: APP_LIFECYCLE - Coaching analysis initialization {"operation":"coaching_analysis_start","transcript_length":' + transcript.length + ',"has_triggers":' + (!!coachingTriggers) + ',"timestamp":' + analysisStartTime + '} ElectronMain_1016');
-    
-    // LED Breadcrumb 1004: Coaching analysis started
-    if (!coachingTriggers || !coachingTriggers.coachingPrompts) {
-      console.log('🎵 LED 1017: APP_LIFECYCLE - No coaching triggers available {"operation":"no_triggers","triggers_null":' + (!coachingTriggers) + ',"prompts_null":' + (!coachingTriggers?.coachingPrompts) + '} ElectronMain_1017');
-      return;
-    }
-    
-    const lowerTranscript = transcript.toLowerCase();
-    
-    // LED 1018: Transcript analysis metrics
-    console.log('🎵 LED 1018: APP_LIFECYCLE - Transcript analysis metrics {"operation":"transcript_analysis","word_count":' + transcript.split(' ').length + ',"char_count":' + transcript.length + ',"has_keywords":' + (transcript.length > 0) + '} ElectronMain_1018');
-    
-    // Check for objection handling triggers
-    const objectionTriggers = coachingTriggers.coachingPrompts.objection_handling || {};
-    const objectionTriggerCount = Object.keys(objectionTriggers).length;
-    
-    // LED 1019: Objection trigger scanning
-    console.log('🎵 LED 1019: APP_LIFECYCLE - Objection trigger scanning {"operation":"objection_scan","trigger_count":' + objectionTriggerCount + ',"transcript_words":' + lowerTranscript.split(' ').length + '} ElectronMain_1019');
-    
-    for (const [keyword, response] of Object.entries(objectionTriggers)) {
-      if (lowerTranscript.includes(keyword)) {
-        // LED 1020: Objection trigger match found
-        console.log('🎵 LED 1020: APP_LIFECYCLE - Objection trigger match {"operation":"trigger_match","keyword":"' + keyword + '","category":"objection_handling","response_length":' + response.length + '} ElectronMain_1020');
-        
-        sendCoachingSuggestion({
-          id: Date.now(),
-          suggestion: response,
-          trigger: keyword,
-          priority: 'HIGH',
-          category: 'objection_handling',
-          context: transcript,
-          timestamp: new Date().toISOString()
-        });
-        
-        const analysisTime = Date.now() - analysisStartTime;
-        console.log('🎵 LED 1021: APP_LIFECYCLE - Analysis complete {"operation":"analysis_complete","trigger_found":true,"analysis_time":' + analysisTime + ',"category":"objection"} ElectronMain_1021');
-        
-        return; // Send only one suggestion per transcript
-      }
-    }
-    
-    // Check for discovery triggers
-    const discoveryTriggers = coachingTriggers.coachingPrompts.discovery || {};
-    const discoveryTriggerCount = Object.keys(discoveryTriggers).length;
-    
-    // LED 1022: Discovery trigger scanning
-    console.log('🎵 LED 1022: APP_LIFECYCLE - Discovery trigger scanning {"operation":"discovery_scan","trigger_count":' + discoveryTriggerCount + ',"transcript_processed":true} ElectronMain_1022');
-    
-    for (const [keyword, response] of Object.entries(discoveryTriggers)) {
-      if (lowerTranscript.includes(keyword)) {
-        // LED 1023: Discovery trigger match found
-        console.log('🎵 LED 1023: APP_LIFECYCLE - Discovery trigger match {"operation":"trigger_match","keyword":"' + keyword + '","category":"discovery","response_length":' + response.length + '} ElectronMain_1023');
-        
-        sendCoachingSuggestion({
-          id: Date.now(),
-          suggestion: response,
-          trigger: keyword,
-          priority: 'MEDIUM',
-          category: 'discovery',
-          context: transcript,
-          timestamp: new Date().toISOString()
-        });
-        
-        const analysisTime = Date.now() - analysisStartTime;
-        console.log('🎵 LED 1024: APP_LIFECYCLE - Analysis complete {"operation":"analysis_complete","trigger_found":true,"analysis_time":' + analysisTime + ',"category":"discovery"} ElectronMain_1024');
-        
-        return;
-      }
-    }
-    
-    // LED 1025: No triggers found
-    const analysisTime = Date.now() - analysisStartTime;
-    console.log('🎵 LED 1025: APP_LIFECYCLE - No triggers found {"operation":"analysis_complete","trigger_found":false,"analysis_time":' + analysisTime + ',"objection_checked":' + objectionTriggerCount + ',"discovery_checked":' + discoveryTriggerCount + '} ElectronMain_1025');
-    
-  } catch (error) {
-    console.log('❌ LED 8002 FAILED [ElectronMain]: ERROR_HANDLING Coaching analysis error: ' + error.message);
-    
-    // LED 8003: Analysis failure recovery
-    console.log('🎵 LED 8003: ERROR_HANDLING - Analysis failure recovery {"operation":"analysis_error_recovery","error_type":"' + error.name + '","transcript_length":' + transcript.length + ',"timestamp":' + Date.now() + '} ElectronMain_8003');
-  }
-}
+// REMOVED: Obsolete triggerCoachingAnalysis() function
+// This keyword-based system interfered with Ollama's contextual analysis
+// Coaching is now handled entirely through Ollama services in the React app
 
-// Send coaching suggestion to renderer
-function sendCoachingSuggestion(suggestion) {
-  if (mainWindow) {
-    // LED 1026: Pre-send validation
-    console.log('🎵 LED 1026: APP_LIFECYCLE - Pre-send validation {"operation":"suggestion_validation","has_suggestion":' + (!!suggestion.suggestion) + ',"has_trigger":' + (!!suggestion.trigger) + ',"suggestion_length":' + suggestion.suggestion.length + '} ElectronMain_1026');
-    
-    // LED Breadcrumb 1008: Send coaching suggestion
-    try {
-      mainWindow.webContents.send('coaching-suggestion', suggestion);
-      
-      console.log('🎵 LED 1008: APP_LIFECYCLE - Coaching suggestion sent {"category":"' + suggestion.category + '","trigger":"' + suggestion.trigger + '","priority":"' + suggestion.priority + '","operation":"coaching_suggestion_sent","timestamp":' + Date.now() + '} ElectronMain_1008');
-      
-      // LED 1027: Suggestion delivery confirmation
-      console.log('🎵 LED 1027: APP_LIFECYCLE - Suggestion delivery confirmation {"operation":"ipc_send_success","suggestion_id":' + suggestion.id + ',"main_window_ready":' + (!mainWindow.isDestroyed()) + '} ElectronMain_1027');
-      
-    } catch (ipcError) {
-      console.log('❌ LED 8004 FAILED [ElectronMain]: ERROR_HANDLING IPC send error: ' + ipcError.message);
-    }
-  } else {
-    // LED 8005: Main window not available
-    console.log('❌ LED 8005 FAILED [ElectronMain]: ERROR_HANDLING Main window not available for coaching suggestion');
-  }
-}
+// REMOVED: Obsolete sendCoachingSuggestion() function
+// Coaching suggestions are now handled directly by React components
+// through Ollama services, providing better real-time contextual analysis
 
 // Initialize Ollama models at app startup (once only)
 const initializeOllamaModels = async () => {
@@ -1218,10 +1075,26 @@ ipcMain.handle('ollama-test-connection', async () => {
 });
 
 ipcMain.handle('ollama-generate', async (event, { prompt, model = 'qwen2.5:14b-instruct-q4_K_M' }) => {
+  const startTime = Date.now();
   try {
     console.log('🔍 IPC Handler: Generating Ollama response using Electron net module...');
-    
+    console.error('🚨 CRITICAL MODEL DEBUG: ollama-generate IPC handler called!');
+    console.error('🚨 MODEL RECEIVED:', model);
+    console.error('🚨 MODEL TYPE:', typeof model);
+    console.error('🚨 MODEL DEFAULT WOULD BE:', 'qwen2.5:14b-instruct-q4_K_M');
+    console.error('🚨 PROMPT LENGTH:', prompt?.length || 0);
+    console.error('🚨 FULL PARAMS:', JSON.stringify({ model, promptLength: prompt?.length }, null, 2));
+    console.error('⏱️ TIMING: IPC handler started at', startTime);
+
+    const requestPrepStart = Date.now();
     return new Promise((resolve, reject) => {
+      // CRITICAL DEBUG: Log the exact model being sent to Ollama
+      console.error('🔴 CRITICAL: About to send to Ollama API:');
+      console.error('🔴 MODEL TO BE SENT:', model);
+      console.error('🔴 IS MODEL UNDEFINED?', model === undefined);
+      console.error('🔴 IS MODEL NULL?', model === null);
+      console.error('🔴 IS MODEL EMPTY STRING?', model === '');
+
       const postData = JSON.stringify({
         model: model,
         prompt: prompt,
@@ -1229,9 +1102,17 @@ ipcMain.handle('ollama-generate', async (event, { prompt, model = 'qwen2.5:14b-i
         options: {
           temperature: 0.3,
           top_p: 0.9,
-          num_predict: 300
+          num_predict: 800
         }
       });
+
+      // CRITICAL DEBUG: Log the actual JSON being sent
+      const postDataParsed = JSON.parse(postData);
+      console.error('🔴 ACTUAL JSON MODEL FIELD:', postDataParsed.model);
+      console.error('🔴 POST DATA (first 200 chars):', postData.substring(0, 200));
+
+      const requestPrepEnd = Date.now();
+      console.error('⏱️ TIMING: Request prep took', requestPrepEnd - requestPrepStart, 'ms');
 
       const request = net.request({
         method: 'POST',
@@ -1241,8 +1122,13 @@ ipcMain.handle('ollama-generate', async (event, { prompt, model = 'qwen2.5:14b-i
         }
       });
 
+      const requestSentTime = Date.now();
+      console.error('⏱️ TIMING: Request object created, about to send at', requestSentTime);
+
       request.on('response', (response) => {
+        const responseReceivedTime = Date.now();
         console.log(`🔍 IPC Handler: Ollama generate response - Status: ${response.statusCode}`);
+        console.error('⏱️ TIMING: Response received after', responseReceivedTime - requestSentTime, 'ms');
         let data = '';
         
         response.on('data', (chunk) => {
@@ -1250,10 +1136,25 @@ ipcMain.handle('ollama-generate', async (event, { prompt, model = 'qwen2.5:14b-i
         });
         
         response.on('end', () => {
+          const dataCompleteTime = Date.now();
+          console.error('⏱️ TIMING: Data complete after', dataCompleteTime - responseReceivedTime, 'ms');
+
           if (response.statusCode === 200) {
             try {
+              const parseStartTime = Date.now();
               const result = JSON.parse(data);
               console.log('✅ IPC Handler: Ollama generation successful');
+
+              // CRITICAL DEBUG: Check what model Ollama actually used
+              console.error('🔴 OLLAMA RESPONSE - MODEL FIELD:', result.model);
+              console.error('🔴 OLLAMA RESPONSE - EXPECTED MODEL:', model);
+              if (result.model !== model) {
+                console.error('❌❌❌ MODEL MISMATCH DETECTED!');
+                console.error('❌ REQUESTED:', model);
+                console.error('❌ OLLAMA USED:', result.model);
+              }
+
+              console.error('⏱️ TIMING: JSON parse took', Date.now() - parseStartTime, 'ms');
 
               // Enhanced parsing logic moved from renderer process
               const rawResponse = result.response;
@@ -1296,6 +1197,9 @@ ipcMain.handle('ollama-generate', async (event, { prompt, model = 'qwen2.5:14b-i
                 }
               }
 
+              const totalDuration = Date.now() - startTime;
+              console.error('⏱️ TIMING: TOTAL IPC HANDLER DURATION:', totalDuration, 'ms');
+              console.error('⏱️ TIMING: Performance rating:', totalDuration < 1000 ? 'EXCELLENT' : totalDuration < 2000 ? 'GOOD' : totalDuration < 3000 ? 'ACCEPTABLE' : 'NEEDS OPTIMIZATION');
               resolve({ success: true, response: suggestion });
             } catch (parseError) {
               console.log('❌ IPC Handler: Failed to parse Ollama generation response');
@@ -1312,15 +1216,18 @@ ipcMain.handle('ollama-generate', async (event, { prompt, model = 'qwen2.5:14b-i
         resolve({ success: false, error: error.message });
       });
 
+      // COMMENTED OUT: 60-second timeout was too aggressive for qwen2.5:14b
       // Set timeout for generation (60 seconds to handle complex prompts)
-      setTimeout(() => {
-        request.abort();
-        console.log('⏰ IPC Handler: Ollama generation timeout after 60 seconds');
-        resolve({ success: false, error: 'Generation timeout after 60 seconds' });
-      }, 60000);
+      // setTimeout(() => {
+      //   request.abort();
+      //   console.log('⏰ IPC Handler: Ollama generation timeout after 60 seconds');
+      //   resolve({ success: false, error: 'Generation timeout after 60 seconds' });
+      // }, 60000);
 
+      console.error('⏱️ TIMING: About to write and send request at', Date.now());
       request.write(postData);
       request.end();
+      console.error('⏱️ TIMING: Request sent, waiting for response...');
     });
   } catch (error) {
     console.log('❌ IPC Handler: Exception in ollama-generate:', error.message);
@@ -1388,31 +1295,10 @@ ipcMain.handle('ollama-list-models', async () => {
   }
 });
 
-// Storage operations
-ipcMain.handle('save-insights', async (event, insights) => {
-  try {
-    const userDataPath = app.getPath('userData');
-    const insightsPath = path.join(userDataPath, 'coaching-insights.json');
-    
-    await fs.writeFile(insightsPath, JSON.stringify(insights, null, 2));
-    return { success: true };
-  } catch (error) {
-    throw new Error(`Failed to save insights: ${error.message}`);
-  }
-});
-
-ipcMain.handle('load-insights', async () => {
-  try {
-    const userDataPath = app.getPath('userData');
-    const insightsPath = path.join(userDataPath, 'coaching-insights.json');
-    
-    const content = await fs.readFile(insightsPath, 'utf-8');
-    return JSON.parse(content);
-  } catch (error) {
-    // Return null if file doesn't exist
-    return null;
-  }
-});
+// REMOVED: Obsolete save/load insights IPC handlers
+// These handled the old 5-step questionnaire system
+// Document processing is now handled by RAG services
+// which store processed documents in the proper data structures
 
 // List all Ollama instruction files
 ipcMain.handle('list-instruction-files', async () => {
@@ -2188,7 +2074,7 @@ ipcMain.handle('start-transcription', async (event, voskConfigFromRenderer) => {
     }
     
     // LED 1032: Python server spawn preparation - Use absolute path with app.getAppPath()
-    // Using Socket.IO version for compatibility with client
+    // Using Socket.IO version for dual audio capture compatibility
     const pythonScript = path.join(app.getAppPath(), 'src', 'services', 'vosk-websocket-server.py');
     
     // Prepare Vosk config arguments if available

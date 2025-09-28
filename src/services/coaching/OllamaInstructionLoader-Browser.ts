@@ -8,14 +8,18 @@ import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
 export class OllamaInstructionLoaderBrowser {
   private trail: BreadcrumbTrail;
   private instructionTemplate: string = '';
-  private instructionFilePath: string = 'ollama-prompts/active-instructions.md';
-  
+  private instructionFilePath: string = ''; // NO DEFAULT - FAIL LOUDLY IF NOT SELECTED
+  private ragTools: any[] = []; // Cache for RAG tools
+
   constructor() {
     this.trail = new BreadcrumbTrail('OllamaInstructionLoader');
-    
+
+    // FORCE CACHE CLEAR to ensure settings are respected
+    localStorage.removeItem('ollama_instructions_cache');
+
     // Check for saved instruction file preference
     this.loadInstructionFilePreference();
-    
+
     // Load instructions on initialization
     this.loadInstructions();
     
@@ -32,11 +36,16 @@ export class OllamaInstructionLoaderBrowser {
   private loadInstructionFilePreference(): void {
     try {
       const savedSettings = localStorage.getItem('voicecoach-settings');
+      console.error('🚨 LOCALSTORAGE CHECK: voicecoach-settings =', savedSettings);
+
       if (savedSettings) {
         const settings = JSON.parse(savedSettings);
+        console.error('🚨 PARSED SETTINGS:', JSON.stringify(settings, null, 2));
+
         if (settings.ollama?.instructionFile) {
           const oldPath = this.instructionFilePath;
           this.instructionFilePath = `ollama-prompts/${settings.ollama.instructionFile}`;
+          console.error('🚨 INSTRUCTION FILE OVERRIDE:', oldPath, '->', this.instructionFilePath);
           console.log('📂 Using saved instruction file:', this.instructionFilePath);
           
           this.trail.light(6408, {
@@ -48,8 +57,9 @@ export class OllamaInstructionLoaderBrowser {
         }
       }
     } catch (error) {
-      console.warn('Failed to load instruction file preference:', error);
+      alert('🚨 CRITICAL ERROR: Failed to load instruction file preference!\n\nDevelopment halted - fix this issue before continuing.');
       this.trail.fail(8408, error as Error);
+      throw new Error(`Instruction file preference loading failed: ${error}`);
     }
   }
   
@@ -151,41 +161,85 @@ export class OllamaInstructionLoaderBrowser {
       console.error('   Expected file at:', this.instructionFilePath);
       console.error('   This means AI coaching prompts are NOT configured properly!');
       
-      // Set FAILED state instructions
-      this.instructionTemplate = this.getDefaultInstructions();
-      console.error('🔴 FAILED: System in FAILED state - cannot provide coaching!');
-      
-      // Show user-visible FAILED state
-      if (typeof window !== 'undefined') {
-        setTimeout(() => {
-          alert('🔴 AI COACHING FAILED!\n\nOllama instruction file not found.\nSystem is in FAILED state - cannot provide coaching.\n\nPlease check ollama-prompts/active-instructions.md');
-        }, 2000);
-      }
-      
-      return false; // Return false to indicate failure
+      // NO FALLBACK - CRASH LOUDLY
+      const errorMsg = `🚨 INSTRUCTION FILE NOT FOUND: ${this.instructionFilePath}\n\nYou selected this file but it doesn't exist!\nFix the file selection or create the file.\n\nAPP WILL NOT WORK WITHOUT PROPER INSTRUCTION FILE!`;
+      alert(errorMsg);
+      throw new Error(`Selected instruction file not found: ${this.instructionFilePath}`);
       
     } catch (error) {
       this.trail.fail(8401, error as Error);
       console.error('❌ CRITICAL ERROR loading instructions:', error);
-      console.error('🔴 FAILED: System in FAILED state - cannot provide coaching!');
-      
-      this.instructionTemplate = this.getDefaultInstructions();
-      
-      // Make the error visible to user
-      if (typeof window !== 'undefined') {
-        setTimeout(() => {
-          alert(`🔴 AI COACHING FAILED!\n\nFailed to load instructions: ${error}\n\nSystem is in FAILED state - cannot provide coaching.`);
-        }, 2000);
-      }
+
+      // NO FALLBACK - CRASH LOUDLY
+      const errorMsg = `🚨 CRITICAL INSTRUCTION LOADING ERROR!\n\nFile: ${this.instructionFilePath}\nError: ${error}\n\nAPP CANNOT FUNCTION - FIX THIS IMMEDIATELY!`;
+      alert(errorMsg);
+      throw new Error(`Critical instruction loading error: ${error}`);
       
       return false;
     }
   }
   
   /**
+   * Load tools from RAG document
+   */
+  private async loadToolsFromRAG(): Promise<any[]> {
+    if (this.ragTools.length > 0) {
+      return this.ragTools; // Use cached tools
+    }
+
+    try {
+      if ((window as any).electronAPI?.readFile) {
+        // Get RAG file from settings - FAIL LOUDLY if not configured
+        const savedSettings = localStorage.getItem('voicecoach-settings');
+        let ragPath = '';
+
+        if (savedSettings) {
+          try {
+            const settings = JSON.parse(savedSettings);
+            if (settings.coaching?.ragFile) {
+              ragPath = settings.coaching.ragFile;
+            }
+          } catch (e) {
+            console.error('Failed to parse settings for RAG file');
+          }
+        }
+
+        if (!ragPath || ragPath.trim().length === 0) {
+          const errorMsg = '🚨 CRITICAL RAG FILE ERROR!\n\nNO RAG FILE CONFIGURED IN SETTINGS!\n\nThe user must select a RAG file in the dropdown.\nApp cannot function without proper RAG file selection.\n\nFIX THIS IMMEDIATELY!';
+          console.error(errorMsg);
+          alert(errorMsg);
+          throw new Error('RAG file not configured - user must select in settings');
+        }
+
+        console.log('📁 Using configured RAG file:', ragPath);
+        const fileData = await (window as any).electronAPI.readFile(ragPath);
+
+        if (fileData && fileData.content) {
+          this.ragTools = JSON.parse(fileData.content);
+
+          this.trail.light(6420, {
+            operation: 'rag_tools_loaded',
+            toolCount: this.ragTools.length,
+            ragPath
+          });
+
+          return this.ragTools;
+        }
+      }
+
+      throw new Error('Could not load RAG tools from file');
+
+    } catch (error) {
+      this.trail.fail(8420, error as Error);
+      console.error('❌ Failed to load RAG tools:', error);
+      return []; // Return empty array as fallback
+    }
+  }
+
+  /**
    * Build the final prompt with variables replaced
    */
-  buildPrompt(context: {
+  async buildPrompt(context: {
     transcript: string;
     knowledge?: string;
     salesStage?: string;
@@ -193,64 +247,54 @@ export class OllamaInstructionLoaderBrowser {
     objections?: string[];
     topics?: string[];
     sentiment?: string;
-  }): string {
+    tools?: any[]; // Accept tools directly from context
+  }): Promise<string> {
     
     // DEBUG: Log what we received and which file we're using
     console.log('🔧 INSTRUCTION LOADER - buildPrompt() called with:', {
       instructionFile: this.instructionFilePath,
       templateLength: this.instructionTemplate.length,
       transcriptLength: context.transcript?.length || 0,
-      transcriptContent: context.transcript || '[EMPTY]',
-      hasKnowledge: !!context.knowledge,
-      knowledgeLength: context.knowledge?.length || 0
+      hasTools: !!context.tools,
+      toolCount: context.tools?.length || 0
     });
     
     // If template is empty, load it
     if (!this.instructionTemplate) {
-      console.warn('⚠️ Template is empty, loading instructions...');
-      this.loadInstructions();
-      if (!this.instructionTemplate) {
-        console.error('❌ Failed to load template, using default FAILED state');
-        this.instructionTemplate = this.getDefaultInstructions();
-      }
+      // NO FALLBACK - CRASH LOUDLY
+      const errorMsg = `🚨 NO INSTRUCTION TEMPLATE LOADED!\n\nYou must select an instruction file in Settings.\nCannot generate prompts without instructions.\n\nAPP WILL NOT WORK!`;
+      alert(errorMsg);
+      throw new Error('No instruction template loaded - select instruction file in Settings');
     }
     
     // Start with the template
     let prompt = this.instructionTemplate;
-    
-    // DEBUG: Check if template has the placeholder
-    const hasTranscriptPlaceholder = prompt.includes('{TRANSCRIPT}');
-    console.log('📝 TEMPLATE CHECK:', {
-      hasTranscriptPlaceholder,
-      templateLength: prompt.length,
-      templatePreview: prompt.substring(0, 200)
-    });
-    
-    // Replace variables with actual values
-    const transcriptValue = context.transcript || '[NO TRANSCRIPT AVAILABLE]';
-    const knowledgeValue = context.knowledge || 'No specific knowledge loaded';
-    
-    console.log('🔄 REPLACEMENT VALUES:', {
-      transcript: transcriptValue.substring(0, 100),
-      knowledge: knowledgeValue.substring(0, 100)
-    });
-    
+
+    // Get tools - either from context or load from RAG
+    const tools = context.tools || await this.loadToolsFromRAG();
+
+    // Replace ALL placeholders with actual values
     prompt = prompt
-      .replace(/{TRANSCRIPT}/g, transcriptValue)
-      .replace(/{KNOWLEDGE_BASE}/g, knowledgeValue)
+      .replace(/{{TOOLS_JSON}}/g, JSON.stringify(tools, null, 2))
+      .replace(/{{TRANSCRIPT}}/g, context.transcript || '[NO TRANSCRIPT AVAILABLE]')
+      .replace(/{{STAGE}}/g, context.salesStage || this.detectSalesStage(context.transcript))
+      .replace(/{{SENTIMENT}}/g, context.sentiment || 'neutral')
+      .replace(/{{TOPICS}}/g, context.topics?.join(', ') || 'none detected')
+      .replace(/{{OBJECTIONS}}/g, context.objections?.join(', ') || 'none detected')
+      // Legacy placeholders for backward compatibility
+      .replace(/{TRANSCRIPT}/g, context.transcript || '[NO TRANSCRIPT AVAILABLE]')
+      .replace(/{KNOWLEDGE_BASE}/g, context.knowledge || 'Knowledge loaded via tools')
       .replace(/{SALES_STAGE}/g, context.salesStage || this.detectSalesStage(context.transcript))
       .replace(/{DURATION}/g, (context.callDuration || 0).toString())
       .replace(/{OBJECTIONS}/g, context.objections?.join(', ') || this.detectObjections(context.transcript).join(', '))
       .replace(/{TOPICS}/g, context.topics?.join(', ') || 'General discussion')
       .replace(/{SENTIMENT}/g, context.sentiment || 'neutral')
       .replace(/{TIMESTAMP}/g, new Date().toISOString());
-    
-    // DEBUG: Check if replacement worked
-    const stillHasPlaceholder = prompt.includes('{TRANSCRIPT}');
-    console.log('✅ AFTER REPLACEMENT:', {
-      stillHasPlaceholder,
-      promptLength: prompt.length,
-      promptPreview: prompt.substring(prompt.indexOf('CURRENT CONVERSATION:'), prompt.indexOf('CURRENT CONVERSATION:') + 200)
+
+    console.log('✅ PROMPT BUILT:', {
+      finalLength: prompt.length,
+      toolsEmbedded: tools.length,
+      hasTranscript: !!context.transcript
     });
     
     this.trail.light(6403, {
@@ -303,17 +347,7 @@ export class OllamaInstructionLoaderBrowser {
     return objections;
   }
   
-  /**
-   * Get default instructions - FAILURE STATE with LED tracking
-   */
-  private getDefaultInstructions(): string {
-    // LED 8402: Instruction loading failure - track specific reason
-    this.trail.fail(8402, new Error(`Instruction file not found at: ${this.instructionFilePath}`));
-    
-    // Return NULL prompt that will cause Ollama to fail fast
-    // This makes the failure obvious instead of hiding it
-    return `INSTRUCTION_LOAD_FAILED_AT_${Date.now()}_CHECK_LED_8402`;
-  }
+  // REMOVED getDefaultInstructions() - NO MORE FALLBACKS!
   
   /**
    * Reload instructions from file (call this when user clicks refresh)

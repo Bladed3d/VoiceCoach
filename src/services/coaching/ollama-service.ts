@@ -1,6 +1,12 @@
 /**
  * VoiceCoach V2 - Ollama Integration Service
  * Real-time coaching using processed document insights via Ollama
+ *
+ * @deprecated This service has been superseded by OllamaPromptService.ts
+ * All new prompt generation should use the centralized OllamaPromptService
+ * which consolidates all prompt building logic into a single service.
+ *
+ * This file is kept for backward compatibility only.
  */
 import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
 import { ollamaInstructionLoader } from './OllamaInstructionLoader-Browser';
@@ -41,11 +47,12 @@ export class OllamaCoachingService {
   private promptCount: number = 0;
   private useIntelligentIndexing: boolean = false;
   private documentIndexed: boolean = false;
+  private ragTools: any[] = []; // Cache for RAG tools
 
   constructor(config: OllamaConfig) {
     this.trail = new BreadcrumbTrail('OllamaService');
     this.config = config;
-    
+
     this.trail.light(6100, {
       operation: 'ollama_service_initialization',
       baseUrl: config.baseUrl,
@@ -58,23 +65,23 @@ export class OllamaCoachingService {
   async testConnection(): Promise<boolean> {
     try {
       this.trail.light(6101, { operation: 'ollama_connection_test_start' });
-      
+
       const response = await fetch(`${this.config.baseUrl}/api/tags`);
       if (response.ok) {
         const models = await response.json();
         this.isConnected = true;
-        
+
         this.trail.light(6102, {
           operation: 'ollama_connection_success',
           availableModels: models.models?.length || 0,
           timestamp: Date.now()
         });
-        
+
         return true;
       }
-      
+
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      
+
     } catch (error) {
       this.trail.fail(8101, error as Error);
       this.isConnected = false;
@@ -97,13 +104,13 @@ export class OllamaCoachingService {
       });
 
       // Build context-aware prompt using intelligent indexing or full document
-      const prompt = this.useIntelligentIndexing 
+      const prompt = this.useIntelligentIndexing
         ? intelligentPromptBuilder.buildContextAwarePrompt(
-            context.currentTranscript, 
+            context.currentTranscript,
             context.processedInsights
           )
-        : this.buildCoachingPrompt(context);
-      
+        : await this.buildCoachingPrompt(context);
+
       console.log('🚀 Sending to Ollama:', {
         url: `${this.config.baseUrl}/api/generate`,
         model: this.config.model,
@@ -157,169 +164,118 @@ export class OllamaCoachingService {
     }
   }
 
-  private buildCoachingPrompt(context: CoachingContext): string {
+  /**
+   * Load tools from RAG document (13ToolsRAG-01.json)
+   */
+  private async loadRAGTools(): Promise<any[]> {
+    if (this.ragTools.length > 0) {
+      return this.ragTools; // Use cached tools
+    }
+
+    try {
+      if ((window as any).electronAPI?.readFile) {
+        // Get RAG file from settings - FAIL LOUDLY if not configured
+        const savedSettings = localStorage.getItem('voicecoach-settings');
+        let ragPath = '';
+
+        if (savedSettings) {
+          try {
+            const settings = JSON.parse(savedSettings);
+            if (settings.coaching?.ragFile) {
+              ragPath = settings.coaching.ragFile;
+            }
+          } catch (e) {
+            console.error('Failed to parse settings for RAG file');
+          }
+        }
+
+        if (!ragPath || ragPath.trim().length === 0) {
+          const errorMsg = '🚨 CRITICAL RAG FILE ERROR IN OLLAMA-SERVICE!\n\nNO RAG FILE CONFIGURED IN SETTINGS!\n\nThe user must select a RAG file in the dropdown.\nApp cannot function without proper RAG file selection.\n\nFIX THIS IMMEDIATELY!';
+          console.error(errorMsg);
+          alert(errorMsg);
+          throw new Error('RAG file not configured in ollama-service - user must select in settings');
+        }
+
+        console.log('📁 OllamaService using configured RAG file:', ragPath);
+        const fileData = await (window as any).electronAPI.readFile(ragPath);
+
+        if (fileData && fileData.content) {
+          this.ragTools = JSON.parse(fileData.content);
+
+          this.trail.light(6120, {
+            operation: 'rag_tools_loaded',
+            toolCount: this.ragTools.length,
+            ragPath
+          });
+
+          console.log('✅ RAG tools loaded:', this.ragTools.length, 'tools');
+          return this.ragTools;
+        }
+      }
+
+      throw new Error('Could not load RAG tools from file');
+
+    } catch (error) {
+      this.trail.fail(8120, error as Error);
+      console.error('❌ Failed to load RAG tools:', error);
+      return []; // Return empty array as fallback
+    }
+  }
+
+  /**
+   * Analyze sentiment from conversation context
+   */
+  private analyzeSentiment(context: CoachingContext): string {
+    const transcript = context.currentTranscript.toLowerCase();
+
+    // Simple sentiment analysis
+    if (transcript.includes('excited') || transcript.includes('great') || transcript.includes('perfect')) {
+      return 'positive';
+    }
+    if (transcript.includes('concerned') || transcript.includes('worried') || transcript.includes('expensive')) {
+      return 'negative';
+    }
+    return 'neutral';
+  }
+
+  private async buildCoachingPrompt(context: CoachingContext): Promise<string> {
     this.promptCount++;
-    console.log(`\n🔢 PROMPT #${this.promptCount} BEING BUILT`);
-    
-    // DEBUG: Log exactly what we received
-    console.log('🔴 CRITICAL DEBUG - RAW CONTEXT:', {
-      currentTranscriptLength: context.currentTranscript?.length || 0,
-      currentTranscriptFirst100: context.currentTranscript?.substring(0, 100) || '[EMPTY]',
-      conversationHistoryLength: context.conversationHistory?.length || 0,
-      lastHistoryItem: context.conversationHistory?.[context.conversationHistory.length - 1] || null
-    });
-    
-    const insights = context.processedInsights;
-    const recentTranscript = context.currentTranscript.slice(-500); // Last 500 chars
-    
-    // DEBUG: What transcript are we actually using?
-    console.log('🎯 TRANSCRIPT DEBUG:', {
-      originalLength: context.currentTranscript?.length || 0,
-      slicedLength: recentTranscript?.length || 0,
-      slicedContent: recentTranscript || '[EMPTY TRANSCRIPT]',
-      isEmpty: !recentTranscript || recentTranscript.trim().length === 0
-    });
-    
-    // CRITICAL: Log what we're passing to buildPrompt
-    console.log('🔴🔴 CRITICAL - recentTranscript being passed to buildPrompt:', {
-      length: recentTranscript?.length || 0,
-      content: recentTranscript || '[EMPTY]',
-      first50: recentTranscript?.substring(0, 50) || '[EMPTY]',
-      last50: recentTranscript?.substring(recentTranscript.length - 50) || '[EMPTY]'
-    });
-    
-    // Check for documentContent wrapper
-    const actualInsights = insights?.documentContent || insights;
-    
-    // Handle both 'techniques' and 'predictive_techniques' field names
-    const techniques = actualInsights?.techniques || actualInsights?.predictive_techniques || [];
-    
-    console.log('🔍 Building prompt with insights:', {
-      hasInsights: !!actualInsights,
-      hasTechniques: techniques.length > 0,
-      techniqueCount: techniques.length,
-      transcriptLength: recentTranscript.length,
-      insightKeys: actualInsights ? Object.keys(actualInsights).slice(0, 5) : [],
-      hasDocumentContent: !!insights?.documentContent,
-      hasPredictiveTechniques: !!actualInsights?.predictive_techniques
-    });
-    
-    // CRITICAL DEBUG - See what we actually have
-    if (techniques[0]) {
-      console.log('🎯 FIRST TECHNIQUE:', {
-        name: techniques[0].technique_name,
-        hasConversationPaths: !!techniques[0].conversation_paths,
-        pathCount: techniques[0].conversation_paths?.length || 0,
-        firstPath: techniques[0].conversation_paths?.[0]?.trigger
-      });
-    } else {
-      console.log('❌ NO TECHNIQUES FOUND IN DOCUMENT!');
-    }
-    
-    // Build knowledge base string from processed insights
-    let knowledgeBase = '';
-    
-    // Add techniques with conversation paths if available
-    if (techniques.length > 0) {
-      knowledgeBase += 'TECHNIQUES WITH CONVERSATION PATHS:\n';
-      techniques.forEach((t: any) => {
-        if (t.conversation_paths || t.when_to_use) {
-          knowledgeBase += `\n${t.technique_name}:\n`;
-          const examples = t.conversation_paths || t.when_to_use || [];
-          examples.slice(0, 5).forEach((path: any) => {
-            // Handle predictive document structure
-            knowledgeBase += `- Trigger: "${path.trigger || path.prospect_says}"\n`;
-            
-            // Get immediate response
-            const immediateWords = path.immediate_response?.exact_words || 
-                                 path.salesperson_says || 
-                                 path.coach_prompt;
-            if (immediateWords) {
-              knowledgeBase += `  Say Now: "${immediateWords}"\n`;
-            }
-            
-            // Get predicted response
-            if (path.predicted_path?.likely_prospect_response) {
-              knowledgeBase += `  They'll Say: "${path.predicted_path.likely_prospect_response}"\n`;
-            }
-            
-            // Get next move
-            if (path.predicted_path?.next_move?.exact_words) {
-              knowledgeBase += `  Then Say: "${path.predicted_path.next_move.exact_words}"\n`;
-            }
-            
-            // Get third move if available
-            if (path.predicted_path?.third_move?.exact_words) {
-              knowledgeBase += `  Finally: "${path.predicted_path.third_move.exact_words}"\n`;
-            }
-          });
-        }
-      });
-    }
-    
-    // Add response patterns if available
-    if (actualInsights?.response_patterns) {
-      knowledgeBase += '\n\nRESPONSE PATTERNS:\n';
-      Object.entries(actualInsights.response_patterns).forEach(([type, pattern]: [string, any]) => {
-        knowledgeBase += `${type}:\n`;
-        if (pattern.triggers) {
-          knowledgeBase += `Triggers: ${pattern.triggers.join(', ')}\n`;
-        }
-        if (pattern.responses) {
-          pattern.responses.slice(0, 3).forEach((r: string) => {
-            knowledgeBase += `- ${r}\n`;
-          });
-        }
-      });
-    }
-    
-    // Use instruction loader to build the prompt with the knowledge base
+    console.log(`\n🔢 PROMPT #${this.promptCount} - NEW DIRECT APPROACH`);
+
+    // Load tools from the RAG document
+    const ragTools = await this.loadRAGTools();
+
+    // Build context with ACTUAL values
     const promptContext = {
-      transcript: recentTranscript,
-      knowledge: knowledgeBase || (console.warn('⚠️ WARNING: No knowledge base loaded - coaching without document context!'), 'No specific knowledge loaded'),
-      salesStage: this.detectSalesStage(recentTranscript),
-      objections: this.detectObjections(recentTranscript),
-      topics: this.detectTopics(recentTranscript)
+      transcript: context.currentTranscript,
+      tools: ragTools, // Pass the actual tools
+      salesStage: this.detectSalesStage(context.currentTranscript),
+      sentiment: this.analyzeSentiment(context),
+      objections: this.detectObjections(context.currentTranscript),
+      topics: this.detectTopics(context.currentTranscript)
     };
-    
-    console.log('📝 Knowledge base length:', knowledgeBase.length);
-    if (knowledgeBase.length === 0) {
-      console.log('❌❌❌ KNOWLEDGE BASE IS EMPTY - NO TECHNIQUES LOADED!');
-    } else {
-      console.log('📋 First 500 chars of knowledge:', knowledgeBase.substring(0, 500));
-    }
-    
-    // LOG what we're about to send to buildPrompt
-    console.log('🎨 ABOUT TO CALL buildPrompt with:', {
+
+    console.log('🎯 DIRECT PROMPT CONTEXT:', {
       transcriptLength: promptContext.transcript?.length || 0,
-      transcriptContent: promptContext.transcript || '[EMPTY]',
-      knowledgeLength: promptContext.knowledge?.length || 0
+      toolsCount: Array.isArray(ragTools) ? ragTools.length : 0,
+      salesStage: promptContext.salesStage,
+      sentiment: promptContext.sentiment,
+      objections: promptContext.objections,
+      topics: promptContext.topics
     });
-    
-    const finalPrompt = ollamaInstructionLoader.buildPrompt(promptContext);
-    console.log('🚀 Final prompt length:', finalPrompt.length);
-    
-    // CRITICAL: Show what we're actually sending to Ollama
-    console.log('🔴 ACTUAL PROMPT BEING SENT (first 1000 chars):');
-    console.log(finalPrompt.substring(0, 1000));
-    
-    // Also show the part around "CURRENT CONVERSATION:"
-    const conversationIndex = finalPrompt.indexOf('CURRENT CONVERSATION:');
-    if (conversationIndex >= 0) {
-      console.log('📍 CURRENT CONVERSATION section (200 chars after marker):');
-      console.log(finalPrompt.substring(conversationIndex, conversationIndex + 200));
-    } else {
-      console.log('❌ NO "CURRENT CONVERSATION:" FOUND IN PROMPT!');
-    }
-    
-    // Check if prompt contains predictive instructions
-    if (!finalPrompt.includes('predictive') && !finalPrompt.includes('PREDICT') && !finalPrompt.includes('forward')) {
-      console.log('⚠️⚠️⚠️ PROMPT DOES NOT CONTAIN PREDICTIVE INSTRUCTIONS!');
-    }
-    
+
+    // Let the instruction loader build the final prompt
+    const finalPrompt = await ollamaInstructionLoader.buildPrompt(promptContext);
+
+    console.log('🚀 DIRECT PROMPT BUILT:', {
+      finalLength: finalPrompt.length,
+      containsTools: finalPrompt.includes('"id"'),
+      containsTranscript: finalPrompt.includes(context.currentTranscript.substring(0, 50))
+    });
+
     return finalPrompt;
   }
-  
+
   private detectSalesStage(transcript: string): string {
     const lower = transcript.toLowerCase();
     if (lower.includes('next steps') || lower.includes('get started')) return 'closing';
@@ -327,7 +283,7 @@ export class OllamaCoachingService {
     if (lower.includes('how does') || lower.includes('features')) return 'demo';
     return 'discovery';
   }
-  
+
   private detectObjections(transcript: string): string[] {
     const objections: string[] = [];
     const lower = transcript.toLowerCase();
@@ -336,7 +292,7 @@ export class OllamaCoachingService {
     if (lower.includes('not sure') || lower.includes('think about')) objections.push('hesitation');
     return objections;
   }
-  
+
   private detectTopics(transcript: string): string[] {
     const topics: string[] = [];
     const lower = transcript.toLowerCase();
@@ -350,13 +306,13 @@ export class OllamaCoachingService {
     try {
       console.log('🔵 RAW OLLAMA RESPONSE (FULL):', ollamaResponse);
       console.log('🔍 RESPONSE LENGTH:', ollamaResponse.length);
-      
+
       // Extract JSON from response (Ollama sometimes adds extra text)
       const jsonMatch = ollamaResponse.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         console.error('❌❌❌ FAILED: NO JSON FOUND IN OLLAMA RESPONSE!');
         console.error('OLLAMA IS NOT FOLLOWING INSTRUCTIONS - RETURNING PLAIN TEXT INSTEAD OF JSON!');
-        
+
         // Return FAILED state - NO FALLBACK!
         return {
           suggestion: 'FAILED: Ollama not returning JSON format. Check instruction template and model.',
@@ -375,7 +331,7 @@ export class OllamaCoachingService {
         console.error('❌❌❌ FAILED: INVALID JSON FROM OLLAMA!');
         console.error('JSON PARSE ERROR:', jsonError);
         console.error('Attempted to parse:', jsonMatch[0]);
-        
+
         // Return FAILED state - NO FALLBACK!
         return {
           suggestion: 'FAILED: Ollama returned malformed JSON. Check model and instructions.',
@@ -386,15 +342,15 @@ export class OllamaCoachingService {
           confidence: 0.0
         };
       }
-      
+
       // Handle simple JSON format from old app
       if (parsed.urgency && parsed.suggestion && parsed.next_action) {
         const priorityMap: { [key: string]: 'HIGH' | 'MEDIUM' | 'LOW' } = {
           'high': 'HIGH',
-          'medium': 'MEDIUM', 
+          'medium': 'MEDIUM',
           'low': 'LOW'
         };
-        
+
         return {
           suggestion: `${parsed.suggestion}\n➡️ ${parsed.next_action}`,
           priority: priorityMap[parsed.urgency] || 'MEDIUM',
@@ -404,7 +360,7 @@ export class OllamaCoachingService {
           confidence: parsed.urgency === 'high' ? 0.9 : parsed.urgency === 'medium' ? 0.7 : 0.5
         };
       }
-      
+
       // Handle predictive format with rich coaching data
       if (parsed.say_now) {
         console.log('✅ PREDICTIVE FORMAT DETECTED - Extracting rich coaching data');
@@ -449,12 +405,12 @@ export class OllamaCoachingService {
           confidence: parsed.confidence || 0.7
         };
       }
-      
+
       // Handle legacy format
       if (!parsed.suggestion || parsed.suggestion === null) {
         console.error('❌❌❌ FAILED: JSON MISSING REQUIRED FIELDS!');
         console.error('Parsed JSON:', parsed);
-        
+
         // Return FAILED state - NO FALLBACK!
         return {
           suggestion: 'FAILED: Ollama JSON missing required fields. Model not following instructions.',
@@ -479,7 +435,7 @@ export class OllamaCoachingService {
       this.trail.fail(8111, error as Error);
       console.error('❌❌❌ FAILED: PARSING ERROR IN parseCoachingResponse!');
       console.error('Error:', error);
-      
+
       // Return FAILED state - NO FALLBACK!
       return {
         suggestion: `FAILED: ${(error as Error).message}`,
@@ -491,14 +447,14 @@ export class OllamaCoachingService {
       };
     }
   }
-  
+
   private determinePriority(parsed: any): 'HIGH' | 'MEDIUM' | 'LOW' {
     if (parsed.priority) return parsed.priority;
     if (parsed.confidence > 0.8) return 'HIGH';
     if (parsed.confidence > 0.5) return 'MEDIUM';
     return 'LOW';
   }
-  
+
   private determineCategory(parsed: any): 'objection_handling' | 'discovery' | 'closing' | 'value_prop' {
     if (parsed.category) return parsed.category;
     const path = (parsed.conversation_path || '').toLowerCase();
@@ -528,7 +484,7 @@ Synthesize Phase 1A and Phase 1B document analysis into final coaching insights.
 ## Phase 1A Results (Pure Document Analysis)
 ${JSON.stringify(phase1AResults, null, 2)}
 
-## Phase 1B Results (User-Prioritized Analysis)  
+## Phase 1B Results (User-Prioritized Analysis)
 ${JSON.stringify(phase1BResults, null, 2)}
 
 ## Instructions
@@ -580,10 +536,10 @@ Create a comprehensive synthesis that combines both analyses into actionable coa
 
       const result = await response.json();
       const jsonMatch = result.response.match(/\{[\s\S]*\}/);
-      
+
       if (jsonMatch) {
         const synthesized = JSON.parse(jsonMatch[0]);
-        
+
         this.trail.light(6121, {
           operation: 'phase_1c_synthesis_complete',
           coachingPrompts: synthesized.coaching_prompts?.length || 0,
@@ -636,16 +592,16 @@ Create a comprehensive synthesis that combines both analyses into actionable coa
   async loadAndIndexDocument(ragDocument: any): Promise<boolean> {
     try {
       console.log('🔍 Loading document into intelligent indexer...');
-      
+
       // Index the document for fast context matching
       await intelligentPromptBuilder.indexDocument(ragDocument);
-      
+
       this.documentIndexed = true;
       this.useIntelligentIndexing = true;
-      
+
       const stats = intelligentPromptBuilder.getIndexStats();
       console.log('✅ Document indexed successfully:', stats);
-      
+
       this.trail.light(6104, {
         operation: 'document_indexed',
         techniques: stats.techniques,
@@ -653,7 +609,7 @@ Create a comprehensive synthesis that combines both analyses into actionable coa
         paths: stats.totalPaths,
         memory: stats.memoryUsage
       });
-      
+
       return true;
     } catch (error) {
       this.trail.fail(8106, error as Error);
@@ -669,5 +625,54 @@ Create a comprehensive synthesis that combines both analyses into actionable coa
   setIntelligentIndexing(enabled: boolean): void {
     this.useIntelligentIndexing = enabled && this.documentIndexed;
     console.log(`📊 Intelligent indexing: ${this.useIntelligentIndexing ? 'ENABLED' : 'DISABLED'}`);
+  }
+
+  /**
+   * Generate raw response from Ollama for MEFS-enhanced prompts
+   */
+  async generateRawResponse(prompt: string): Promise<string | null> {
+    if (!this.isConnected) {
+      throw new Error('Ollama not connected');
+    }
+
+    try {
+      this.trail.light(6130, {
+        operation: 'raw_response_generation_start',
+        promptLength: prompt.length
+      });
+
+      const response = await fetch(`${this.config.baseUrl}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: this.config.model,
+          prompt,
+          options: {
+            temperature: this.config.temperature,
+            top_p: this.config.topP,
+            num_predict: this.config.maxTokens
+          },
+          stream: false
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Ollama error: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      this.trail.light(6131, {
+        operation: 'raw_response_generation_complete',
+        responseLength: result.response?.length || 0
+      });
+
+      return result.response || null;
+
+    } catch (error) {
+      this.trail.fail(8130, error as Error);
+      console.error('❌ Raw response generation failed:', error);
+      return null;
+    }
   }
 }
