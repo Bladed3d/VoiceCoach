@@ -33,14 +33,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
   const [audioDevices, setAudioDevices] = useState<AudioDevice[]>([]);
   const [loadingDevices, setLoadingDevices] = useState(false);
   const [deviceError, setDeviceError] = useState<string | null>(null);
-  
+
   // State for instruction files
   const [instructionFiles, setInstructionFiles] = useState<{ filename: string; displayName: string; }[]>([]);
-  
+
   // Load saved settings from localStorage
   const savedMicId = localStorage.getItem('selectedMicrophoneId') || 'default';
   const savedMicLabel = localStorage.getItem('selectedMicrophoneLabel') || 'System Default';
-  
+
   const [settings, setSettings] = useState({
     audioInput: savedMicId,
     audioInputLabel: savedMicLabel,
@@ -119,13 +119,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
   // Enhanced tab switching tracking
   useEffect(() => {
     if (isOpen) {
-      trail.light(7060, { 
-        navigation: 'tab_switch', 
-        from_tab: activeTab, 
+      trail.light(7060, {
+        navigation: 'tab_switch',
+        from_tab: activeTab,
         to_tab: activeTab,
         timestamp: Date.now()
       });
-      
+
       // Tab-specific initialization tracking
       if (activeTab === 'audio') {
         trail.light(7061, { tab_init: 'audio_settings', devices_to_load: true });
@@ -151,20 +151,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
       enumerateAudioDevices();
     }
   }, [activeTab, isOpen]);
-  
+
   // Load instruction files when AI tab is active
   useEffect(() => {
     if (activeTab === 'ai' && isOpen) {
       loadInstructionFiles();
     }
   }, [activeTab, isOpen]);
-  
+
   const loadInstructionFiles = async () => {
     try {
       if ((window as any).electronAPI?.listInstructionFiles) {
         const files = await (window as any).electronAPI.listInstructionFiles();
         setInstructionFiles(files || []);
-        trail.light(7090, { 
+        trail.light(7090, {
           operation: 'instruction_files_loaded',
           count: files?.length || 0,
           files: files
@@ -184,7 +184,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
   const enumerateAudioDevices = async () => {
     setLoadingDevices(true);
     setDeviceError(null);
-    
+
     trail.light(7051, { action: 'enumerate_audio_devices_start' });
 
     try {
@@ -192,7 +192,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
       trail.light(7075, { permission: 'request_start', type: 'microphone' });
       await navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
-          trail.lightWithVerification(7052, 
+          trail.lightWithVerification(7052,
             { action: 'microphone_permission_granted', stream_active: true },
             { expect: 'granted', actual: stream.active ? 'granted' : 'denied' }
           );
@@ -203,7 +203,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
       // Enhanced device enumeration with validation
       trail.light(7077, { enumeration: 'start_device_scan' });
       const devices = await navigator.mediaDevices.enumerateDevices();
-      trail.lightWithVerification(7053, 
+      trail.lightWithVerification(7053,
         { action: 'devices_enumerated', total_devices: devices.length },
         { expect: 'devices_found', actual: devices.length > 0 ? 'devices_found' : 'no_devices' }
       );
@@ -219,11 +219,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
         }));
 
       setAudioDevices(audioInputs);
-      trail.lightWithVerification(7054, 
+      trail.lightWithVerification(7054,
         { action: 'audio_devices_loaded', microphone_count: audioInputs.length },
         { expect: 'microphones_available', actual: audioInputs.length > 0 ? 'available' : 'none' }
       );
-      
+
     } catch (error) {
       trail.light(8075, { error: 'device_enumeration_failed', error_type: error.name, component: 'SettingsModal' });
       trail.fail(7055, error as Error);
@@ -235,14 +235,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
   };
 
   const handleSettingChange = (key: string, value: any) => {
-    trail.light(7066, { 
-      settings_change: 'general_setting', 
-      key, 
-      old_value: settings[key as keyof typeof settings], 
-      new_value: value 
+    trail.light(7066, {
+      settings_change: 'general_setting',
+      key,
+      old_value: settings[key as keyof typeof settings],
+      new_value: value
     });
     setSettings(prev => ({ ...prev, [key]: value }));
-    
+
     // Track specific critical settings changes
     if (key === 'aiModel') {
       trail.light(7067, { ai: 'model_changed', from: settings.aiModel, to: value });
@@ -253,14 +253,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
 
   const handleKnowledgeBaseSettingChange = (key: string, value: any) => {
     const oldValue = settings.knowledgeBase[key as keyof typeof settings.knowledgeBase];
-    
-    trail.light(7080, { 
-      knowledge_base: 'setting_change', 
+
+    trail.light(7080, {
+      knowledge_base: 'setting_change',
       setting: key,
       old_value: oldValue,
       new_value: value
     });
-    
+
     // Enhanced tracking for phase toggles
     if (key.includes('phase') && key.includes('Enabled')) {
       const phaseType = key.replace('Enabled', '');
@@ -269,7 +269,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
         enabled: value,
         api_integration: value ? 'enabled' : 'disabled'
       });
-      
+
       if (value && !settings.knowledgeBase.apiEndpoint) {
         trail.light(7082, {
           validation_warning: 'phase_enabled_no_endpoint',
@@ -278,7 +278,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
         });
       }
     }
-    
+
     setSettings(prev => ({
       ...prev,
       knowledgeBase: { ...prev.knowledgeBase, [key]: value }
@@ -289,7 +289,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
     const device = audioDevices.find(d => d.deviceId === deviceId);
     const label = device?.label || 'System Default';
     const previousDevice = settings.audioInputLabel;
-    
+
     trail.light(7056, {
       action: 'microphone_selected',
       device_id: deviceId,
@@ -302,10 +302,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
       state_update: 'microphone_settings',
       updating: { audioInput: deviceId, audioInputLabel: label }
     });
-    setSettings(prev => ({ 
-      ...prev, 
+    setSettings(prev => ({
+      ...prev,
       audioInput: deviceId,
-      audioInputLabel: label 
+      audioInputLabel: label
     }));
 
     // Enhanced localStorage persistence tracking
@@ -326,9 +326,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
     window.dispatchEvent(new CustomEvent('microphoneChanged', {
       detail: { deviceId, label }
     }));
-    
+
     // Verification that change was applied
-    trail.lightWithVerification(7086, 
+    trail.lightWithVerification(7086,
       { microphone_change: 'complete' },
       { expect: deviceId, actual: deviceId }
     );
@@ -336,17 +336,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
 
   const saveSettings = async () => {
     trail.light(7087, { save_operation: 'start', timestamp: Date.now() });
-    
+
     // Save settings to localStorage
     localStorage.setItem('voicecoach-settings', JSON.stringify(settings));
-    
+
     // Update OllamaInstructionLoader if instruction file changed
     const { ollamaInstructionLoader } = await import('../../services/coaching/OllamaInstructionLoader-Browser');
     if (settings.ollama?.instructionFile) {
       await ollamaInstructionLoader.setInstructionFile(settings.ollama.instructionFile);
       console.log('✅ Instruction file updated to:', settings.ollama.instructionFile);
     }
-    
+
     // Enhanced settings persistence tracking
     trail.light(7057, {
       action: 'settings_saved',
@@ -366,13 +366,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
         }
       }
     });
-    
+
     // Settings validation before save
-    const hasEnabledPhases = settings.knowledgeBase.phase1AEnabled || 
-                            settings.knowledgeBase.phase1BEnabled || 
+    const hasEnabledPhases = settings.knowledgeBase.phase1AEnabled ||
+                            settings.knowledgeBase.phase1BEnabled ||
                             settings.knowledgeBase.phase1CEnabled;
     const hasApiConfig = settings.knowledgeBase.apiEndpoint && settings.knowledgeBase.apiKey;
-    
+
     if (hasEnabledPhases && !hasApiConfig) {
       trail.light(8088, {
         validation_warning: 'phases_enabled_without_api',
@@ -384,7 +384,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
         missing_config: !hasApiConfig
       });
     }
-    
+
     trail.light(7088, { modal_close: 'triggered_by_save' });
     onClose();
   };
@@ -406,11 +406,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
         {/* Header - Fixed */}
         <div className="flex items-center justify-between p-6 border-b border-slate-700 flex-shrink-0">
           <h2 className="text-xl font-semibold">VoiceCoach V2 Settings</h2>
-          <button 
+          <button
             onClick={() => {
               trail.light(7090, { modal_close: 'header_x_button', unsaved_changes: false });
               onClose();
-            }} 
+            }}
             className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -485,7 +485,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
                       <option value="api-llm">API LLM</option>
                     </select>
                   </div>
-                  
+
                   {/* Ollama Configuration - Show when Ollama is selected */}
                   {settings.aiModel === 'ollama' && (
                     <div className="mt-6 p-4 bg-slate-800/50 rounded-lg border border-slate-700">
@@ -519,7 +519,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
                               const newValue = e.target.value;
                               handleSettingChange('ollama', {...settings.ollama, instructionFile: newValue});
                               console.log('📝 Instruction file changed to:', newValue);
-                              trail.light(7093, { 
+                              trail.light(7093, {
                                 instruction_file_changed: newValue,
                                 previous_file: settings.ollama.instructionFile
                               });
@@ -549,7 +549,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
                             <Bot className="w-4 h-4 text-blue-400" />
                             <span className="text-sm font-medium text-blue-400">AI-Managed Parameters</span>
                           </div>
-                          
+
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             {/* Temperature */}
                             <div>
@@ -567,7 +567,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
                                 className="w-full opacity-75 cursor-not-allowed"
                               />
                             </div>
-                            
+
                             {/* Top P */}
                             <div>
                               <div className="flex items-center space-x-1 mb-2">
@@ -584,7 +584,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
                                 className="w-full opacity-75 cursor-not-allowed"
                               />
                             </div>
-                            
+
                             {/* Max Tokens */}
                             <div>
                               <div className="flex items-center space-x-1 mb-2">
@@ -602,7 +602,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
                               />
                             </div>
                           </div>
-                          
+
                           <div className="mt-4 p-3 bg-slate-800/30 rounded-lg">
                             <div className="text-xs text-slate-400 text-center flex items-center justify-center space-x-2">
                               <Bot className="w-3 h-3 text-blue-400" />
@@ -678,7 +678,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
                     </div>
                   </div>
                   <p className="text-slate-300 leading-relaxed mb-4">
-                    Next-generation AI-powered real-time sales coaching desktop application. Built with Electron, React, and TypeScript 
+                    Next-generation AI-powered real-time sales coaching desktop application. Built with Electron, React, and TypeScript
                     for maximum performance, security, and reliability.
                   </p>
                   <div className="space-y-2 text-sm text-slate-400">
@@ -703,11 +703,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
         {/* Footer - Fixed */}
         <div className="border-t border-slate-700 p-6 flex-shrink-0">
           <div className="flex justify-end space-x-3">
-            <button 
+            <button
               onClick={() => {
                 trail.light(7091, { modal_close: 'cancel_button', settings_discarded: true });
                 onClose();
-              }} 
+              }}
               className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
             >
               Cancel

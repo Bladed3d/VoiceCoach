@@ -26,7 +26,7 @@ export const CoachingPanel: React.FC<CoachingPanelProps> = ({
   const [usedPrompts, setUsedPrompts] = React.useState<Set<string>>(new Set());
   
   // Filter out dismissed prompts
-  const visiblePrompts = coachingPrompts.filter(p => !dismissedPrompts.has(p.id));
+  const visiblePrompts = coachingPrompts.filter(p => !dismissedPrompts.has(String(p.id)));
   
   // Auto-disable animation after coaching session ends
   React.useEffect(() => {
@@ -157,6 +157,7 @@ export const CoachingPanel: React.FC<CoachingPanelProps> = ({
               onUsed={handlePromptUsed}
               onDismissed={handlePromptDismissed}
               onCopy={handleCopy}
+              stageId={prompt.stageId}
             />
           ))}
         </div>

@@ -38,6 +38,7 @@ interface CoachingCardProps {
   onUsed?: (promptId: string) => void;
   onDismissed?: (promptId: string) => void;
   onCopy?: (text: string) => void;
+  stageId?: string;
 }
 
 // Coaching knowledge cache structure
@@ -54,7 +55,8 @@ export const CoachingCard: React.FC<CoachingCardProps> = ({
   totalCount,
   onUsed,
   onDismissed,
-  onCopy
+  onCopy,
+  stageId
 }) => {
   const trail = new BreadcrumbTrail('CoachingCard');
   const [expandedInfo, setExpandedInfo] = useState<{ content: string; loading: boolean } | null>(null);
@@ -198,7 +200,7 @@ export const CoachingCard: React.FC<CoachingCardProps> = ({
 
   // Handle More Info button
   const handleMoreInfo = async () => {
-    trail.light(7310, { operation: 'more_info_clicked', promptId: prompt.id });
+    trail.light(7310, { operation: 'more_info_clicked', promptId: String(prompt.id) });
     
     const coreConceptMatch = prompt.text.match(/\b(open-ended questions?|calibrated questions?|mirroring|rapport building|discovery questions?|pain points?|objection handling|closing techniques?)/i);
     const coreConcept = coreConceptMatch ? coreConceptMatch[0] : prompt.text.split(' ').slice(0, 3).join(' ');
@@ -223,30 +225,8 @@ ${cachedKnowledge.executionSteps}`;
     setExpandedInfo({ content: '', loading: true });
     
     try {
-      // Simulate API call (replace with actual Ollama call)
-      const response = await window.electronAPI?.generateOllamaCoaching?.({
-        prompt: `Define the sales concept "${coreConcept}" and provide implementation steps.`,
-        context: { currentTranscript: prompt.text }
-      });
-      
-      if (response?.success) {
-        const knowledge = {
-          definition: response.definition || 'A key sales technique for effective communication.',
-          executionSteps: response.steps || '1. Listen actively\n2. Apply the technique\n3. Follow up'
-        };
-        
-        saveToCache(cacheKey, knowledge);
-        
-        const formattedContent = `## 📖 Definition
-${knowledge.definition}
-
-## 🎯 How to Execute
-${knowledge.executionSteps}`;
-        
-        setExpandedInfo({ content: formattedContent, loading: false });
-      } else {
-        throw new Error('Failed to get coaching details');
-      }
+      // DISABLED: Remove all fallback Ollama calls to force proper pipeline usage
+      throw new Error('FALLBACK DISABLED: CoachingCard Ollama calls removed - must use proper transcript pipeline');
     } catch (error) {
       trail.fail(8310, error as Error);
       setExpandedInfo({ 
@@ -260,26 +240,13 @@ ${knowledge.executionSteps}`;
   const handleAskQuestion = async () => {
     if (!askMode.question.trim()) return;
     
-    trail.light(7320, { operation: 'ask_question', promptId: prompt.id, question: askMode.question });
+    trail.light(7320, { operation: 'ask_question', promptId: String(prompt.id), question: askMode.question });
     
     setAskMode(prev => ({ ...prev, loading: true, response: '' }));
     
     try {
-      // Simulate API call (replace with actual Ollama call)
-      const response = await window.electronAPI?.generateOllamaCoaching?.({
-        prompt: `Answer this question about "${prompt.text}": ${askMode.question}`,
-        context: { currentTranscript: prompt.text }
-      });
-      
-      if (response?.success) {
-        setAskMode(prev => ({ 
-          ...prev, 
-          response: response.answer || 'I understand your question. Based on the coaching suggestion, you should focus on applying this technique in your current conversation.', 
-          loading: false 
-        }));
-      } else {
-        throw new Error('Failed to get answer');
-      }
+      // DISABLED: Remove all fallback Ollama calls to force proper pipeline usage
+      throw new Error('FALLBACK DISABLED: CoachingCard Ask feature removed - must use proper transcript pipeline');
     } catch (error) {
       trail.fail(8320, error as Error);
       setAskMode(prev => ({ 
@@ -297,7 +264,7 @@ ${knowledge.executionSteps}`;
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     onCopy?.(textToCopy);
-    trail.light(7330, { operation: 'text_copied', promptId: prompt.id });
+    trail.light(7330, { operation: 'text_copied', promptId: String(prompt.id) });
   };
 
   return (
@@ -309,6 +276,11 @@ ${knowledge.executionSteps}`;
           <div className="flex items-center space-x-3 flex-1">
             {getPromptIcon()}
             <h4 className="font-medium text-white text-lg">
+              {stageId && (
+                <span className="text-xs font-mono text-primary-400 mr-2">
+                  {stageId}
+                </span>
+              )}
               {getShortTitle(prompt.text)}
             </h4>
           </div>
@@ -392,7 +364,7 @@ ${knowledge.executionSteps}`;
         </button>
 
         <button 
-          onClick={() => onUsed?.(prompt.id)}
+          onClick={() => onUsed?.(String(prompt.id))}
           className="bg-primary-600 hover:bg-primary-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors flex items-center space-x-1"
         >
           <CheckCircle2 className="w-3 h-3" />
@@ -400,7 +372,7 @@ ${knowledge.executionSteps}`;
         </button>
 
         <button 
-          onClick={() => onDismissed?.(prompt.id)}
+          onClick={() => onDismissed?.(String(prompt.id))}
           className="bg-neutral-600 hover:bg-neutral-700 text-neutral-200 px-3 py-2 rounded text-sm font-medium transition-colors flex items-center space-x-1"
         >
           <X className="w-3 h-3" />

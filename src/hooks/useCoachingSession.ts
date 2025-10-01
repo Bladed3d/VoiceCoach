@@ -9,6 +9,7 @@ import { SessionState } from '../types/coaching';
 export const useCoachingSession = () => {
   const [sessionState, setSessionState] = useState<SessionState | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [conversationHistory, setConversationHistory] = useState<Array<{ speaker: 'user' | 'prospect'; text: string; timestamp: string }>>([]);
   const sessionManager = useRef<SessionManagerService | null>(null);
 
   // Initialize session manager
@@ -20,10 +21,13 @@ export const useCoachingSession = () => {
     // Subscribe to state changes
     sessionManager.current.onStateChange((state: SessionState) => {
       setSessionState(state);
+      // Update conversation history when state changes
+      setConversationHistory(sessionManager.current?.getConversationHistory() || []);
     });
 
     // Set initial state
     setSessionState(sessionManager.current.getState());
+    setConversationHistory(sessionManager.current.getConversationHistory());
     setIsInitialized(true);
     console.log('🔧 useCoachingSession: Hook initialized successfully');
 
@@ -61,13 +65,29 @@ export const useCoachingSession = () => {
     }
   };
 
+  const getSessionManager = () => {
+    return sessionManager.current;
+  };
+
+  const getConversationHistory = () => {
+    return sessionManager.current?.getConversationHistory() || [];
+  };
+
+  const getRecentConversation = (count: number = 10) => {
+    return sessionManager.current?.getRecentConversation(count) || [];
+  };
+
   return {
     sessionState,
     isInitialized,
+    conversationHistory,
     startSession,
     stopSession,
     getWebSocketClient,
     clearTranscriptions,
-    clearCoachingPrompts
+    clearCoachingPrompts,
+    getSessionManager,
+    getConversationHistory,
+    getRecentConversation
   };
 };

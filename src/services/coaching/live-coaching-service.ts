@@ -1,11 +1,16 @@
 /**
- * VoiceCoach V2 - Live Coaching Integration Service
- * Coordinates real-time transcription with document-based coaching via Ollama
+ * VoiceCoach V2 - Live Coaching Integration Service (Template System)
+ * Clean refactor using ToolTemplateEngine + PatternMatchingLibrary
+ * Flow: Transcript → Pattern Match → (fallback) AI Tool Selection → Fill Template → Display
  */
 import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
-import { SimpleWebSocketClient, TranscriptEvent } from '../websocket/simple-websocket-client';
+import { TranscriptEvent } from '../websocket/simple-websocket-client';
 import { CoachingSuggestion } from '../websocket/websocket-client';
-import { OllamaCoachingService, OllamaConfig, CoachingContext, CoachingResponse } from './ollama-service';
+import { OllamaCoachingService, OllamaConfig, CoachingContext } from './ollama-service';
+import { SessionManagerService } from './SessionManagerService';
+import { ToolTemplateEngine, TemplateResult } from './ToolTemplateEngine';
+import { PatternMatchingLibrary, MatchingContext } from './PatternMatchingLibrary';
+import { ToolUsageTracker } from './ToolUsageTracker';
 
 export interface LiveCoachingConfig {
   ollama: OllamaConfig;
@@ -13,32 +18,45 @@ export interface LiveCoachingConfig {
     serverUrl: string;
   };
   coaching: {
-    minTranscriptLength: number; // min chars before coaching
-    maxHistoryLength: number; // max conversation history items
-    enableRealTimeAnalysis: boolean; // instant analysis on final transcripts
-    debounceMs: number; // debounce rapid-fire transcripts (100-200ms)
+    minTranscriptLength: number;
+    maxHistoryLength: number;
+    enableRealTimeAnalysis: boolean;
+    debounceMs: number;
   };
+}
+
+export interface ConversationEntry {
+  speaker: 'user' | 'prospect';
+  text: string;
+  timestamp: string;
 }
 
 export interface ProcessedDocument {
   name: string;
   originalContent: string;
   documentContent?: any;
-  techniques?: any[];
-  response_patterns?: any;
-  loadedTimestamp: string;
+  loadedTimestamp?: string;
 }
 
 export class LiveCoachingService {
   private trail: BreadcrumbTrail;
   private config: LiveCoachingConfig;
-  private webSocketClient: SimpleWebSocketClient;
+
+  // Core services
   private ollamaService: OllamaCoachingService;
+  private templateEngine: ToolTemplateEngine;
+  private patternMatcher: PatternMatchingLibrary;
+  private usageTracker: ToolUsageTracker;
+
+  // Session state
+  private sessionManager: SessionManagerService | null = null;
   private currentDocument: ProcessedDocument | null = null;
-  private conversationHistory: Array<{ speaker: 'user' | 'prospect'; text: string; timestamp: string }> = [];
+  private conversationHistory: ConversationEntry[] = [];
   private pendingTranscript: string = '';
   private isAnalyzing: boolean = false;
   private debounceTimer?: NodeJS.Timeout;
+  private lastSpeaker: 'user' | 'prospect' = 'user';
+  private isConnectedToTranscripts: boolean = false;
 
   // Event callbacks
   private onCoachingSuggestionCallback?: (suggestion: CoachingSuggestion) => void;
@@ -49,125 +67,55 @@ export class LiveCoachingService {
   constructor(config: LiveCoachingConfig) {
     this.trail = new BreadcrumbTrail('LiveCoaching');
     this.config = config;
-    
-    // Initialize services - Use SimpleWebSocketClient for native WebSocket on port 8765
-    this.webSocketClient = new SimpleWebSocketClient('ws://127.0.0.1:8765');
+
+    // Initialize core services
     this.ollamaService = new OllamaCoachingService(config.ollama);
+    this.templateEngine = new ToolTemplateEngine();
+    this.patternMatcher = new PatternMatchingLibrary(this.templateEngine);
+    this.usageTracker = new ToolUsageTracker();
 
     this.trail.light(6200, {
-      operation: 'live_coaching_service_initialization',
-      websocketUrl: config.websocket.serverUrl,
+      operation: 'live_coaching_service_initialized',
       ollamaModel: config.ollama.model,
+      templateSystem: true,
       timestamp: Date.now()
     });
 
-    this.setupEventHandlers();
-  }
-
-  private setupEventHandlers(): void {
-    // Handle transcription events
-    this.webSocketClient.onTranscript((transcript: TranscriptEvent) => {
-      this.trail.light(6210, {
-        operation: 'transcript_received',
-        type: transcript.type,
-        length: transcript.text.length,
-        timestamp: transcript.timestamp
-      });
-
-      // Forward to external callback
-      this.onTranscriptCallback?.(transcript);
-
-      // Add to conversation history and trigger real-time analysis
-      const isSignificantTranscript = (
-        transcript.type === 'final_transcript' ||
-        (transcript.type === 'partial_transcript' && transcript.text.trim().length >= this.config.coaching.minTranscriptLength)
-      );
-
-      if (isSignificantTranscript && transcript.text.trim()) {
-        console.log(`📝 ${transcript.type.toUpperCase()} RECEIVED:`, transcript.text);
-        this.addToConversationHistory('prospect', transcript.text, transcript.timestamp);
-
-        // CRITICAL DEBUG: Track accumulation
-        const beforeLength = this.pendingTranscript?.length || 0;
-        this.pendingTranscript += transcript.text + ' ';
-
-        // MEMORY SAFETY: Keep only last 2000 chars to prevent unbounded growth
-        if (this.pendingTranscript.length > 2000) {
-          this.pendingTranscript = this.pendingTranscript.slice(-1500); // Keep last 1500 chars
-          console.log('🔄 Trimmed pending transcript to prevent memory leak');
-        }
-
-        const afterLength = this.pendingTranscript.length;
-
-        console.log('🔴 TRANSCRIPT ACCUMULATION:', {
-          transcriptType: transcript.type,
-          receivedText: transcript.text,
-          receivedLength: transcript.text.length,
-          beforeAccumulation: beforeLength,
-          afterAccumulation: afterLength,
-          pendingContent: this.pendingTranscript,
-          minRequired: this.config.coaching.minTranscriptLength
-        });
-
-        console.log('📊 PENDING TRANSCRIPT LENGTH:', this.pendingTranscript.length, 'MIN REQUIRED:', this.config.coaching.minTranscriptLength);
-
-        // Trigger IMMEDIATE coaching analysis for live coaching
-        if (this.config.coaching.enableRealTimeAnalysis && this.pendingTranscript.length >= this.config.coaching.minTranscriptLength) {
-          console.log('🎯 TRIGGERING REAL-TIME ANALYSIS!');
-          this.triggerRealTimeAnalysis(transcript.text);
-        } else {
-          console.log('⏳ NOT ENOUGH TEXT YET OR ANALYSIS DISABLED');
-        }
-      }
-    });
-
-    // Handle WebSocket status
-    this.webSocketClient.onStatus((status: string) => {
-      this.trail.light(6211, {
-        operation: 'websocket_status_update',
-        status: status,
-        timestamp: Date.now()
-      });
-      
-      this.onStatusCallback?.(`Transcription: ${status}`);
-    });
-
-    // Handle WebSocket errors  
-    this.webSocketClient.onError((error: string) => {
-      this.trail.fail(8211, new Error(`WebSocket error: ${error}`));
-      this.onErrorCallback?.(`Transcription error: ${error}`);
-    });
+    console.log('✅ LiveCoachingService initialized with Template System');
   }
 
   async initialize(): Promise<boolean> {
     try {
       this.trail.light(6201, { operation: 'live_coaching_initialization_start' });
+      console.log('🔍 LiveCoachingService.initialize(): Starting initialization...');
 
-      // Test Ollama connection
+      // Load template engine configuration
+      console.log('🔍 LiveCoachingService.initialize(): Calling templateEngine.loadConfig()...');
+      await this.templateEngine.loadConfig();
+      console.log(`✅ Template engine loaded: ${this.templateEngine.getToolCount()} tools`);
+
+      // Test Ollama connection (non-blocking - pattern matching works without Ollama)
       console.log('🔌 Testing Ollama connection...');
       const ollamaConnected = await this.ollamaService.testConnection();
-      if (!ollamaConnected) {
-        console.error('❌ Ollama connection failed');
-        throw new Error('Failed to connect to Ollama service');
+      if (ollamaConnected) {
+        console.log('✅ Ollama connected');
+      } else {
+        console.warn('⚠️ Ollama not connected - pattern matching will work, AI fallback may be limited');
       }
-      console.log('✅ Ollama connected');
-
-      // REMOVED WebSocket connection here - it will connect when coaching starts
-      // WebSocket should only connect when user presses Start button, not during initialization
-      console.log('📝 WebSocket will connect when coaching session starts (not during init)');
 
       this.trail.light(6202, {
         operation: 'live_coaching_initialization_complete',
         ollamaConnected,
-        websocketDelayed: true, // WebSocket connection delayed until start
+        toolCount: this.templateEngine.getToolCount(),
         timestamp: Date.now()
       });
 
-      this.onStatusCallback?.('Live coaching initialized successfully');
-      return true;
+      this.onStatusCallback?.('Live coaching initialized with template system');
+      return true; // Return true even if Ollama isn't connected - pattern matching works standalone
 
     } catch (error) {
       this.trail.fail(8201, error as Error);
+      console.error('❌ LiveCoachingService.initialize() error:', error);
       this.onErrorCallback?.(`Initialization failed: ${(error as Error).message}`);
       return false;
     }
@@ -177,66 +125,30 @@ export class LiveCoachingService {
     try {
       this.trail.light(6220, {
         operation: 'document_loading',
-        documentName: document.name,
-        hasTechniques: !!document.techniques || !!document.documentContent?.techniques,
-        hasPatterns: !!document.response_patterns || !!document.documentContent?.response_patterns
+        documentName: document.name
       });
 
-      // Store the document - support both old and new formats
-      const docContent = document.documentContent || document;
-      
-      // Check if this is the new stage-based format
-      if (docContent.stages) {
-        // New stage-based format
-        this.currentDocument = {
-          name: document.name,
-          originalContent: document.originalContent,
-          documentContent: docContent,
-          stages: docContent.stages,
-          progressions: docContent.progressions,
-          universal: docContent.universal,
-          customerTypes: docContent.customerTypes,
-          frameworks: docContent.frameworks,
-          // For backward compatibility, extract techniques from stages
-          techniques: this.extractTechniquesFromStages(docContent),
-          response_patterns: this.extractResponsePatternsFromStages(docContent)
-        };
-      } else {
-        // Old format
-        this.currentDocument = {
-          name: document.name,
-          originalContent: document.originalContent,
-          documentContent: docContent,
-          techniques: docContent.techniques || docContent.predictive_techniques,
-          response_patterns: docContent.response_patterns
-        };
-      }
-      
-      // NEW: Index the document for intelligent prompt building
-      const indexSuccess = await this.ollamaService.loadAndIndexDocument(
+      this.currentDocument = {
+        name: document.name,
+        originalContent: document.originalContent,
+        documentContent: document.documentContent || document,
+        loadedTimestamp: new Date().toISOString()
+      };
+
+      // Index document for Ollama (for AI tool selection fallback)
+      await this.ollamaService.loadAndIndexDocument(
         document.documentContent || document
       );
-      
-      if (indexSuccess) {
-        console.log('✅ Document indexed for intelligent prompt building');
-        this.trail.light(6221, {
-          operation: 'document_indexed_for_coaching',
-          intelligent_indexing: true
-        });
-      } else {
-        console.log('⚠️ Using full document mode (indexing failed)');
-      }
-      
-      this.conversationHistory = []; // Reset conversation when loading new document
+
+      this.conversationHistory = [];
       this.pendingTranscript = '';
 
-      this.onStatusCallback?.(`Document loaded: ${document.name}`);
-      
       this.trail.light(6222, {
         operation: 'document_loaded_successfully',
-        techniqueCount: this.currentDocument.techniques?.length || 0
+        documentName: document.name
       });
 
+      this.onStatusCallback?.(`Document loaded: ${document.name}`);
       return true;
 
     } catch (error) {
@@ -258,29 +170,19 @@ export class LiveCoachingService {
         throw new Error('No document loaded for coaching');
       }
 
-      // Connect WebSocket first (delayed from initialization to actual start)
-      console.log('🔌 Connecting to WebSocket transcription service...');
-      const websocketConnected = await this.webSocketClient.connect();
-      if (!websocketConnected) {
-        console.error('❌ WebSocket connection failed');
-        throw new Error('Failed to connect to transcription service');
-      }
-      console.log('✅ WebSocket connected');
+      this.conversationHistory = [];
+      this.pendingTranscript = '';
+      this.usageTracker.clearUsageData();
 
-      // Start transcription
-      const transcriptionStarted = await this.webSocketClient.startTranscription();
-      if (!transcriptionStarted) {
-        throw new Error('Failed to start transcription');
-      }
+      console.log('🔌 Live coaching ready with Template System');
 
-      this.onStatusCallback?.('Live coaching session started');
-      
       this.trail.light(6231, {
         operation: 'live_coaching_session_active',
         documentName: this.currentDocument.name,
         timestamp: Date.now()
       });
 
+      this.onStatusCallback?.('Live coaching session started');
       return true;
 
     } catch (error) {
@@ -294,23 +196,28 @@ export class LiveCoachingService {
     try {
       this.trail.light(6240, { operation: 'live_coaching_stop' });
 
-      // Stop transcription
-      this.webSocketClient.stopTranscription();
-
-      // Clear debounce timer
       if (this.debounceTimer) {
         clearTimeout(this.debounceTimer);
         this.debounceTimer = undefined;
       }
 
-      this.onStatusCallback?.('Live coaching session stopped');
-      
+      this.isAnalyzing = false;
+      this.pendingTranscript = '';
+
+      // Export usage statistics
+      const usageData = this.usageTracker.exportUsageData();
+      console.log('📊 Session Statistics:', usageData.summary);
+
       this.trail.light(6241, {
         operation: 'live_coaching_session_stopped',
         totalConversationItems: this.conversationHistory.length,
+        toolsShown: usageData.summary.totalToolsShown,
+        toolsUsed: usageData.summary.totalToolsUsed,
+        usageRate: usageData.summary.overallUsageRate,
         timestamp: Date.now()
       });
 
+      this.onStatusCallback?.('Live coaching session stopped');
       return true;
 
     } catch (error) {
@@ -320,119 +227,345 @@ export class LiveCoachingService {
     }
   }
 
-  private triggerRealTimeAnalysis(finalTranscript: string): void {
-    // Don't analyze if already analyzing or no document loaded
+  /**
+   * Main entry point: Process transcript with debouncing
+   */
+  private async triggerRealTimeAnalysis(finalTranscript: string): Promise<void> {
     if (this.isAnalyzing || !this.currentDocument) {
       return;
     }
 
-    // Clear existing debounce timer
+    // Clear existing timer
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
     }
 
-    // Debounce rapid-fire transcripts to prevent spam (100-200ms delay)
-    this.debounceTimer = setTimeout(() => {
-      this.performRealTimeAnalysis(finalTranscript);
+    // Debounce: wait for typing to settle
+    this.debounceTimer = setTimeout(async () => {
+      await this.generatePromptViaTemplates(finalTranscript);
     }, this.config.coaching.debounceMs);
 
     this.trail.light(6250, {
       operation: 'real_time_analysis_triggered',
       transcriptLength: finalTranscript.length,
-      pendingLength: this.pendingTranscript.length,
       debounceMs: this.config.coaching.debounceMs
     });
   }
 
-  private async performRealTimeAnalysis(triggerTranscript: string): Promise<void> {
-    if (this.isAnalyzing || !this.currentDocument) {
-      return;
-    }
+  /**
+   * NEW: Generate coaching prompt using template system
+   * Flow: Pattern Match → (fallback) AI Tool Selection → Fill Template → Display
+   */
+  private async generatePromptViaTemplates(transcript: string): Promise<void> {
+    if (this.isAnalyzing) return;
 
     this.isAnalyzing = true;
 
     try {
+      const startTime = performance.now();
+
+      // Step 1: Analyze sentiment (simple, fast)
+      const sentiment = this.analyzeSentiment(transcript);
+      const stage = this.getCurrentStage();
+
       this.trail.light(6251, {
-        operation: 'real_time_analysis_start',
-        triggerTranscript: triggerTranscript,
-        triggerLength: triggerTranscript.length,
-        totalPendingLength: this.pendingTranscript.length,
-        historyLength: this.conversationHistory.length
+        operation: 'sentiment_analysis_complete',
+        sentiment: sentiment,
+        stage: stage,
+        transcriptLength: transcript.length
       });
 
-      // Build coaching context - use document directly, no phases
-      if (!this.currentDocument) {
-        console.log('❌❌❌ NO DOCUMENT LOADED IN LIVE COACHING SERVICE!');
-        return;
-      }
-      
-      // CRITICAL DEBUG: What's in pendingTranscript?
-      console.log('🔴🔴🔴 PENDING TRANSCRIPT CHECK:', {
-        pendingTranscriptLength: this.pendingTranscript?.length || 0,
-        pendingTranscriptContent: this.pendingTranscript || '[EMPTY]',
-        pendingTranscriptFirst100: this.pendingTranscript?.substring(0, 100) || '[EMPTY]',
-        pendingTranscriptTrimmed: this.pendingTranscript?.trim() || '[EMPTY AFTER TRIM]'
-      });
-      
-      const context: CoachingContext = {
-        originalDocument: this.currentDocument.originalContent,
-        processedInsights: this.currentDocument.documentContent || this.currentDocument,
-        conversationHistory: this.conversationHistory.slice(-this.config.coaching.maxHistoryLength),
-        currentTranscript: this.pendingTranscript
+      // Step 2: Try pattern matching (instant, 60-70% hit rate)
+      const matchingContext: MatchingContext = {
+        transcript,
+        sentiment: sentiment as 'positive' | 'negative' | 'neutral',
+        stage,
+        conversationHistory: this.conversationHistory
       };
-      
-      console.log('📊 Context being sent:', {
-        hasDocument: !!this.currentDocument,
-        documentName: this.currentDocument.name,
-        hasTechniques: !!(this.currentDocument.techniques || this.currentDocument.documentContent?.techniques || this.currentDocument.documentContent?.predictive_techniques),
-        transcriptLength: this.pendingTranscript.length,
-        contextTranscriptLength: context.currentTranscript?.length || 0,
-        contextTranscriptContent: context.currentTranscript?.substring(0, 100) || '[EMPTY IN CONTEXT]'
-      });
 
-      // Get coaching suggestion from Ollama
-      const suggestion = await this.ollamaService.generateCoachingSuggestion(context);
+      const patternMatch = this.patternMatcher.matchTool(matchingContext);
 
-      if (suggestion) {
-        // Convert to WebSocket format and emit
-        const coachingSuggestion: CoachingSuggestion = {
-          type: 'coaching_suggestion',
-          suggestion: suggestion.suggestion,
-          trigger: suggestion.trigger,
-          priority: suggestion.priority,
-          category: suggestion.category as any,
-          context: suggestion.context,
-          timestamp: new Date().toISOString(),
-          breadcrumb: 6252
-        };
+      let toolId: number;
+      let toolName: string;
+      let matchType: 'pattern' | 'ai';
+      let confidence: 'high' | 'medium' | 'low';
+
+      if (patternMatch) {
+        // Pattern match successful!
+        toolId = patternMatch.toolId;
+        toolName = patternMatch.toolName;
+        matchType = 'pattern';
+        confidence = patternMatch.confidence;
 
         this.trail.light(6252, {
-          operation: 'real_time_coaching_suggestion_generated',
-          priority: suggestion.priority,
-          category: suggestion.category,
-          confidence: suggestion.confidence,
-          responseTimeMs: Date.now() - new Date().getTime() // Approximate response time
+          operation: 'pattern_match_success',
+          toolId,
+          toolName,
+          matchType: patternMatch.matchType,
+          score: patternMatch.score,
+          processingTime: performance.now() - startTime
         });
 
-        // Emit coaching suggestion
-        this.onCoachingSuggestionCallback?.(coachingSuggestion);
+        console.log(`✅ Pattern Match: Tool ${toolId} (${toolName}) - ${confidence} confidence`);
 
-        // Clear pending transcript after analysis
-        this.pendingTranscript = '';
+        // Update window title to show pattern matching is working
+        if (typeof document !== 'undefined') {
+          const titleMatch = document.title.match(/PM:(\d+)/);
+          const count = titleMatch ? parseInt(titleMatch[1]) + 1 : 1;
+          document.title = document.title.replace(/PM:\d+/, `PM:${count}`).replace(/\| VoiceCoach/, `PM:${count} | VoiceCoach`);
+          if (!document.title.includes('PM:')) {
+            document.title = `PM:${count} | ${document.title}`;
+          }
+        }
+
+      } else {
+        // Pattern match failed, fall back to AI selection
+        const aiToolId = await this.selectToolViaAI(transcript, sentiment, stage);
+
+        if (!aiToolId) {
+          // AI also failed, use default
+          toolId = 1; // Default to Mirroring
+          toolName = 'Mirroring';
+          matchType = 'ai';
+          confidence = 'low';
+        } else {
+          toolId = aiToolId;
+          const tool = this.templateEngine.getTool(toolId);
+          toolName = tool?.name || `Tool ${toolId}`;
+          matchType = 'ai';
+          confidence = 'medium';
+
+          this.trail.light(6253, {
+            operation: 'ai_tool_selection_success',
+            toolId,
+            toolName,
+            processingTime: performance.now() - startTime
+          });
+
+          console.log(`🤖 AI Selection: Tool ${toolId} (${toolName})`);
+        }
       }
+
+      // Step 3: Extract variables and fill template
+      let variables: Record<string, string> = {};
+
+      // Try simple extraction first (instant for tools 1, 5, 13)
+      const simpleVars = this.templateEngine.extractSimpleVariables(toolId, transcript);
+
+      if (simpleVars) {
+        variables = simpleVars;
+      } else {
+        // Need AI for variable extraction
+        variables = await this.extractVariablesViaAI(toolId, transcript);
+      }
+
+      // Fill template
+      const templateResult = this.templateEngine.fillTemplate(toolId, variables);
+
+      this.trail.light(6254, {
+        operation: 'template_filled',
+        toolId,
+        toolName,
+        variableCount: Object.keys(variables).length,
+        promptLength: templateResult.filledPrompt.length,
+        totalProcessingTime: performance.now() - startTime
+      });
+
+      // Step 4: Send to UI
+      await this.sendPromptToUI(templateResult, matchType, confidence);
+
+      // Step 5: Log usage for learning
+      this.usageTracker.logToolShown(toolId, toolName, {
+        transcript,
+        sentiment,
+        stage,
+        matchType,
+        confidence
+      });
 
     } catch (error) {
       this.trail.fail(8251, error as Error);
-      this.onErrorCallback?.(`Coaching analysis error: ${(error as Error).message}`);
+      console.error('❌ Template generation failed:', error);
     } finally {
       this.isAnalyzing = false;
     }
   }
 
+  /**
+   * NEW: Select tool using AI (fallback when pattern matching fails)
+   * Returns just the tool ID (1-13), not full text
+   */
+  private async selectToolViaAI(
+    transcript: string,
+    sentiment: string,
+    stage: number
+  ): Promise<number | null> {
+    try {
+      const context: CoachingContext = {
+        originalDocument: this.currentDocument?.originalContent || '',
+        processedInsights: this.currentDocument?.documentContent,
+        conversationHistory: this.conversationHistory.slice(-5),
+        currentTranscript: transcript
+      };
+
+      // Ask Ollama to return just a tool number
+      const prompt = `Based on this sales conversation context, select the best coaching tool (1-13):
+
+Transcript: "${transcript}"
+Sentiment: ${sentiment}
+Stage: ${stage}
+
+Available tools:
+${this.templateEngine.getAllTools().map(t => `${t.id}. ${t.name} - ${t.when_use}`).join('\n')}
+
+Respond with ONLY the tool number (1-13), nothing else.`;
+
+      const response = await this.ollamaService.generateRawResponse(prompt);
+
+      // Extract number from response
+      const toolIdMatch = response?.match(/\d+/);
+      if (toolIdMatch) {
+        const toolId = parseInt(toolIdMatch[0], 10);
+        if (toolId >= 1 && toolId <= 13) {
+          return toolId;
+        }
+      }
+
+      return null;
+
+    } catch (error) {
+      this.trail.fail(8252, error as Error);
+      return null;
+    }
+  }
+
+  /**
+   * Extract variables from transcript using AI
+   */
+  private async extractVariablesViaAI(
+    toolId: number,
+    transcript: string
+  ): Promise<Record<string, string>> {
+    try {
+      const tool = this.templateEngine.getTool(toolId);
+      if (!tool) return {};
+
+      const variables: Record<string, string> = {};
+
+      // Extract each variable using AI
+      for (const [varName, extraction] of Object.entries(tool.variableExtraction)) {
+        if (extraction.method === 'ai' && extraction.prompt) {
+          const prompt = `${extraction.prompt}\n\nTranscript: "${transcript}"\n\nExtract and respond with just the extracted text, nothing else.`;
+
+          const response = await this.ollamaService.generateRawResponse(prompt);
+          variables[varName] = response?.trim() || extraction.fallback || '';
+        } else if (extraction.fallback) {
+          variables[varName] = extraction.fallback;
+        }
+      }
+
+      return variables;
+
+    } catch (error) {
+      this.trail.fail(8253, error as Error);
+      return {};
+    }
+  }
+
+  /**
+   * NEW: Send filled template to UI
+   */
+  private async sendPromptToUI(
+    templateResult: TemplateResult,
+    matchType: 'pattern' | 'ai',
+    confidence: 'high' | 'medium' | 'low'
+  ): Promise<void> {
+    const suggestionText = `Tool: ${templateResult.toolName}\n${templateResult.filledPrompt}`;
+
+    const suggestion: CoachingSuggestion = {
+      type: 'coaching_suggestion',
+      suggestion: suggestionText,
+      trigger: `${matchType === 'pattern' ? 'Pattern' : 'AI'}: ${templateResult.toolName}`,
+      priority: confidence.toUpperCase() as 'HIGH' | 'MEDIUM' | 'LOW',
+      category: templateResult.toolName as any,
+      context: JSON.stringify({
+        toolId: templateResult.toolId,
+        toolName: templateResult.toolName,
+        confidence: templateResult.confidence,
+        matchType,
+        variables: templateResult.variables,
+        processingTime: templateResult.processingTime
+      }),
+      timestamp: new Date().toISOString(),
+      breadcrumb: 6255
+    };
+
+    this.trail.light(6255, {
+      operation: 'coaching_suggestion_sent_to_ui',
+      toolId: templateResult.toolId,
+      toolName: templateResult.toolName,
+      confidence,
+      matchType,
+      promptLength: templateResult.filledPrompt.length
+    });
+
+    // Note: SessionManager notification removed - handled via callback
+
+    // Emit to callback
+    this.onCoachingSuggestionCallback?.(suggestion);
+
+    console.log('📤 Coaching Suggestion:', {
+      tool: templateResult.toolName,
+      prompt: templateResult.filledPrompt,
+      confidence,
+      matchType
+    });
+  }
+
+  /**
+   * Simple sentiment analysis (positive/negative/neutral)
+   */
+  private analyzeSentiment(text: string): string {
+    const lowerText = text.toLowerCase();
+
+    // Negative indicators
+    const negativeWords = ['expensive', 'cost', 'worried', 'concerned', 'frustrated', 'problem',
+                           'difficult', 'challenge', 'not sure', 'doubt', 'skeptical'];
+    const negativeCount = negativeWords.filter(word => lowerText.includes(word)).length;
+
+    // Positive indicators
+    const positiveWords = ['interested', 'great', 'good', 'excellent', 'love', 'excited',
+                           'helpful', 'perfect', 'yes', 'absolutely'];
+    const positiveCount = positiveWords.filter(word => lowerText.includes(word)).length;
+
+    if (negativeCount > positiveCount) return 'negative';
+    if (positiveCount > negativeCount) return 'positive';
+    return 'neutral';
+  }
+
+  /**
+   * Get current sales stage (1-9)
+   */
+  private getCurrentStage(): number {
+    // Simple heuristic based on conversation length
+    const messageCount = this.conversationHistory.length;
+
+    if (messageCount < 3) return 1; // Rapport
+    if (messageCount < 6) return 2; // Discovery
+    if (messageCount < 10) return 3; // Pain
+    if (messageCount < 15) return 4; // Impact
+    if (messageCount < 20) return 5; // Solution
+    if (messageCount < 25) return 6; // Objection
+    if (messageCount < 30) return 7; // Close
+    return 8; // Follow-up
+  }
+
+  /**
+   * Add message to conversation history
+   */
   private addToConversationHistory(speaker: 'user' | 'prospect', text: string, timestamp: string): void {
     this.conversationHistory.push({ speaker, text, timestamp });
-    
-    // Trim history if too long
+
     if (this.conversationHistory.length > this.config.coaching.maxHistoryLength) {
       this.conversationHistory = this.conversationHistory.slice(-this.config.coaching.maxHistoryLength);
     }
@@ -442,6 +575,85 @@ export class LiveCoachingService {
       speaker,
       textLength: text.length,
       totalHistoryItems: this.conversationHistory.length
+    });
+  }
+
+  /**
+   * Handle transcript from SessionManager
+   */
+  private async handleTranscriptFromSessionManager(
+    transcript: TranscriptEvent,
+    speaker: 'user' | 'prospect'
+  ): Promise<void> {
+    this.trail.light(6275, {
+      operation: 'transcript_received',
+      type: transcript.type,
+      speaker,
+      length: transcript.text.length
+    });
+
+    this.onTranscriptCallback?.(transcript);
+
+    const isSignificant = (
+      transcript.type === 'final_transcript' ||
+      (transcript.type === 'partial_transcript' && transcript.text.trim().length >= this.config.coaching.minTranscriptLength)
+    );
+
+    if (isSignificant && transcript.text.trim()) {
+      // Track speaker changes
+      if (speaker !== this.lastSpeaker) {
+        console.log(`🎯 Speaker change: ${this.lastSpeaker} → ${speaker}`);
+        this.lastSpeaker = speaker;
+      }
+
+      // Add to history
+      this.addToConversationHistory(speaker, transcript.text, transcript.timestamp);
+
+      // Only coach on PROSPECT speech
+      if (speaker === 'prospect') {
+        this.pendingTranscript += transcript.text + ' ';
+
+        // Memory safety
+        if (this.pendingTranscript.length > 2000) {
+          this.pendingTranscript = this.pendingTranscript.slice(-1500);
+        }
+
+        // Trigger coaching
+        if (this.config.coaching.enableRealTimeAnalysis &&
+            this.pendingTranscript.length >= this.config.coaching.minTranscriptLength) {
+          await this.triggerRealTimeAnalysis(transcript.text);
+        }
+      }
+    }
+  }
+
+  /**
+   * Connect to SessionManager
+   */
+  setSessionManager(sessionManager: SessionManagerService): void {
+    this.sessionManager = sessionManager;
+    this.subscribeToTranscripts();
+
+    this.trail.light(6272, {
+      operation: 'session_manager_connected',
+      timestamp: Date.now()
+    });
+  }
+
+  /**
+   * Subscribe to transcripts
+   */
+  private subscribeToTranscripts(): void {
+    if (!this.sessionManager || this.isConnectedToTranscripts) return;
+
+    this.sessionManager.onTranscriptProcessed((transcript: TranscriptEvent, speaker: 'user' | 'prospect') => {
+      this.handleTranscriptFromSessionManager(transcript, speaker);
+    });
+
+    this.isConnectedToTranscripts = true;
+
+    this.trail.light(6274, {
+      operation: 'transcript_subscription_established'
     });
   }
 
@@ -462,7 +674,7 @@ export class LiveCoachingService {
     this.onErrorCallback = callback;
   }
 
-  // Status and debugging
+  // Status methods
   getStatus(): {
     websocketConnected: boolean;
     ollamaConnected: boolean;
@@ -471,7 +683,7 @@ export class LiveCoachingService {
     isAnalyzing: boolean;
   } {
     return {
-      websocketConnected: this.webSocketClient.isConnected,
+      websocketConnected: !!this.sessionManager,
       ollamaConnected: this.ollamaService.getStatus().connected,
       documentLoaded: !!this.currentDocument,
       conversationLength: this.conversationHistory.length,
@@ -483,153 +695,21 @@ export class LiveCoachingService {
     return this.currentDocument;
   }
 
-  getConversationHistory(): Array<{ speaker: 'user' | 'prospect'; text: string; timestamp: string }> {
+  getConversationHistory(): ConversationEntry[] {
     return [...this.conversationHistory];
   }
 
-  /**
-   * Extract techniques from stage-based document for backward compatibility
-   */
-  private extractTechniquesFromStages(document: any): any[] {
-    const techniques: any[] = [];
-    
-    if (!document.stages) return techniques;
-    
-    // Extract from each stage
-    for (const [stageName, stage] of Object.entries(document.stages)) {
-      const stageData = stage as any;
-      
-      // Convert bridges to techniques
-      if (stageData.bridges) {
-        stageData.bridges.forEach((bridge: any, index: number) => {
-          techniques.push({
-            technique_name: `${stageData.name} - Bridge ${index + 1}`,
-            stage: stageName,
-            priority: bridge.priority,
-            conversation_paths: [{
-              trigger: stageData.keywords?.join(' ') || stageName,
-              immediate_response: {
-                exact_words: bridge.text,
-                strategy: `${stageName} stage, priority: ${bridge.priority}`
-              }
-            }]
-          });
-        });
-      }
-      
-      // Convert recovery patterns to techniques
-      if (stageData.recovery) {
-        stageData.recovery.forEach((recovery: string, index: number) => {
-          techniques.push({
-            technique_name: `${stageData.name} - Recovery ${index + 1}`,
-            stage: stageName,
-            conversation_paths: [{
-              trigger: 'conversation stalled',
-              immediate_response: {
-                exact_words: recovery,
-                strategy: `Recovery for ${stageName} stage`
-              }
-            }]
-          });
-        });
-      }
-      
-      // Include actual techniques if present
-      if (stageData.techniques) {
-        stageData.techniques.forEach((technique: any) => {
-          techniques.push({
-            technique_name: technique.name,
-            stage: stageName,
-            description: technique.description,
-            conversation_paths: [{
-              trigger: technique.timing || stageName,
-              immediate_response: {
-                exact_words: technique.example,
-                strategy: technique.name
-              }
-            }]
-          });
-        });
-      }
-    }
-    
-    // Add universal techniques
-    if (document.universal) {
-      // Add mirroring
-      if (document.universal.mirroring) {
-        techniques.push({
-          technique_name: 'Universal - Mirroring',
-          stage: 'all',
-          conversation_paths: [{
-            trigger: 'any',
-            immediate_response: {
-              exact_words: 'Repeat last 1-3 words',
-              strategy: 'mirroring'
-            }
-          }]
-        });
-      }
-      
-      // Add labeling
-      if (document.universal.labeling) {
-        techniques.push({
-          technique_name: 'Universal - Labeling',
-          stage: 'all',
-          conversation_paths: [{
-            trigger: 'emotional response',
-            immediate_response: {
-              exact_words: 'It sounds like you\'re [emotion]',
-              strategy: 'labeling'
-            }
-          }]
-        });
-      }
-    }
-    
-    return techniques;
-  }
-  
-  /**
-   * Extract response patterns from stage-based document
-   */
-  private extractResponsePatternsFromStages(document: any): any {
-    const patterns: any = {};
-    
-    if (!document.stages) return patterns;
-    
-    // Extract objection patterns
-    if (document.stages.objection) {
-      const objectionStage = document.stages.objection as any;
-      
-      if (objectionStage.objection_patterns) {
-        patterns.objection_responses = {};
-        objectionStage.objection_patterns.forEach((pattern: any) => {
-          patterns.objection_responses[pattern.objection] = {
-            real_concern: pattern.real_concern,
-            response: pattern.response
-          };
-        });
-      }
-    }
-    
-    // Extract recovery patterns
-    patterns.recovery_patterns = {};
-    for (const [stageName, stage] of Object.entries(document.stages)) {
-      const stageData = stage as any;
-      if (stageData.recovery) {
-        patterns.recovery_patterns[stageName] = stageData.recovery;
-      }
-    }
-    
-    return patterns;
+  getUsageStatistics() {
+    return this.usageTracker.exportUsageData();
   }
 
   disconnect(): void {
     this.trail.light(6270, { operation: 'live_coaching_disconnect' });
-    
-    this.stopLiveCoaching();
-    this.webSocketClient.disconnect();
 
-    this.trail.light(6271, { operation: 'live_coaching_disconnected_cleanly' });
+    this.stopLiveCoaching();
+    this.isConnectedToTranscripts = false;
+    this.sessionManager = null;
+
+    this.trail.light(6271, { operation: 'live_coaching_disconnected' });
   }
 }

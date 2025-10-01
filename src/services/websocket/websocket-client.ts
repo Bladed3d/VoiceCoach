@@ -297,9 +297,32 @@ export class VoiceCoachWebSocketClient {
 
     // LED Breadcrumb 7021: Handle coaching suggestions
     else if (data.type === 'coaching_suggestion') {
+      // Clean up malformed JSON in coaching suggestions
+      let cleanSuggestion = data.suggestion || '';
+
+      // Try to extract say_this from JSON-like suggestions
+      if (cleanSuggestion.includes('"say_this"')) {
+        try {
+          const parsed = JSON.parse(cleanSuggestion);
+          if (parsed.say_this) {
+            console.log('✅ Extracted say_this from JSON coaching:', parsed.say_this);
+            cleanSuggestion = parsed.say_this;
+          }
+        } catch {
+          // Regex fallback for malformed JSON
+          const sayThisMatch = cleanSuggestion.match(/"say_this":\s*"([^"]+)"/);
+          if (sayThisMatch) {
+            console.log('✅ Extracted say_this from malformed JSON:', sayThisMatch[1]);
+            cleanSuggestion = sayThisMatch[1];
+          } else {
+            console.log('⚠️ Could not extract say_this, using raw suggestion');
+          }
+        }
+      }
+
       const coachingData: CoachingSuggestion = {
         type: 'coaching_suggestion',
-        suggestion: data.suggestion || '',
+        suggestion: cleanSuggestion,
         trigger: data.trigger || '',
         priority: data.priority || 'MEDIUM',
         category: data.category || 'discovery',
@@ -1416,7 +1439,13 @@ export class VoiceCoachWebSocketClient {
       base64Data = audioData;
     }
     
-    // Send via Socket.IO 'audio_chunk' event
+    // Send via Socket.IO with proper format for speaker separation
+    const audioMessage = {
+      type: 'audio_chunk',
+      audio: base64Data,
+      source: this.audioCaptureMode === 'microphone' ? 'microphone' : 'mixed'
+    };
+
     this.socket.emit('audio_chunk', base64Data);
     
     // Track chunk count

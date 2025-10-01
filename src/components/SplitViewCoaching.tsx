@@ -240,6 +240,17 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
     }
   }, []);
 
+  // Track conversationHistory updates for debugging sentiment graph
+  React.useEffect(() => {
+    trail.light(7240, {
+      operation: 'conversation_history_updated',
+      historyLength: conversationHistory.length,
+      isRecording: sessionState?.isRecording || false,
+      latestSpeaker: conversationHistory.length > 0 ? conversationHistory[conversationHistory.length - 1]?.speaker : 'none',
+      latestTextLength: conversationHistory.length > 0 ? conversationHistory[conversationHistory.length - 1]?.text?.length : 0
+    });
+  }, [conversationHistory]);
+
   // Load models from app startup cache on component mount
   React.useEffect(() => {
     const loadCachedModels = () => {
@@ -676,13 +687,36 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-semibold">AI Sales Coach</h1>
-            <p className="text-slate-400 text-sm">Ready to coach your next call</p>
+            <p className="text-slate-400 text-sm">
+              {sessionState?.ollamaStatus === 'Connected' || sessionState?.ollamaStatus === 'Ready'
+                ? 'Ready to coach your next call'
+                : sessionState?.ollamaStatus === 'Disconnected'
+                  ? '⚠️ Ollama disconnected - Check AI service'
+                  : sessionState?.ollamaStatus === 'Initializing...'
+                    ? 'Initializing AI services...'
+                    : 'Checking AI services...'
+              }
+            </p>
           </div>
-          
+
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-1 text-sm">
-              <div className="w-2 h-2 rounded-full bg-green-400"></div>
-              <span className="text-green-400">RAG: Ready for coaching session</span>
+              <div className={`w-2 h-2 rounded-full ${
+                sessionState?.ollamaStatus === 'Connected' || sessionState?.ollamaStatus === 'Ready'
+                  ? 'bg-green-400'
+                  : sessionState?.ollamaStatus === 'Disconnected'
+                    ? 'bg-red-400'
+                    : 'bg-yellow-400'
+              }`}></div>
+              <span className={`${
+                sessionState?.ollamaStatus === 'Connected' || sessionState?.ollamaStatus === 'Ready'
+                  ? 'text-green-400'
+                  : sessionState?.ollamaStatus === 'Disconnected'
+                    ? 'text-red-400'
+                    : 'text-yellow-400'
+              }`}>
+                Ollama: {sessionState?.ollamaStatus || 'Unknown'}
+              </span>
             </div>
             <button
               onClick={() => {
@@ -871,6 +905,7 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
                 scriptItems={scriptItems}
                 isRecording={isRecording}
                 conversationHistory={conversationHistory}
+                currentSentiment={sessionState?.currentSentiment}
                 onMarkUsed={markItemUsed}
                 onClearUsed={clearUsedItems}
                 onCollapse={toggleScriptPanel}

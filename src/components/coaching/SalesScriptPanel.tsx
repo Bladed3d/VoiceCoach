@@ -7,11 +7,13 @@ import { Book, CheckCircle, X, Target, AlertTriangle, TrendingUp, Lightbulb, Act
 import { SalesScriptService, SalesScript, ScriptProgress } from '../../services/coaching/sales-script-service';
 import { ScriptProgressTracker, StageDetectionResult, ConversationEntry } from '../../services/coaching/script-progress-tracker';
 import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
+import { SentimentData } from '../../types/coaching';
 
 interface SalesScriptPanelProps {
   scriptItems: any[];
   isRecording: boolean;
   conversationHistory?: Array<{ speaker: 'user' | 'prospect'; text: string; timestamp: string }>;
+  currentSentiment?: SentimentData;
   onMarkUsed: (itemId: string) => void;
   onClearUsed: () => void;
   onCollapse?: () => void;
@@ -22,6 +24,7 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
   scriptItems: _scriptItems,
   isRecording,
   conversationHistory: rawConversationHistory = [],
+  currentSentiment,
   onMarkUsed: _onMarkUsed,
   onClearUsed: _onClearUsed,
   onCollapse,
@@ -95,12 +98,49 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
 
   // Analyze conversation progress when history changes
   useEffect(() => {
+    trail.light(7210, {
+      operation: 'conversation_history_update',
+      historyLength: conversationHistory.length,
+      hasCurrentScript: !!currentScript
+    });
+
     if (currentScript && conversationHistory.length > 0) {
       const analysis = progressTracker.analyzeProgress(conversationHistory);
       setStageAnalysis(analysis);
       setProgress(scriptService.getProgress());
     }
-  }, [conversationHistory, currentScript, progressTracker, scriptService]);
+  }, [conversationHistory, currentScript, progressTracker, scriptService, trail]);
+
+  // Update sentiment graph when sentiment changes
+  useEffect(() => {
+    if (currentSentiment) {
+      trail.light(7214, {
+        operation: 'sentiment_received',
+        score: currentSentiment.score,
+        direction: currentSentiment.direction,
+        engagement: currentSentiment.engagement
+      });
+
+      setSentimentData(prev => {
+        // Convert -100..100 scale to -10..10 scale for graph display
+        const graphValue = currentSentiment.score / 10;
+
+        const newData = [...prev, {
+          timestamp: currentSentiment.timestamp,
+          value: graphValue
+        }];
+
+        trail.light(7215, {
+          operation: 'sentiment_graph_updated',
+          dataPoints: newData.length,
+          latestValue: graphValue
+        });
+
+        // Keep last 20 data points for smooth graph
+        return newData.slice(-20);
+      });
+    }
+  }, [currentSentiment, trail]);
 
   const handleScriptChange = (scriptId: string) => {
     const success = scriptService.setActiveScript(scriptId);
@@ -191,28 +231,69 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
                   </div>
 
                   {/* Sentiment Graph Area */}
-                  <div className="h-24 bg-slate-800/50 rounded border border-slate-600 p-2 relative">
-                    {sentimentData.length > 0 ? (
-                      <div className="h-full flex items-center justify-center">
-                        <div className="text-center">
-                          <div className={`text-xl font-bold ${
-                            sentimentData[sentimentData.length - 1]?.value > 0 ? 'text-green-400' :
-                            sentimentData[sentimentData.length - 1]?.value < 0 ? 'text-red-400' : 'text-yellow-400'
-                          }`}>
-                            {sentimentData[sentimentData.length - 1]?.value > 0 ? '📈' :
-                             sentimentData[sentimentData.length - 1]?.value < 0 ? '📉' : '➡️'}
-                          </div>
-                          <div className="text-xs text-slate-400 mt-1">
-                            {sentimentData[sentimentData.length - 1]?.value > 0 ? 'Positive' :
-                             sentimentData[sentimentData.length - 1]?.value < 0 ? 'Negative' : 'Neutral'}
-                          </div>
+                  <div className="h-32 bg-slate-800/50 rounded border border-slate-600 p-3 relative">
+                    {/* Y-axis labels */}
+                    <div className="absolute left-1 top-0 bottom-0 flex flex-col justify-between text-[10px] text-slate-500 py-3">
+                      <div>+10</div>
+                      <div>0</div>
+                      <div>-10</div>
+                    </div>
+
+                    {/* Graph area */}
+                    <div className="h-full ml-6 relative">
+                      {/* Zero line */}
+                      <div className="absolute left-0 right-0 top-1/2 border-t border-slate-600 border-dashed"></div>
+
+                      {sentimentData.length > 0 ? (
+                        <svg className="w-full h-full" preserveAspectRatio="none">
+                          {/* Positive zone background */}
+                          <rect x="0" y="0" width="100%" height="50%" fill="rgba(34, 197, 94, 0.05)" />
+                          {/* Negative zone background */}
+                          <rect x="0" y="50%" width="100%" height="50%" fill="rgba(239, 68, 68, 0.05)" />
+
+                          {/* Sentiment line - EKG style scrolling (fixed position grid) */}
+                          <polyline
+                            points={sentimentData.map((point, index) => {
+                              // Each point occupies 1/20th of the width (5% each)
+                              // When we have < 20 points, they fill from left to right
+                              // When we have 20 points, oldest drops off left as new ones add on right
+                              const x = (index / 20) * 100; // 0%, 5%, 10%, ... 95%
+                              const y = 50 - (point.value / 10 * 50); // Map -10..10 to 100%..0%
+                              return `${x},${y}`;
+                            }).join(' ')}
+                            fill="none"
+                            stroke={sentimentData[sentimentData.length - 1]?.value >= 0 ? '#22c55e' : '#ef4444'}
+                            strokeWidth="2"
+                            vectorEffect="non-scaling-stroke"
+                          />
+
+                          {/* Current value dot (at the position of the last data point) */}
+                          {sentimentData.length > 0 && (
+                            <circle
+                              cx={(Math.min(sentimentData.length - 1, 19) / 20) * 100}
+                              cy={50 - (sentimentData[sentimentData.length - 1].value / 10 * 50)}
+                              r="3"
+                              fill={sentimentData[sentimentData.length - 1].value >= 0 ? '#22c55e' : '#ef4444'}
+                              vectorEffect="non-scaling-stroke"
+                            />
+                          )}
+                        </svg>
+                      ) : (
+                        <div className="h-full flex items-center justify-center text-slate-400 text-xs">
+                          {isRecording ? 'Monitoring sentiment...' : 'Start recording to track sentiment'}
                         </div>
-                      </div>
-                    ) : (
-                      <div className="h-full flex items-center justify-center text-slate-400 text-sm">
-                        {isRecording ? 'Monitoring sentiment...' : 'Start recording to track sentiment'}
-                      </div>
-                    )}
+                      )}
+
+                      {/* Current value display */}
+                      {sentimentData.length > 0 && (
+                        <div className="absolute top-1 right-1 bg-slate-900/80 rounded px-2 py-1 text-xs font-bold">
+                          <span className={sentimentData[sentimentData.length - 1]?.value >= 0 ? 'text-green-400' : 'text-red-400'}>
+                            {sentimentData[sentimentData.length - 1]?.value > 0 ? '+' : ''}
+                            {sentimentData[sentimentData.length - 1]?.value.toFixed(1)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 

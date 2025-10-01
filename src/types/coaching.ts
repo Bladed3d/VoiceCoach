@@ -23,6 +23,7 @@ export interface CoachingPrompt {
   trigger: string;
   context: string;
   timestamp: number;
+  stageId?: string; // [Stage.Prompt.Transcript] numbering
 }
 
 export interface TranscriptionItem {
@@ -30,6 +31,7 @@ export interface TranscriptionItem {
   speaker: 'user' | 'prospect' | 'unknown';
   text: string;
   timestamp: number;
+  stageId?: string; // [Stage.Prompt.Transcript] numbering
 }
 
 export interface VolumeState {
@@ -56,6 +58,15 @@ export interface PanelState {
   maxWidth: number;
 }
 
+export interface SentimentData {
+  score: number;              // -100 to +100 (-100 = very negative, +100 = very positive)
+  direction: 'positive' | 'negative' | 'neutral';
+  confidence: number;         // 0-100% confidence in analysis
+  engagement: 'high' | 'medium' | 'low';
+  trend: 'improving' | 'declining' | 'stable';
+  timestamp: number;
+}
+
 export interface SessionState {
   isRecording: boolean;
   wsStatus: string;
@@ -69,4 +80,5 @@ export interface SessionState {
   micVolumeState?: VolumeState; // Microphone volume
   tabVolumeState?: VolumeState; // Tab/headphone volume
   captureMode?: 'microphone' | 'full-conversation'; // Audio capture mode
+  currentSentiment?: SentimentData; // Current prospect sentiment
 }

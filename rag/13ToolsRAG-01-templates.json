@@ -1,0 +1,552 @@
+[
+  {
+    "id": 1,
+    "name": "Mirroring",
+    "description": "Repeat the last 1-3 words to build rapport and encourage elaboration",
+    "when_use": "Early to establish rapport and dig deeper into pain points",
+    "templates": [
+      {
+        "pattern": "{{LAST_WORDS}}?",
+        "variables": ["LAST_WORDS"],
+        "confidence": "high",
+        "context": "Simple mirroring - repeat their last words"
+      },
+      {
+        "pattern": "You said {{LAST_WORDS}}... tell me more about that.",
+        "variables": ["LAST_WORDS"],
+        "confidence": "medium",
+        "context": "Extended mirroring with elaboration request"
+      }
+    ],
+    "triggers": {
+      "keywords": ["pain point", "challenge", "problem", "difficult", "struggling", "I see value but", "want to move forward but", "interested but", "executives want it but", "team wants it but", "middle management", "status quo", "budget constraints", "timing", "approval", "decision maker"],
+      "regex": "challenge|problem|difficult|struggle|see value but|want.*but|interested but|executives want|team wants|middle management|status quo|budget constraint|timing|approval|decision maker",
+      "sentimentBias": "negative",
+      "stageBias": [1, 2, 3, 4, 5, 6]
+    },
+    "variableExtraction": {
+      "LAST_WORDS": {
+        "method": "keyword",
+        "prompt": "Extract the last 1-3 words from the prospect's statement",
+        "maxTokens": 10,
+        "fallback": "that"
+      }
+    }
+  },
+  {
+    "id": 2,
+    "name": "Empathy Response",
+    "description": "Understand and articulate emotions to make them feel heard",
+    "when_use": "When you want emotional bonding or to soften resistance",
+    "templates": [
+      {
+        "pattern": "It sounds like {{EMOTION}} is really affecting {{SITUATION}}. That must be frustrating.",
+        "variables": ["EMOTION", "SITUATION"],
+        "confidence": "high",
+        "context": "Validate emotion and acknowledge impact"
+      },
+      {
+        "pattern": "I can see why {{EMOTION}} would be a concern when dealing with {{SITUATION}}.",
+        "variables": ["EMOTION", "SITUATION"],
+        "confidence": "medium",
+        "context": "Acknowledge legitimacy of their feelings"
+      }
+    ],
+    "triggers": {
+      "keywords": ["frustrated", "anxious", "stressed", "overwhelmed"],
+      "regex": "frustrat|anxious|stress|overwhelm",
+      "sentimentBias": "negative",
+      "stageBias": [2, 3, 4, 5]
+    },
+    "variableExtraction": {
+      "EMOTION": {
+        "method": "ai",
+        "prompt": "Extract the emotion word (frustrated, worried, concerned, etc.) - single word only",
+        "maxTokens": 5,
+        "fallback": "frustrated"
+      },
+      "SITUATION": {
+        "method": "ai",
+        "prompt": "Extract what they're dealing with (2-4 words, e.g., 'current software', 'team productivity')",
+        "maxTokens": 10,
+        "fallback": "this situation"
+      }
+    }
+  },
+  {
+    "id": 3,
+    "name": "Empathy Questions",
+    "description": "Acknowledge past efforts while opening discussion to improvements",
+    "when_use": "When prospect justifies current solution and you want to guide them to better solution",
+    "templates": [
+      {
+        "pattern": "I appreciate that {{CURRENT_EFFORT}} has been working. What would make it even better?",
+        "variables": ["CURRENT_EFFORT"],
+        "confidence": "high",
+        "context": "Validate current approach while seeking improvement"
+      },
+      {
+        "pattern": "{{CURRENT_EFFORT}} sounds solid. If you could wave a magic wand and improve one thing about it, what would that be?",
+        "variables": ["CURRENT_EFFORT"],
+        "confidence": "medium",
+        "context": "Magic wand question to uncover hidden desires"
+      }
+    ],
+    "triggers": {
+      "keywords": ["already have", "currently use", "been using", "works fine", "doing okay"],
+      "regex": "already have|currently use|been using|works fine",
+      "sentimentBias": "neutral",
+      "stageBias": [3, 4, 5]
+    },
+    "variableExtraction": {
+      "CURRENT_EFFORT": {
+        "method": "ai",
+        "prompt": "Extract their current solution/effort (2-5 words, e.g., 'spreadsheet system', 'weekly meetings')",
+        "maxTokens": 15,
+        "fallback": "your current approach"
+      }
+    }
+  },
+  {
+    "id": 4,
+    "name": "Summarizing",
+    "description": "Rephrase what they said in your own words",
+    "when_use": "When you're not sure if you understand their viewpoint",
+    "templates": [
+      {
+        "pattern": "Let me make sure I understand - you're saying {{SUMMARY}}. Is that right?",
+        "variables": ["SUMMARY"],
+        "confidence": "high",
+        "context": "Confirmation summarization"
+      },
+      {
+        "pattern": "So if I'm hearing you correctly, {{SUMMARY}}. Did I get that right?",
+        "variables": ["SUMMARY"],
+        "confidence": "high",
+        "context": "Active listening verification"
+      }
+    ],
+    "triggers": {
+      "keywords": ["complex", "multiple", "various", "several", "bunch of"],
+      "regex": "complex|multiple|various|several",
+      "sentimentBias": "neutral",
+      "stageBias": [2, 3, 4, 5, 6]
+    },
+    "variableExtraction": {
+      "SUMMARY": {
+        "method": "ai",
+        "prompt": "Summarize their key point in 5-15 words using your own words (not verbatim)",
+        "maxTokens": 30,
+        "fallback": "there are multiple challenges to address"
+      }
+    }
+  },
+  {
+    "id": 5,
+    "name": "Labeling",
+    "description": "Name the emotions you observe to diffuse tension",
+    "when_use": "When you feel tension building or negative emotions",
+    "templates": [
+      {
+        "pattern": "It seems like {{EMOTION_LABEL}}.",
+        "variables": ["EMOTION_LABEL"],
+        "confidence": "high",
+        "context": "Direct emotion labeling"
+      },
+      {
+        "pattern": "It sounds like {{EMOTION_LABEL}} - is that what you're experiencing?",
+        "variables": ["EMOTION_LABEL"],
+        "confidence": "medium",
+        "context": "Emotion labeling with verification"
+      }
+    ],
+    "triggers": {
+      "keywords": ["angry", "upset", "disappointed", "hesitant", "uncertain", "worried", "concerned", "tired", "exhausted", "fed up", "overwhelmed", "frustrated", "no energy"],
+      "regex": "angry|upset|disappoint|hesitant|uncertain|worr|concern|tired|exhaust|fed up|overwhelm|frustrat|no energy",
+      "sentimentBias": "negative",
+      "stageBias": [4, 5, 6, 7, 8]
+    },
+    "variableExtraction": {
+      "EMOTION_LABEL": {
+        "method": "keyword",
+        "prompt": "Extract the emotion being felt (e.g., 'you're frustrated with the timeline', 'this feels uncertain')",
+        "maxTokens": 10,
+        "fallback": "this is frustrating"
+      }
+    }
+  },
+  {
+    "id": 6,
+    "name": "Calibrated Questions",
+    "description": "Ask open-ended 'how' or 'what' questions to shift control",
+    "when_use": "When you want prospect to be more active in collaborating",
+    "templates": [
+      {
+        "pattern": "How would {{DESIRED_OUTCOME}} impact {{THEIR_SITUATION}}?",
+        "variables": ["DESIRED_OUTCOME", "THEIR_SITUATION"],
+        "confidence": "high",
+        "context": "Explore impact of desired outcome"
+      },
+      {
+        "pattern": "What would need to happen for {{GOAL}} to become a reality?",
+        "variables": ["GOAL"],
+        "confidence": "high",
+        "context": "Get them to think through implementation"
+      },
+      {
+        "pattern": "How do you see {{SOLUTION}} fitting into {{THEIR_SITUATION}}?",
+        "variables": ["SOLUTION", "THEIR_SITUATION"],
+        "confidence": "medium",
+        "context": "Make them envision the solution"
+      }
+    ],
+    "triggers": {
+      "keywords": ["not sure", "don't know", "uncertain", "maybe", "thinking", "how would", "how do", "what would", "tell me more"],
+      "regex": "not sure|don't know|uncertain|maybe|thinking|how would|how do|what would|tell me more",
+      "sentimentBias": "neutral",
+      "stageBias": [4, 5, 6, 7]
+    },
+    "variableExtraction": {
+      "DESIRED_OUTCOME": {
+        "method": "ai",
+        "prompt": "Extract desired outcome (2-5 words, e.g., 'saving time', 'reducing costs')",
+        "maxTokens": 15,
+        "fallback": "achieving this goal"
+      },
+      "THEIR_SITUATION": {
+        "method": "ai",
+        "prompt": "Extract their situation (2-5 words, e.g., 'your team', 'daily operations')",
+        "maxTokens": 15,
+        "fallback": "your situation"
+      },
+      "GOAL": {
+        "method": "ai",
+        "prompt": "Extract their goal (3-8 words)",
+        "maxTokens": 20,
+        "fallback": "this to work"
+      },
+      "SOLUTION": {
+        "method": "ai",
+        "prompt": "Extract the solution being discussed (2-5 words)",
+        "maxTokens": 15,
+        "fallback": "this approach"
+      }
+    }
+  },
+  {
+    "id": 7,
+    "name": "Negative Assumption",
+    "description": "Address potential objections upfront to disarm them",
+    "when_use": "As soon as you suspect they have a concern or objection",
+    "templates": [
+      {
+        "pattern": "You're probably thinking {{OBJECTION}} - and that's a fair concern. Let's talk about that.",
+        "variables": ["OBJECTION"],
+        "confidence": "high",
+        "context": "Preemptive objection handling"
+      },
+      {
+        "pattern": "I bet you're wondering if {{CONCERN}}. That's actually something we should address directly.",
+        "variables": ["CONCERN"],
+        "confidence": "high",
+        "context": "Surface hidden concerns"
+      }
+    ],
+    "triggers": {
+      "keywords": ["but", "however", "although", "concern", "worry"],
+      "regex": "but |however|although|concern|worry",
+      "sentimentBias": "negative",
+      "stageBias": [5, 6, 7, 8]
+    },
+    "variableExtraction": {
+      "OBJECTION": {
+        "method": "ai",
+        "prompt": "Extract likely objection (3-7 words, e.g., 'this is too expensive', 'we don't have time')",
+        "maxTokens": 20,
+        "fallback": "this might not work for us"
+      },
+      "CONCERN": {
+        "method": "ai",
+        "prompt": "Extract the concern as a question (5-10 words, e.g., 'this will actually save time')",
+        "maxTokens": 25,
+        "fallback": "this is the right fit"
+      }
+    }
+  },
+  {
+    "id": 8,
+    "name": "Dynamic Silence",
+    "description": "Use pauses to encourage them to fill silence with information",
+    "when_use": "In later stages when you want prospect to tell more",
+    "templates": [
+      {
+        "pattern": "[Pause] ... {{LAST_POINT}}... [Wait for them to continue]",
+        "variables": ["LAST_POINT"],
+        "confidence": "medium",
+        "context": "Strategic silence after key point"
+      },
+      {
+        "pattern": "Mmm... [Pause to let them elaborate]",
+        "variables": [],
+        "confidence": "low",
+        "context": "Minimal encourager with silence"
+      }
+    ],
+    "triggers": {
+      "keywords": ["and", "also", "additionally", "furthermore"],
+      "regex": "and |also |additionally|furthermore",
+      "sentimentBias": "neutral",
+      "stageBias": [5, 6, 7, 8, 9]
+    },
+    "variableExtraction": {
+      "LAST_POINT": {
+        "method": "keyword",
+        "prompt": "Extract their last key point (2-4 words)",
+        "maxTokens": 10,
+        "fallback": "that"
+      }
+    }
+  },
+  {
+    "id": 9,
+    "name": "Black Swan",
+    "description": "Uncover hidden issues, problems, and desires",
+    "when_use": "When progress stalls or they seem reluctant",
+    "templates": [
+      {
+        "pattern": "What's the biggest challenge that {{STAKEHOLDER}} doesn't want to talk about?",
+        "variables": ["STAKEHOLDER"],
+        "confidence": "high",
+        "context": "Uncover hidden political issues"
+      },
+      {
+        "pattern": "What would make this a bad idea from {{PERSPECTIVE}} perspective?",
+        "variables": ["PERSPECTIVE"],
+        "confidence": "high",
+        "context": "Reverse psychology to surface concerns"
+      },
+      {
+        "pattern": "What do you know about {{TOPIC}} that I don't know?",
+        "variables": ["TOPIC"],
+        "confidence": "medium",
+        "context": "Invite insider knowledge sharing"
+      }
+    ],
+    "triggers": {
+      "keywords": ["complicated", "politics", "stakeholders", "others", "team"],
+      "regex": "complicat|politics|stakeholder|others|team",
+      "sentimentBias": "neutral",
+      "stageBias": [6, 7, 8]
+    },
+    "variableExtraction": {
+      "STAKEHOLDER": {
+        "method": "ai",
+        "prompt": "Extract stakeholder reference (1-3 words, e.g., 'your team', 'leadership', 'finance')",
+        "maxTokens": 10,
+        "fallback": "your team"
+      },
+      "PERSPECTIVE": {
+        "method": "ai",
+        "prompt": "Extract perspective (1-2 words, e.g., 'finance', 'operations', 'technical')",
+        "maxTokens": 8,
+        "fallback": "your team's"
+      },
+      "TOPIC": {
+        "method": "ai",
+        "prompt": "Extract the topic/situation (2-5 words)",
+        "maxTokens": 15,
+        "fallback": "this situation"
+      }
+    }
+  },
+  {
+    "id": 10,
+    "name": "Buy-In",
+    "description": "Ask permission before engaging to make them teachable",
+    "when_use": "When you want their focus or them to be open to new ideas",
+    "templates": [
+      {
+        "pattern": "Would it be helpful if I shared {{WHAT_TO_SHARE}}?",
+        "variables": ["WHAT_TO_SHARE"],
+        "confidence": "high",
+        "context": "Permission-based teaching"
+      },
+      {
+        "pattern": "Can I take a minute to walk you through {{TOPIC}}?",
+        "variables": ["TOPIC"],
+        "confidence": "high",
+        "context": "Request attention for explanation"
+      },
+      {
+        "pattern": "Is now a good time to discuss {{SUBJECT}}?",
+        "variables": ["SUBJECT"],
+        "confidence": "medium",
+        "context": "Timing-based permission"
+      }
+    ],
+    "triggers": {
+      "keywords": ["interested", "curious", "want to know", "tell me", "explain", "promising", "could help", "sounds good", "like this", "i like"],
+      "regex": "interest|curious|want to know|tell me|explain|promising|could help|sounds good|like this|i like",
+      "sentimentBias": "positive",
+      "stageBias": [3, 4, 5, 6]
+    },
+    "variableExtraction": {
+      "WHAT_TO_SHARE": {
+        "method": "ai",
+        "prompt": "Extract what you want to share (3-7 words, e.g., 'how others solved this', 'our approach to this')",
+        "maxTokens": 20,
+        "fallback": "how we approach this"
+      },
+      "TOPIC": {
+        "method": "ai",
+        "prompt": "Extract topic to explain (2-5 words)",
+        "maxTokens": 15,
+        "fallback": "this approach"
+      },
+      "SUBJECT": {
+        "method": "ai",
+        "prompt": "Extract subject to discuss (2-5 words)",
+        "maxTokens": 15,
+        "fallback": "next steps"
+      }
+    }
+  },
+  {
+    "id": 11,
+    "name": "DJ Voice",
+    "description": "Use deep, calm, slower voice when emotions rise",
+    "when_use": "When emotions rise and fears are building",
+    "templates": [
+      {
+        "pattern": "[Slow down, deepen voice] I understand this is {{EMOTION_SITUATION}}. Let's take a moment here.",
+        "variables": ["EMOTION_SITUATION"],
+        "confidence": "high",
+        "context": "Calm high-tension moments"
+      },
+      {
+        "pattern": "[Calm, measured tone] {{ACKNOWLEDGMENT}}. We don't need to rush this.",
+        "variables": ["ACKNOWLEDGMENT"],
+        "confidence": "medium",
+        "context": "Slow things down"
+      }
+    ],
+    "triggers": {
+      "keywords": ["pressure", "rushed", "stressed", "tense", "nervous", "anxious"],
+      "regex": "pressure|rushed|stress|tense|nervous|anxious",
+      "sentimentBias": "negative",
+      "stageBias": [6, 7, 8, 9]
+    },
+    "variableExtraction": {
+      "EMOTION_SITUATION": {
+        "method": "ai",
+        "prompt": "Extract emotional situation (3-6 words, e.g., 'a big decision', 'causing stress')",
+        "maxTokens": 15,
+        "fallback": "stressful"
+      },
+      "ACKNOWLEDGMENT": {
+        "method": "ai",
+        "prompt": "Extract what to acknowledge (3-7 words, e.g., 'this is a significant investment')",
+        "maxTokens": 20,
+        "fallback": "I hear your concern"
+      }
+    }
+  },
+  {
+    "id": 12,
+    "name": "Truth with No",
+    "description": "Ask questions answered with 'no' but meaning agreement",
+    "when_use": "To discover truth or uncover real concerns",
+    "templates": [
+      {
+        "pattern": "Is it a ridiculous idea to {{PROPOSITION}}?",
+        "variables": ["PROPOSITION"],
+        "confidence": "high",
+        "context": "Negative framing for truth"
+      },
+      {
+        "pattern": "Would it be terrible if {{OUTCOME}}?",
+        "variables": ["OUTCOME"],
+        "confidence": "high",
+        "context": "Get them to defend positive outcome"
+      },
+      {
+        "pattern": "Do you want to {{UNDESIRABLE_ACTION}}?",
+        "variables": ["UNDESIRABLE_ACTION"],
+        "confidence": "medium",
+        "context": "Frame choice negatively"
+      }
+    ],
+    "triggers": {
+      "keywords": ["not sure", "hesitant", "doubt", "skeptical", "uncertain"],
+      "regex": "not sure|hesitant|doubt|skeptic|uncertain",
+      "sentimentBias": "negative",
+      "stageBias": [5, 6, 7, 8]
+    },
+    "variableExtraction": {
+      "PROPOSITION": {
+        "method": "ai",
+        "prompt": "Extract proposition (3-8 words, e.g., 'invest in improving this process')",
+        "maxTokens": 20,
+        "fallback": "move forward with this"
+      },
+      "OUTCOME": {
+        "method": "ai",
+        "prompt": "Extract desired outcome (3-7 words, e.g., 'we could save 10 hours weekly')",
+        "maxTokens": 20,
+        "fallback": "things improved"
+      },
+      "UNDESIRABLE_ACTION": {
+        "method": "ai",
+        "prompt": "Extract undesirable action (3-7 words, e.g., 'keep struggling with current system')",
+        "maxTokens": 20,
+        "fallback": "continue as is"
+      }
+    }
+  },
+  {
+    "id": 13,
+    "name": "Take Away",
+    "description": "Agree with objection and amplify it to remove pressure",
+    "when_use": "When objections arise or emotions seem extraordinary",
+    "templates": [
+      {
+        "pattern": "You're right - if {{OBJECTION}} then we shouldn't move forward. What about {{CONCERN}} concerns you most?",
+        "variables": ["OBJECTION", "CONCERN"],
+        "confidence": "high",
+        "context": "Amplify objection to defuse it"
+      },
+      {
+        "pattern": "That makes sense. {{OBJECTION}} is a valid reason not to proceed. Help me understand what specifically worries you.",
+        "variables": ["OBJECTION"],
+        "confidence": "high",
+        "context": "Validate and dig deeper"
+      },
+      {
+        "pattern": "Fair point about {{CONCERN}}. Maybe this isn't the right fit. What would need to change for it to make sense?",
+        "variables": ["CONCERN"],
+        "confidence": "medium",
+        "context": "Remove pressure by agreeing"
+      }
+    ],
+    "triggers": {
+      "keywords": ["expensive", "cost", "budget", "maybe later", "think about", "complicated", "complex", "revisit", "few months", "not ready"],
+      "regex": "expensive|cost|budget|maybe later|think about|complicat|complex|revisit|few months|not ready",
+      "sentimentBias": "negative",
+      "stageBias": [7, 8, 9]
+    },
+    "variableExtraction": {
+      "OBJECTION": {
+        "method": "keyword",
+        "prompt": "Extract objection phrase (2-5 words, e.g., 'cost is too high', 'timing isn't right')",
+        "maxTokens": 15,
+        "fallback": "this doesn't fit"
+      },
+      "CONCERN": {
+        "method": "keyword",
+        "prompt": "Extract specific concern (1-3 words, e.g., 'cost', 'timing', 'ROI')",
+        "maxTokens": 10,
+        "fallback": "this"
+      }
+    }
+  }
+]

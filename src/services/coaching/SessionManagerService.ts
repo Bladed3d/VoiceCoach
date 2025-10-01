@@ -15,13 +15,14 @@ import {
   TranscriptionItem, 
   VolumeState 
 } from '../../types/coaching';
-// Simple file-based Ollama instruction loader (browser version for Electron)
-import { ollamaInstructionLoader } from './OllamaInstructionLoader-Browser';
+// Centralized Ollama prompt service - SINGLE SOURCE OF TRUTH for prompts
+import { ollamaPromptService } from './OllamaPromptService';
 import { LiveCoachingManager } from './live-coaching-manager';
 
 // Conversation analyzers for rich context detection
 import { conversationAnalyzer } from './analyzers/ConversationAnalyzer';
 import { SemanticSearchResult } from '../../types/chromadb';
+import { SentimentAnalyzer, SentimentAnalysis } from './sentiment-analyzer';
 
 export class SessionManagerService {
   private trail: BreadcrumbTrail;
@@ -45,6 +46,9 @@ export class SessionManagerService {
   private promptCounter = 0;
   private currentPromptNumber = 0; // Track the prompt number that transcripts should inherit
   private transcriptCounter = 0;
+  // Sentiment analysis
+  private sentimentAnalyzer: SentimentAnalyzer;
+  private currentSentiment: SentimentAnalysis | null = null;
 
   constructor() {
     console.log('🚀 SessionManagerService: Constructor starting...');
@@ -53,9 +57,10 @@ export class SessionManagerService {
     // Initialize services
     this.wsClient = new VoiceCoachWebSocketClient('ws://127.0.0.1:5000');
     this.volumeService = new DualVolumeMonitoringService();
+    this.sentimentAnalyzer = new SentimentAnalyzer();
     // Temporarily disabled - ChromaDBService not needed since we use WebSocket-based ChromaDB
     // this.chromaDBService = new ChromaDBService('universal_neversplit');
-    
+
     // Initialize live coaching manager
     this.liveCoachingManager = new LiveCoachingManager();
     
@@ -73,9 +78,11 @@ export class SessionManagerService {
     this.setupWebSocketHandlers();
     this.setupVolumeHandler();
     
-    // Initialize Ollama after a brief delay to ensure app is ready
+    // Initialize centralized Ollama prompt service and legacy Ollama system
     setTimeout(() => {
-      console.log('🕒 Starting Ollama initialization...');
+      console.log('🕒 Starting centralized Ollama prompt service...');
+      this.initializeOllamaPromptService();
+      console.log('🕒 Starting legacy Ollama initialization...');
       this.initializeOllama();
     }, 1000);
     
@@ -157,6 +164,34 @@ export class SessionManagerService {
   }
 
   /**
+   * Initialize centralized Ollama prompt service
+   */
+  private async initializeOllamaPromptService(): Promise<void> {
+    try {
+      this.trail.light(6295, {
+        operation: 'centralized_prompt_service_init_start',
+        timestamp: Date.now()
+      });
+
+      const initialized = await ollamaPromptService.initialize();
+
+      if (initialized) {
+        console.log('✅ Centralized Ollama prompt service initialized successfully');
+        this.trail.light(6296, {
+          operation: 'centralized_prompt_service_init_success',
+          status: ollamaPromptService.getStatus(),
+          timestamp: Date.now()
+        });
+      } else {
+        throw new Error('Failed to initialize centralized prompt service');
+      }
+    } catch (error) {
+      this.trail.fail(8296, error as Error);
+      console.error('❌ Failed to initialize centralized prompt service:', error);
+    }
+  }
+
+  /**
    * Initialize Ollama integration (simplified approach from working version)
    */
   private async initializeOllama(): Promise<void> {
@@ -210,8 +245,8 @@ export class SessionManagerService {
         // Skip ChromaDB when turned off
         // const chromaDBReady = await this.initializeChromaDB();
         
-        // Simple ready status - documents loaded from Split View
-        let status = 'Ready (Llama 3.1 8B)';
+        // Dynamic status - should reflect actual Ollama connection
+        let status = 'Connected';
         // this.useSemanticSearch = false; // Disabled when ChromaDB is off
         
         this.updateSessionState({
@@ -479,27 +514,13 @@ export class SessionManagerService {
         timestamp: Date.now()
       });
 
-      // PERFORMANCE: Measure prompt building duration
-      const promptStartTime = Date.now();
-      const prompt = await this.buildCoachingPrompt(transcriptionText);
-      const promptBuildDuration = Date.now() - promptStartTime;
+      // PERFORMANCE: Measure total coaching generation duration
+      const coachingStartTime = Date.now();
 
-      // PERFORMANCE: Measure Ollama call duration
-      const ollamaStartTime = Date.now();
+      // Use centralized coaching generation - this handles everything internally
+      const suggestion = await this.buildCoachingPrompt(transcriptionText);
 
-      // Use desktop-native IPC call for Ollama generation
-      const result = await (window as any).electronAPI.ollamaGenerate({
-        prompt: prompt,
-        model: selectedModel
-      });
-
-      const ollamaDuration = Date.now() - ollamaStartTime;
-
-      if (!result.success) {
-        throw new Error(`Ollama generation failed: ${result.error}`);
-      }
-
-      const suggestion = result.response?.trim();
+      const totalDuration = Date.now() - coachingStartTime;
 
       if (suggestion && suggestion.length > 10) {
         // Try to parse as JSON first (if instructions return JSON)
@@ -542,20 +563,17 @@ export class SessionManagerService {
           }
         });
 
-        const totalDuration = promptBuildDuration + ollamaDuration;
-
         this.trail.light(6331, {
-          operation: 'ollama_coaching_suggestion_generated',
+          operation: 'centralized_coaching_suggestion_generated',
           suggestion_length: suggestion.length,
-          prompt_build_ms: promptBuildDuration,
-          ollama_duration_ms: ollamaDuration,
           total_duration_ms: totalDuration,
           performance: totalDuration < 1000 ? 'fast' :
                       totalDuration < 3000 ? 'acceptable' : 'slow',
+          centralized_service: true,
           timestamp: Date.now()
         });
 
-        console.log(`🤖 Ollama Coaching (${totalDuration}ms: prompt ${promptBuildDuration}ms + ollama ${ollamaDuration}ms):`, suggestion);
+        console.log(`🤖 Centralized Coaching (${totalDuration}ms):`, suggestion);
       }
     } catch (error) {
       this.trail.fail(8330, error as Error);
@@ -567,114 +585,45 @@ export class SessionManagerService {
   }
 
   /**
-   * Build coaching prompt with ChromaDB semantic search or RAG context
+   * Build coaching prompt using centralized service - SIMPLIFIED AND UNIFIED
    */
   private async buildCoachingPrompt(transcriptionText: string): Promise<string> {
-    let knowledgeContext = '';
-
-    // ChromaDB disabled - using direct document knowledge
-    if (false) { // this.useSemanticSearch && this.chromaDBService && this.chromaDBService.isReady()
-      // LED 6360: Semantic search for relevant coaching content
-      this.trail.light(6360, {
-        operation: 'semantic_search_for_coaching',
-        transcript_preview: transcriptionText.substring(0, 50),
-        search_method: 'chromadb',
-        timestamp: Date.now()
-      });
-
-      try {
-        const searchResults: any[] = []; // await this.chromaDBService.semanticSearch(transcriptionText, 3);
-        
-        // Store results for priority mapping
-        this.lastSearchResults = searchResults;
-        
-        // LED 6361: Search results obtained
-        this.trail.light(6361, {
-          operation: 'semantic_search_results',
-          results_count: searchResults.length,
-          top_similarity: searchResults[0]?.similarity_score || 0,
-          content_types: searchResults.map(r => r.content_type),
-          priorities: searchResults.map(r => r.priority),
-          timestamp: Date.now()
-        });
-
-        // Format search results for prompt
-        knowledgeContext = searchResults.map(result => 
-          `${result.content_type.toUpperCase()}: ${result.content}`
-        ).join('\n');
-
-        console.log(`🔍 ChromaDB: Found ${searchResults.length} relevant coaching techniques with priorities: ${searchResults.map(r => r.priority).join(', ')}`);
-
-      } catch (error) {
-        // LED 8360: Semantic search failure, fallback to RAG
-        this.trail.fail(8360, error as Error);
-        console.warn('⚠️ ChromaDB search failed, falling back to RAG document');
-        
-        // Fallback to traditional RAG
-        knowledgeContext = this.ragDocument ? JSON.stringify({
-          techniques: this.ragDocument.high_impact_techniques?.slice(0, 3) || [],
-          objections: this.ragDocument.objection_handlers?.slice(0, 2) || []
-        }) : '';
-      }
-    } else {
-      // OPTIMIZED: Use CONCISE knowledge context to prevent 5959-char prompt bloat
-      console.error('🚨 PROMPT OPTIMIZATION: Building concise knowledge context...');
-
-      const rawKnowledge = this.ragDocument ? {
-        techniques: Array.isArray(this.ragDocument.high_impact_techniques)
-          ? this.ragDocument.high_impact_techniques.slice(0, 2)  // REDUCED from 5 to 2
-          : (this.ragDocument.techniques?.slice(0, 2) || []),
-        objections: Array.isArray(this.ragDocument.objection_handlers)
-          ? this.ragDocument.objection_handlers.slice(0, 1)  // REDUCED from 3 to 1
-          : (this.ragDocument.objection_handling?.slice(0, 1) || [])
-        // REMOVED frameworks completely to save space
-      } : null;
-
-      // Convert to concise text format instead of verbose JSON
-      if (rawKnowledge) {
-        const techniques = rawKnowledge.techniques.map((t: any) =>
-          typeof t === 'string' ? t.substring(0, 100) : JSON.stringify(t).substring(0, 100)
-        );
-        const objections = rawKnowledge.objections.map((o: any) =>
-          typeof o === 'string' ? o.substring(0, 150) : JSON.stringify(o).substring(0, 150)
-        );
-
-        knowledgeContext = `TECHNIQUES: ${techniques.join('; ')} | OBJECTIONS: ${objections.join('; ')}`;
-        console.error('⚡ OPTIMIZED KNOWLEDGE LENGTH:', knowledgeContext.length, 'chars');
-      } else {
-        knowledgeContext = '';
-      }
-    }
+    this.trail.light(6360, {
+      operation: 'centralized_prompt_building_start',
+      transcript_length: transcriptionText.length,
+      timestamp: Date.now()
+    });
 
     // Run conversation analysis for rich context
     const analysis = conversationAnalyzer.analyze(transcriptionText, false);
-    
-    // Use the file-based instruction loader with rich context
-    const prompt = ollamaInstructionLoader.buildPrompt({
+
+    // Build context for centralized service
+    const context = {
       transcript: transcriptionText,
-      knowledge: knowledgeContext,
-      salesStage: analysis.salesStage, // Now using advanced detection
+      salesStage: analysis.salesStage,
+      sentiment: analysis.momentum, // Using momentum as sentiment proxy
+      objections: analysis.objections.map(o => o.type),
+      topics: undefined, // Could be enhanced later
       callDuration: this.callStartTime ?
-        Math.round((Date.now() - this.callStartTime.getTime()) / 1000 / 60) : 0,
-      objections: analysis.objections.map(o => o.type), // Rich objection detection
-      topics: undefined, // Could extract from conversation
-      sentiment: analysis.momentum // Using momentum as sentiment proxy
-    });
+        Math.round((Date.now() - this.callStartTime.getTime()) / 1000 / 60) : 0
+    };
 
-    // CRITICAL: FAIL LOUDLY if prompt is too long
-    console.error('🚨 FINAL PROMPT LENGTH CHECK:', prompt.length, 'characters');
+    // Use centralized prompt service to generate the entire response
+    const result = await ollamaPromptService.generateCoaching(context);
 
-    if (prompt.length > 2000) {
-      console.error('❌ CRITICAL FAILURE: Prompt is', prompt.length, 'chars - TOO LONG!');
-      console.error('❌ PROMPT CONTENT PREVIEW:', prompt.substring(0, 500) + '...[TRUNCATED]...' + prompt.substring(prompt.length - 200));
-      console.error('🚨 CONTINUING ANYWAY - but this needs optimization!');
-    } else if (prompt.length > 1500) {
-      console.error('⚠️ WARNING: Prompt is', prompt.length, 'chars - approaching limit');
+    if (result.success && result.response) {
+      this.trail.light(6361, {
+        operation: 'centralized_prompt_building_success',
+        response_length: result.response.length,
+        timestamp: Date.now()
+      });
+
+      // Return the response directly since centralized service handles everything
+      return result.response;
     } else {
-      console.error('✅ PROMPT LENGTH ACCEPTABLE:', prompt.length, 'chars');
+      this.trail.fail(8360, new Error(`Centralized prompt service failed: ${result.error}`));
+      throw new Error(`Coaching generation failed: ${result.error}`);
     }
-
-    return prompt;
   }
 
   /**
@@ -1194,6 +1143,31 @@ export class SessionManagerService {
           transcriptions: [...this.sessionState.transcriptions, newTranscription],
           liveTranscript: ''
         });
+
+        // Analyze sentiment for prospect speech
+        if (currentSpeaker === 'prospect') {
+          this.currentSentiment = this.sentimentAnalyzer.analyzeResponse(transcript.text, currentSpeaker);
+
+          this.trail.light(6312, {
+            operation: 'sentiment_analyzed',
+            score: this.currentSentiment.score,
+            direction: this.currentSentiment.direction,
+            engagement: this.currentSentiment.engagement,
+            trend: this.currentSentiment.trend
+          });
+
+          // Update session state with sentiment data
+          this.updateSessionState({
+            currentSentiment: {
+              score: this.currentSentiment.score,
+              direction: this.currentSentiment.direction,
+              confidence: this.currentSentiment.confidence,
+              engagement: this.currentSentiment.engagement,
+              trend: this.currentSentiment.trend,
+              timestamp: Date.now()
+            }
+          });
+        }
 
         // Generate Ollama coaching ONLY for prospect speech with simple debouncing
         if (transcript.text.length > 50 && currentSpeaker === 'prospect') {

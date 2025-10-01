@@ -8,18 +8,38 @@
  * Falls back to default if not set or invalid
  */
 export function getSelectedModel(): string {
-  const defaultModel = 'llama3.1:8b-instruct-q4_K_M';
-  
+  console.log('🔍 getSelectedModel() called - checking both localStorage keys...');
+
   try {
+    // First try the main settings object (used by SplitView dropdown)
+    const savedSettings = localStorage.getItem('voicecoach-settings');
+    if (savedSettings) {
+      try {
+        const settings = JSON.parse(savedSettings);
+        const modelFromSettings = settings.ollama?.model;
+        if (modelFromSettings && modelFromSettings.trim().length > 0) {
+          console.log('✅ Using model from voicecoach-settings:', modelFromSettings);
+          return modelFromSettings;
+        }
+      } catch (e) {
+        console.error('Failed to parse voicecoach-settings:', e);
+      }
+    }
+
+    // Fallback to direct model key
     const savedModel = localStorage.getItem('voicecoach-selected-model');
     if (savedModel && savedModel.trim().length > 0) {
+      console.log('✅ Using model from voicecoach-selected-model:', savedModel);
       return savedModel;
     }
+
+    // Final fallback
+    console.log('⚠️ No model found in localStorage, using default: qwen2.5:14b-instruct-q4_k_m');
+    return 'qwen2.5:14b-instruct-q4_k_m';
   } catch (error) {
-    console.warn('Failed to get selected model from localStorage:', error);
+    console.error('❌ Model selection system error:', error);
+    return 'qwen2.5:14b-instruct-q4_k_m';
   }
-  
-  return defaultModel;
 }
 
 /**

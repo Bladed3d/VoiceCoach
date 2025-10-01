@@ -106,11 +106,11 @@ export const TranscriptionPanel: React.FC<TranscriptionPanelProps> = ({
             {transcriptions.length > 0 && (
               <>
                 {transcriptions.slice().reverse().map((t) => (
-                  <div 
-                    key={t.id} 
+                  <div
+                    key={t.id}
                     className={`text-sm p-3 rounded ${
-                      t.speaker === 'user' 
-                        ? 'bg-blue-900/20 text-blue-300 border-l-4 border-blue-400' 
+                      t.speaker === 'user'
+                        ? 'bg-blue-900/20 text-blue-300 border-l-4 border-blue-400'
                         : 'bg-green-900/20 text-green-300 border-l-4 border-green-400'
                     }`}
                   >
@@ -126,6 +126,11 @@ export const TranscriptionPanel: React.FC<TranscriptionPanelProps> = ({
                             <span className="text-green-400">👤</span>
                             <span>Prospect</span>
                           </>
+                        )}
+                        {t.stageId && (
+                          <span className="text-xs font-mono text-slate-400 ml-2">
+                            {t.stageId}
+                          </span>
                         )}
                       </span>
                       <span className="text-xs opacity-60">

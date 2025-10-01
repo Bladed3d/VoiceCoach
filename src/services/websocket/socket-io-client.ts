@@ -4,7 +4,7 @@
  */
 
 import { io, Socket } from 'socket.io-client';
-import { BreadcrumbTrail } from '../../lib/breadcrumb-trail';
+import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
 
 export interface TranscriptionResult {
   text: string;
@@ -174,8 +174,14 @@ export class SocketIOVoskClient {
       // Convert to base64 for Socket.IO transmission
       const base64Data = this.arrayBufferToBase64(int16Data.buffer);
       
-      // Send via Socket.IO
-      this.socket.emit('audio_chunk', base64Data);
+      // Send via Socket.IO with proper format for speaker separation
+      const audioMessage = {
+        type: 'audio_chunk',
+        audio: base64Data,
+        source: 'microphone' // This client only handles microphone input
+      };
+
+      this.socket.emit('audio_chunk', JSON.stringify(audioMessage));
       
       // Log every 50th chunk for monitoring
       if (Math.random() < 0.02) { // ~2% of chunks

@@ -6,6 +6,7 @@
 import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
 import { LiveCoachingService, ProcessedDocument } from './live-coaching-service';
 import { defaultLiveCoachingConfig } from '../../config/live-coaching-config';
+import { getSelectedModel } from '../../lib/model-utils';
 
 export interface CoachingManagerStatus {
   initialized: boolean;
@@ -24,16 +25,15 @@ export class LiveCoachingManager {
 
   constructor() {
     this.trail = new BreadcrumbTrail('LiveCoachingManager');
-    
-    // Check for saved model preference and update config
-    const savedModel = localStorage.getItem('voicecoach-selected-model');
+
+    // Use the proper model selection function that checks both localStorage keys
+    const selectedModel = getSelectedModel();
     const chromaDBEnabled = localStorage.getItem('voicecoach-chromadb-enabled') === 'true';
     const config = { ...defaultLiveCoachingConfig };
-    
-    if (savedModel) {
-      config.ollama.model = savedModel;
-      console.log(`🎯 Using saved model preference: ${savedModel}`);
-    }
+
+    // Always use the selected model from the centralized function
+    config.ollama.model = selectedModel;
+    console.log(`🎯 LiveCoachingManager using model: ${selectedModel} (from getSelectedModel())`)
     
     // Enable ChromaDB if user has toggled it on
     if (chromaDBEnabled) {
@@ -62,12 +62,15 @@ export class LiveCoachingManager {
         timestamp: Date.now()
       });
 
+      console.log('🔍 LiveCoachingManager: Calling liveCoachingService.initialize()...');
       const success = await this.liveCoachingService.initialize();
+      console.log(`🔍 LiveCoachingManager: liveCoachingService.initialize() returned ${success}`);
+
       this.isInitialized = success;
 
       if (success) {
         this.setupEventHandlers();
-        
+
         this.trail.light(6402, {
           operation: 'live_coaching_manager_initialized_successfully',
           services_ready: true,
@@ -81,6 +84,7 @@ export class LiveCoachingManager {
 
     } catch (error) {
       this.trail.fail(8401, error as Error);
+      console.error('❌ LiveCoachingManager initialization error:', error);
       return false;
     }
   }
