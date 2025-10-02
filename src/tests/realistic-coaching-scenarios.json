@@ -1,0 +1,237 @@
+{
+  "metadata": {
+    "description": "9 realistic sales coaching scenarios with expert tool selections",
+    "source": "User expert analysis from 2025-09-30",
+    "test_approach": "Use actual OllamaPromptService to match app behavior"
+  },
+  "scenarios": [
+    {
+      "id": 1,
+      "name": "Deep skepticism from past failures",
+      "transcript": "I've been thinking about this extensively. We've had bad experiences with similar solutions in the past. The implementation was a nightmare and took months longer than promised. I'm just not convinced this time will be different.",
+      "context": {
+        "sentiment": "negative",
+        "stage": 7,
+        "topics": ["past_failures", "implementation_concerns", "skepticism"],
+        "objections": ["trust", "implementation_timeline"]
+      },
+      "expert_selection": {
+        "primary_tool_id": 13,
+        "primary_tool_name": "Take Away",
+        "reasoning": "Multiple strong negatives ('bad experiences', 'nightmare', 'not convinced') + late stage (7) + deep skepticism = strongest defusal tool",
+        "trigger_words": ["bad experiences", "nightmare", "not convinced"],
+        "expected_prompt_pattern": "Remove pressure, acknowledge their concern without being defensive"
+      }
+    },
+    {
+      "id": 2,
+      "name": "Team discussion stall tactic",
+      "transcript": "That's an interesting perspective on how to handle the situation. We'll need to discuss this with the broader team before making any decisions.",
+      "context": {
+        "sentiment": "neutral",
+        "stage": 6,
+        "topics": ["team_buy_in", "decision_process"],
+        "objections": ["authority", "team_consensus"]
+      },
+      "expert_selection": {
+        "primary_tool_id": 2,
+        "primary_tool_name": "Empathy Response",
+        "reasoning": "Soft objection disguised as process. No strong emotion to label. Needs validation before exploring the real concern.",
+        "trigger_words": ["discuss with team", "before making decisions"],
+        "expected_prompt_pattern": "Validate the team process, then explore what the real hesitation is"
+      }
+    },
+    {
+      "id": 3,
+      "name": "Emotional exhaustion from repeated failures",
+      "transcript": "Every solution we've tried has fallen short. The team is tired of false promises. I don't have the energy to go through another failed implementation.",
+      "context": {
+        "sentiment": "negative",
+        "stage": 4,
+        "topics": ["past_failures", "team_burnout", "implementation_concerns"],
+        "objections": ["trust", "energy"]
+      },
+      "expert_selection": {
+        "primary_tool_id": 5,
+        "primary_tool_name": "Labeling",
+        "reasoning": "STRONG emotional exhaustion ('tired', 'no energy', 'every solution failed') at mid-stage = Labeling to validate intense emotions. Too early for Take Away.",
+        "trigger_words": ["tired", "exhausted", "no energy", "every solution failed"],
+        "expected_prompt_pattern": "Name and validate the strong emotional fatigue, show understanding"
+      }
+    },
+    {
+      "id": 4,
+      "name": "Buying signal with implementation concern",
+      "transcript": "On one hand, I see the potential value. On the other hand, we're already stretched thin with current projects. I want to move forward but the timing feels off.",
+      "context": {
+        "sentiment": "neutral",
+        "stage": 7,
+        "topics": ["value_recognition", "resource_constraints", "timing"],
+        "objections": ["timing", "capacity"]
+      },
+      "expert_selection": {
+        "primary_tool_id": 1,
+        "primary_tool_name": "Mirroring",
+        "reasoning": "BUYING SIGNAL in disguise! 'See value' + 'want to move forward' = they want to buy. 'Stretched thin' = implementation concern, NOT rejection. Mirror to explore the real concern.",
+        "trigger_words": ["see value", "want to move forward", "BUT", "stretched thin"],
+        "expected_prompt_pattern": "Echo the concern to get them to elaborate on what 'stretched thin' means"
+      }
+    },
+    {
+      "id": 5,
+      "name": "Executive buy-in with middle management concern",
+      "transcript": "The executive team has been pushing for innovation, but there's resistance from middle management who are comfortable with the status quo. Navigating that dynamic is tricky.",
+      "context": {
+        "sentiment": "neutral",
+        "stage": 7,
+        "topics": ["stakeholder_politics", "organizational_change"],
+        "objections": ["internal_resistance"]
+      },
+      "expert_selection": {
+        "primary_tool_id": 1,
+        "primary_tool_name": "Mirroring",
+        "reasoning": "STRONGEST BUYING SIGNAL YET! Decision makers (execs) WANT it. They're asking HOW to get team on board, not WHETHER to do it. Mirror to clarify, then use Calibrated Questions.",
+        "trigger_words": ["executive team pushing", "middle management resistance"],
+        "expected_prompt_pattern": "Echo 'status quo' to clarify what middle management is protecting"
+      }
+    },
+    {
+      "id": 6,
+      "name": "Stuck progress - going in circles",
+      "transcript": "This is the third time we've had this conversation and I feel like we're going in circles. I'm starting to question if we're even aligned on what success looks like here.",
+      "context": {
+        "sentiment": "negative",
+        "stage": 6,
+        "topics": ["alignment", "progress_concerns"],
+        "objections": ["clarity", "alignment"]
+      },
+      "expert_selection": {
+        "primary_tool_id": 7,
+        "primary_tool_name": "Negative Assumption",
+        "reasoning": "Frustration with lack of progress (NOT hostility). Take ownership with self-deprecating humor, then reset with Calibrated Questions.",
+        "trigger_words": ["going in circles", "third time", "questioning alignment"],
+        "expected_prompt_pattern": "Take ownership with humor ('I must be the world's worst consultant'), then reset the conversation"
+      }
+    },
+    {
+      "id": 7,
+      "name": "Vague risk concern without specifics",
+      "transcript": "We're in a critical growth phase right now. Any disruption to our current operations could have significant downstream effects on our customer commitments.",
+      "context": {
+        "sentiment": "negative",
+        "stage": 6,
+        "topics": ["risk_aversion", "operational_concerns"],
+        "objections": ["disruption", "risk"]
+      },
+      "expert_selection": {
+        "primary_tool_id": 1,
+        "primary_tool_name": "Mirroring",
+        "reasoning": "Too vague and generic. Need more information before addressing. Mirror 'critical growth?' to get specifics, or use Empathy Questions.",
+        "trigger_words": ["critical growth", "disruption", "downstream effects"],
+        "expected_prompt_pattern": "Echo the vague phrase to make them elaborate with specifics"
+      }
+    },
+    {
+      "id": 8,
+      "name": "Enthusiasm with budget approval concern",
+      "transcript": "This is exactly what we've been looking for. The features align perfectly with our needs. My only concern is whether we can get executive approval given budget constraints this quarter.",
+      "context": {
+        "sentiment": "positive",
+        "stage": 8,
+        "topics": ["budget", "approval_process"],
+        "objections": ["budget", "authority"]
+      },
+      "expert_selection": {
+        "primary_tool_id": 1,
+        "primary_tool_name": "Mirroring",
+        "reasoning": "High enthusiasm but QUALIFICATION ISSUE - they need approval. Mirror 'budget constraints?' to understand, then use Calibrated Questions to reframe budget as ROI.",
+        "trigger_words": ["exactly what we've been looking for", "need executive approval", "budget constraints"],
+        "expected_prompt_pattern": "Echo 'budget constraints' to understand what that means specifically"
+      }
+    },
+    {
+      "id": 9,
+      "name": "Soft rejection at late stage",
+      "transcript": "Let me take this back to the team and see what they think. We'll circle back once we've had a chance to digest everything and discuss internally.",
+      "context": {
+        "sentiment": "neutral",
+        "stage": 8,
+        "topics": ["team_consensus", "delay"],
+        "objections": ["hidden_concern"]
+      },
+      "expert_selection": {
+        "primary_tool_id": 5,
+        "primary_tool_name": "Labeling",
+        "reasoning": "Late stage + stall tactic = soft rejection / BLACK SWAN. Label to call out the hidden concern: 'Sounds like you're not that excited.' Look for the real objection.",
+        "trigger_words": ["take this back", "circle back", "discuss internally"],
+        "expected_prompt_pattern": "Call out the lack of enthusiasm to uncover the hidden concern"
+      }
+    }
+  ],
+  "casual_conversation_scenarios": [
+    {
+      "id": 10,
+      "name": "Casual rapport building - golf interest",
+      "transcript": "Yeah, I got a new putter about a year ago and I think it's a good one. I'm probably just not very good yet. I struggle with my short game.",
+      "context": {
+        "sentiment": "neutral",
+        "stage": 1,
+        "topics": ["personal_interests", "golf"],
+        "objections": []
+      },
+      "expert_selection": {
+        "primary_tool_id": 1,
+        "primary_tool_name": "Mirroring",
+        "reasoning": "Casual conversation, no objections. Mirror to build rapport and show interest. Echo 'short game' to keep them talking.",
+        "trigger_words": ["I think", "I struggle with"],
+        "expected_prompt_pattern": "Echo the challenge they mentioned to show you're listening and build connection"
+      }
+    },
+    {
+      "id": 11,
+      "name": "Early discovery - problem exploration",
+      "transcript": "We've been looking at different coaching options. Not sure exactly what would work best for our team yet.",
+      "context": {
+        "sentiment": "neutral",
+        "stage": 2,
+        "topics": ["discovery", "evaluation"],
+        "objections": []
+      },
+      "expert_selection": {
+        "primary_tool_id": 3,
+        "primary_tool_name": "Empathy Questions",
+        "reasoning": "Discovery phase, no strong emotions. Use Empathy Questions to understand their world and what they're trying to solve.",
+        "trigger_words": ["looking at options", "not sure what would work"],
+        "expected_prompt_pattern": "Ask open-ended questions to understand their specific challenges and goals"
+      }
+    },
+    {
+      "id": 12,
+      "name": "Positive progress - solution interest",
+      "transcript": "That makes sense. I like how you explained that. Tell me more about how that would work in our specific situation.",
+      "context": {
+        "sentiment": "positive",
+        "stage": 4,
+        "topics": ["solution_fit", "clarification"],
+        "objections": []
+      },
+      "expert_selection": {
+        "primary_tool_id": 10,
+        "primary_tool_name": "Buy-In",
+        "reasoning": "Positive engagement and curiosity. Get buy-in before explaining more - make sure they're invested in understanding.",
+        "trigger_words": ["makes sense", "I like", "tell me more"],
+        "expected_prompt_pattern": "Ask a question to get them to commit to exploring further before explaining"
+      }
+    }
+  ],
+  "quality_criteria": {
+    "prompt_must_be_specific": "Generated coaching must reference actual words from transcript, not generic templates",
+    "prompt_must_be_contextual": "Must address the specific situation, not copy examples from instruction file",
+    "tool_selection_accuracy": "Selected tool_id must match expert reasoning",
+    "response_format": {
+      "required_fields": ["tool_id", "tool_name", "say_this", "why", "confidence"],
+      "tool_id_range": [1, 13],
+      "confidence_values": ["high", "medium", "low"]
+    }
+  }
+}

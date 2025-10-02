@@ -1,0 +1,56 @@
+# VoiceCoach Document Processing Pipeline Requirements
+
+# Core document processing
+PyPDF2>=3.0.1                    # PDF text extraction
+python-docx>=0.8.11              # DOCX document processing
+markdown>=3.4.1                  # Markdown processing
+
+# Text processing and NLP
+tiktoken>=0.5.1                  # Token counting for OpenAI models
+nltk>=3.8.1                     # Natural language processing toolkit
+
+# Vector storage and embeddings
+chromadb>=0.4.15                 # Vector database for RAG
+sentence-transformers>=2.2.2     # Embedding models
+
+# Async and parallel processing
+asyncio                          # Async processing (built-in)
+concurrent.futures               # Parallel processing (built-in)
+
+# Data handling
+numpy>=1.24.0                    # Numerical computing
+pandas>=2.0.0                    # Data manipulation and analysis
+
+# Utilities
+pathlib                          # Path handling (built-in)
+dataclasses                      # Data structures (built-in)
+typing                           # Type hints (built-in)
+json                             # JSON handling (built-in)
+uuid                             # Unique ID generation (built-in)
+datetime                         # Date/time handling (built-in)
+logging                          # Logging (built-in)
+os                               # Operating system interface (built-in)
+re                               # Regular expressions (built-in)
+
+# Development and testing
+pytest>=7.0.0                   # Testing framework
+pytest-asyncio>=0.21.0          # Async testing
+black>=23.0.0                   # Code formatting
+flake8>=6.0.0                   # Code linting
+mypy>=1.0.0                     # Type checking
+
+# Optional: Enhanced PDF processing
+# pdfplumber>=0.9.0              # Alternative PDF processor
+# pymupdf>=1.23.0                # Advanced PDF processing
+
+# Optional: Enhanced text extraction
+# textract>=1.6.5                # Multi-format text extraction
+# python-magic>=0.4.27           # File type detection
+
+# Optional: Advanced NLP features
+# spacy>=3.6.0                   # Advanced NLP
+# transformers>=4.30.0           # Transformer models
+
+# Optional: Progress bars and UI
+# tqdm>=4.65.0                   # Progress bars
+# rich>=13.0.0                   # Rich terminal output

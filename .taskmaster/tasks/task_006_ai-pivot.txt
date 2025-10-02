@@ -1,0 +1,44 @@
+# Task ID: 6
+# Title: Phase 6: Simplify sentiment-tool-selector.ts
+# Status: pending
+# Dependencies: 2, 3, 5
+# Priority: high
+# Description: Replace complex tool selector with simple pattern + AI classification approach
+# Details:
+Modify: src/services/coaching/sentiment-tool-selector.ts
+
+Complete rewrite - delete existing complex logic, replace with:
+1. Import ToolTemplateEngine, PatternMatchingLibrary
+2. Simple selectTool() method that tries pattern first, AI second
+3. aiSelectTool() method for fallback classification
+4. LED breadcrumbs 6500-6505
+
+New logic:
+- Try pattern match first (instant)
+- If high confidence match, return immediately
+- Otherwise call AI with minimal prompt (just return 1-13)
+- Return ToolSelection with toolId, confidence, method, processingTime
+
+Remove:
+- All complex branching logic (sentiment → stage → tool)
+- Tool response generation (now in templates)
+- buildPromptContext() (no longer needed)
+
+Verification criteria:
+- File significantly smaller (< 150 lines vs current ~440)
+- Uses PatternMatchingLibrary.matchTool()
+- Falls back to AI classification when needed
+- Returns consistent ToolSelection interface
+- LED 6500 on initialization
+- No dead code remaining
+
+# Test Strategy:
+1. Verify file exists and is simplified
+2. Check line count < 150 lines (vs 440 before)
+3. Verify pattern matching tried first
+4. Test: "expensive" → returns via pattern match (<50ms)
+5. Test: complex objection → returns via AI (~200ms)
+6. Verify ToolSelection interface returned correctly
+7. Check LED 6500 fires on init
+8. TypeScript compiles without errors
+9. Integration test with live-coaching-service works

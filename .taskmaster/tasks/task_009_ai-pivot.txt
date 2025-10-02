@@ -1,0 +1,44 @@
+# Task ID: 9
+# Title: Phase 9: Integration Testing - Template Filling
+# Status: pending
+# Dependencies: 5, 6
+# Priority: high
+# Description: Verify templates fill correctly with variables and produce high-quality prompts
+# Details:
+Test template variable substitution and output quality:
+
+Test cases (all 13 tools):
+1. Mirroring: {{LAST_WORDS}} extracted and filled correctly
+2. Empathy Response: {{EMOTION}} and {{SITUATION}} filled appropriately
+3. Labeling: {{EMOTION}} and {{TOPIC}} filled from context
+4. Take Away: {{OBJECTION}} and {{CONCERN}} filled from transcript
+5. Calibrated Questions: {{TOPIC}} filled relevantly
+... (test all 13)
+
+Success criteria:
+- All {{VARIABLE}} placeholders replaced
+- No placeholder text left in output
+- Variables contextually appropriate
+- Template fills in <5ms
+- Output reads naturally (not robotic)
+- LED 6553 fires on successful fill
+
+Verification:
+- Test each tool template with sample data
+- Verify variables extracted correctly
+- Check filled template quality
+- Ensure no {{}} remain in output
+- Time template filling operation
+- Review 20+ filled prompts for quality
+
+# Test Strategy:
+1. Create test data for all 13 tools
+2. Test extractSimpleVariables() for each tool
+3. Test fillTemplate() with extracted variables
+4. Verify no {{VARIABLE}} remains in output
+5. Manual review: do filled prompts read naturally?
+6. Measure template fill time (<5ms required)
+7. Check LED 6552 and 6553 fire correctly
+8. Test edge cases: empty variables, special characters
+9. Document any template improvements needed
+10. Refine templates until quality is excellent

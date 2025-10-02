@@ -1,0 +1,718 @@
+{
+  "instruction_file": "ollama-prompts/direct-coaching-prompt-trajectory.md",
+  "timestamp": "2025-10-02T02:45:20.362Z",
+  "summary": {
+    "total_scenarios": 39,
+    "correct": 8,
+    "accuracy_percent": 20.5,
+    "valid_json": 39,
+    "json_rate_percent": 100,
+    "required_fields": 39,
+    "fields_rate_percent": 100,
+    "avg_response_time_ms": 1064
+  },
+  "results": [
+    {
+      "scenario_id": 1,
+      "prospect_statement": "We've been having some challenges with our current system. It's just not keeping up with our growth.",
+      "expected_tool": 1,
+      "expected_tool_name": "Mirroring",
+      "correct": false,
+      "response_time_ms": 1588,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Empathy Questions",
+        "say_this": "Can you tell me more about what challenges you've faced with your current system?",
+        "why": "The engagement is improving, but there are no key topics or detected objections yet. Using empathy questions can help uncover deeper issues and guide the conversation towards a better solution.",
+        "confidence": "high"
+      },
+      "actual_tool": 3,
+      "actual_tool_name": "Empathy Questions"
+    },
+    {
+      "scenario_id": 2,
+      "prospect_statement": "On one hand, I see the potential value. On the other hand, we're already stretched thin with current projects.",
+      "expected_tool": 1,
+      "expected_tool_name": "Mirroring",
+      "correct": false,
+      "response_time_ms": 1070,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "say_this": "How do you see us managing this new project alongside your current workload?",
+        "why": "The engagement is stable, and the prospect shows concern about resource allocation. A calibrated question can help them think through their concerns and open up.",
+        "confidence": "high"
+      },
+      "actual_tool": 6,
+      "actual_tool_name": "Calibrated Questions"
+    },
+    {
+      "scenario_id": 3,
+      "prospect_statement": "We're in a critical growth phase right now. Any disruption could have significant downstream effects.",
+      "expected_tool": 1,
+      "expected_tool_name": "Mirroring",
+      "correct": true,
+      "response_time_ms": 791,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "say_this": "disruption could have significant downstream effects",
+        "why": "Maintain rapport and encourage elaboration on their concerns about potential disruptions",
+        "confidence": "high"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 4,
+      "prospect_statement": "I'm frustrated with how long it takes to get reports. By the time we have data, the opportunity is gone.",
+      "expected_tool": 2,
+      "expected_tool_name": "Empathy Response",
+      "correct": true,
+      "response_time_ms": 1088,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Empathy Response",
+        "say_this": "I understand, it's really frustrating when delays impact your ability to act on opportunities.",
+        "why": "The sentiment is negative and the engagement delta is positive but small. An empathy response can help build rapport and address their frustration directly.",
+        "confidence": "high"
+      },
+      "actual_tool": 2,
+      "actual_tool_name": "Empathy Response"
+    },
+    {
+      "scenario_id": 5,
+      "prospect_statement": "That's an interesting perspective. We'll need to discuss this with the broader team before making any decisions.",
+      "expected_tool": 2,
+      "expected_tool_name": "Empathy Response",
+      "correct": true,
+      "response_time_ms": 1139,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Empathy Response",
+        "say_this": "I understand involving your team is important for making a well-informed decision.",
+        "why": "The prospect mentioned discussing the matter with their broader team, indicating a need to involve others in the decision-making process. This response acknowledges their concern and builds rapport.",
+        "confidence": "high"
+      },
+      "actual_tool": 2,
+      "actual_tool_name": "Empathy Response"
+    },
+    {
+      "scenario_id": 6,
+      "prospect_statement": "I'm concerned about getting buy-in from the operations team. They're already overwhelmed.",
+      "expected_tool": 2,
+      "expected_tool_name": "Empathy Response",
+      "correct": false,
+      "response_time_ms": 1141,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Buy-In",
+        "say_this": "Can I share some ideas on how we might approach getting buy-in from your operations team?",
+        "why": "The sentiment is negative and there's a detected objection around authority. Asking for permission to offer solutions can help make the prospect more open to new ideas.",
+        "confidence": "high"
+      },
+      "actual_tool": 10,
+      "actual_tool_name": "Buy-In"
+    },
+    {
+      "scenario_id": 7,
+      "prospect_statement": "We already have a system in place. It's been working okay for the past two years.",
+      "expected_tool": 3,
+      "expected_tool_name": "Empathy Questions",
+      "correct": true,
+      "response_time_ms": 1300,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Empathy Questions",
+        "say_this": "Can you tell me more about what's been working well and any challenges you've faced?",
+        "why": "The prospect mentioned their current system has been okay for two years, but didn't elaborate on specifics. This question encourages them to share both positives and negatives which can help uncover pain points or areas for improvement.",
+        "confidence": "high"
+      },
+      "actual_tool": 3,
+      "actual_tool_name": "Empathy Questions"
+    },
+    {
+      "scenario_id": 8,
+      "prospect_statement": "We currently use spreadsheets for tracking. It's manual but we know how it works.",
+      "expected_tool": 3,
+      "expected_tool_name": "Empathy Questions",
+      "correct": false,
+      "response_time_ms": 1034,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "say_this": "How do you feel about exploring a more automated solution?",
+        "why": "The conversation is neutral and lacks engagement. Using calibrated questions can shift control to the prospect, encouraging them to share their thoughts on potential improvements.",
+        "confidence": "high"
+      },
+      "actual_tool": 6,
+      "actual_tool_name": "Calibrated Questions"
+    },
+    {
+      "scenario_id": 9,
+      "prospect_statement": "Our weekly meetings help us stay aligned. The team is used to this rhythm.",
+      "expected_tool": 3,
+      "expected_tool_name": "Empathy Questions",
+      "correct": false,
+      "response_time_ms": 963,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "say_this": "How do these meetings contribute to your team's success?",
+        "why": "The conversation is neutral and stable, using calibrated questions can encourage the prospect to share more about their needs and challenges.",
+        "confidence": "high"
+      },
+      "actual_tool": 6,
+      "actual_tool_name": "Calibrated Questions"
+    },
+    {
+      "scenario_id": 10,
+      "prospect_statement": "We have multiple issues - data silos, manual processes, lack of real-time visibility, and compliance concerns. It's a lot.",
+      "expected_tool": 4,
+      "expected_tool_name": "Summarizing",
+      "correct": false,
+      "response_time_ms": 1138,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "say_this": "Can you tell me more about how these issues impact your team's day-to-day operations?",
+        "why": "The prospect has mentioned several challenges but hasn't elaborated on their specific impacts. Using calibrated questions can help uncover deeper pain points and foster engagement.",
+        "confidence": "high"
+      },
+      "actual_tool": 6,
+      "actual_tool_name": "Calibrated Questions"
+    },
+    {
+      "scenario_id": 11,
+      "prospect_statement": "There are several stakeholders involved - IT wants security, Finance wants cost control, Operations wants simplicity, and Sales wants speed.",
+      "expected_tool": 4,
+      "expected_tool_name": "Summarizing",
+      "correct": false,
+      "response_time_ms": 1052,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "say_this": "How do you see these different priorities being balanced?",
+        "why": "The conversation is neutral and stable, indicating a need for deeper exploration of the stakeholders' concerns. Calibrated questions can help uncover hidden issues or desires.",
+        "confidence": "high"
+      },
+      "actual_tool": 6,
+      "actual_tool_name": "Calibrated Questions"
+    },
+    {
+      "scenario_id": 12,
+      "prospect_statement": "The main concerns are implementation time, user adoption, integration with existing tools, training requirements, and ongoing support. We need to address all of these.",
+      "expected_tool": 4,
+      "expected_tool_name": "Summarizing",
+      "correct": false,
+      "response_time_ms": 1008,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "say_this": "How do you see these challenges impacting your decision-making process?",
+        "why": "The conversation is stable but needs to be steered towards deeper engagement and understanding of their concerns. Calibrated questions can help.",
+        "confidence": "high"
+      },
+      "actual_tool": 6,
+      "actual_tool_name": "Calibrated Questions"
+    },
+    {
+      "scenario_id": 13,
+      "prospect_statement": "Every solution we've tried has fallen short. The team is tired of false promises. I don't have the energy to go through another failed implementation.",
+      "expected_tool": 5,
+      "expected_tool_name": "Labeling",
+      "correct": false,
+      "response_time_ms": 1029,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Empathy Response",
+        "say_this": "I understand, it must be frustrating to feel let down by previous solutions.",
+        "why": "The sentiment is negative and the engagement delta is neutral. An empathy response can help build rapport and address their emotional state.",
+        "confidence": "high"
+      },
+      "actual_tool": 2,
+      "actual_tool_name": "Empathy Response"
+    },
+    {
+      "scenario_id": 14,
+      "prospect_statement": "I'm hesitant because we got burned last time. The vendor overpromised and underdelivered, and it cost us six months of productivity.",
+      "expected_tool": 5,
+      "expected_tool_name": "Labeling",
+      "correct": false,
+      "response_time_ms": 1069,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Empathy Response",
+        "say_this": "I understand, getting burned can be really frustrating and it's important to trust your instincts.",
+        "why": "The prospect is expressing a negative sentiment due to past experiences. Using empathy will help build rapport and address their concerns directly.",
+        "confidence": "high"
+      },
+      "actual_tool": 2,
+      "actual_tool_name": "Empathy Response"
+    },
+    {
+      "scenario_id": 15,
+      "prospect_statement": "Let me take this back to the team and see what they think. We'll circle back once we've had a chance to digest everything.",
+      "expected_tool": 5,
+      "expected_tool_name": "Labeling",
+      "correct": false,
+      "response_time_ms": 1147,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Empathy Response",
+        "say_this": "I understand that you want to make sure this aligns with your team's vision.",
+        "why": "The prospect is showing signs of hesitation and seeking approval from their team, indicating a need for reassurance. Using empathy can help build trust and address concerns.",
+        "confidence": "high"
+      },
+      "actual_tool": 2,
+      "actual_tool_name": "Empathy Response"
+    },
+    {
+      "scenario_id": 16,
+      "prospect_statement": "I'm not sure how this would fit into our current workflow. Our team has a very specific process.",
+      "expected_tool": 6,
+      "expected_tool_name": "Calibrated Questions",
+      "correct": true,
+      "response_time_ms": 1165,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "say_this": "How do you think we could adapt this to fit your current workflow?",
+        "why": "The prospect is showing hesitation and concerns about fitting the solution into their existing process. Using calibrated questions can help shift control back to them, encouraging active participation in finding a solution.",
+        "confidence": "high"
+      },
+      "actual_tool": 6,
+      "actual_tool_name": "Calibrated Questions"
+    },
+    {
+      "scenario_id": 17,
+      "prospect_statement": "I want to move forward but the timing feels off. We're stretched thin.",
+      "expected_tool": 6,
+      "expected_tool_name": "Calibrated Questions",
+      "correct": true,
+      "response_time_ms": 892,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "say_this": "What specific challenges are you facing with timing?",
+        "why": "Prospect mentioned feeling stretched thin, calibrated questions can help uncover more details and address concerns directly.",
+        "confidence": "medium"
+      },
+      "actual_tool": 6,
+      "actual_tool_name": "Calibrated Questions"
+    },
+    {
+      "scenario_id": 18,
+      "prospect_statement": "This looks good, but I need to get executive approval given our budget constraints this quarter.",
+      "expected_tool": 6,
+      "expected_tool_name": "Calibrated Questions",
+      "correct": false,
+      "response_time_ms": 1138,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Negative Assumption",
+        "say_this": "I understand getting executive approval can be a challenge, especially with budget constraints. How have you approached this in the past?",
+        "why": "The prospect mentioned needing executive approval and budget constraints, indicating potential obstacles. Addressing these upfront can help disarm them.",
+        "confidence": "high"
+      },
+      "actual_tool": 7,
+      "actual_tool_name": "Negative Assumption"
+    },
+    {
+      "scenario_id": 19,
+      "prospect_statement": "The executive team wants innovation, but middle management is comfortable with the status quo. Navigating that is tricky.",
+      "expected_tool": 7,
+      "expected_tool_name": "Negative Assumption",
+      "correct": false,
+      "response_time_ms": 1034,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Empathy Questions",
+        "say_this": "How have you been addressing this challenge so far?",
+        "why": "The prospect mentioned a tricky situation, showing they are open to discussion. Using empathy questions can help uncover more about their current efforts and pain points.",
+        "confidence": "high"
+      },
+      "actual_tool": 3,
+      "actual_tool_name": "Empathy Questions"
+    },
+    {
+      "scenario_id": 20,
+      "prospect_statement": "This is the third time we've discussed this and I feel like we're going in circles. I'm questioning if we're aligned.",
+      "expected_tool": 7,
+      "expected_tool_name": "Negative Assumption",
+      "correct": false,
+      "response_time_ms": 1025,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Black Swan",
+        "say_this": "Can you tell me more about what's causing this feeling of going in circles?",
+        "why": "The sentiment is negative and there are no key topics or objections detected, suggesting hidden issues. Black Swan uncovers these.",
+        "confidence": "high"
+      },
+      "actual_tool": 9,
+      "actual_tool_name": "Black Swan"
+    },
+    {
+      "scenario_id": 21,
+      "prospect_statement": "I'm worried this is going to be too complicated for our team. They're not the most tech-savvy.",
+      "expected_tool": 7,
+      "expected_tool_name": "Negative Assumption",
+      "correct": true,
+      "response_time_ms": 1179,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Negative Assumption",
+        "say_this": "I understand your concern about complexity. Let's address this upfront: how can we ensure a smooth transition for your team?",
+        "why": "The prospect has expressed doubt about the technical capability of their team, indicating an objection that needs to be addressed directly and proactively.",
+        "confidence": "high"
+      },
+      "actual_tool": 7,
+      "actual_tool_name": "Negative Assumption"
+    },
+    {
+      "scenario_id": 22,
+      "prospect_statement": "I really like what I'm hearing. The ROI calculations make sense and the implementation timeline is reasonable.",
+      "expected_tool": 8,
+      "expected_tool_name": "Dynamic Silence",
+      "correct": false,
+      "response_time_ms": 1016,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "say_this": "What specific aspects of the ROI calculations and timeline resonate most with you?",
+        "why": "Prospect is positive but needs further elaboration to understand priorities and move forward. Calibrated questions encourage active participation.",
+        "confidence": "high"
+      },
+      "actual_tool": 6,
+      "actual_tool_name": "Calibrated Questions"
+    },
+    {
+      "scenario_id": 23,
+      "prospect_statement": "I see the value proposition. The case studies are compelling, and I understand how this addresses our pain points.",
+      "expected_tool": 8,
+      "expected_tool_name": "Dynamic Silence",
+      "correct": false,
+      "response_time_ms": 958,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "say_this": "How do you see this solution fitting into your current plans?",
+        "why": "Prospect acknowledges value but no clear next steps, calibrated questions to engage further and uncover key topics",
+        "confidence": "high"
+      },
+      "actual_tool": 6,
+      "actual_tool_name": "Calibrated Questions"
+    },
+    {
+      "scenario_id": 24,
+      "prospect_statement": "The team would definitely benefit from this. We've been looking for exactly this kind of solution.",
+      "expected_tool": 8,
+      "expected_tool_name": "Dynamic Silence",
+      "correct": false,
+      "response_time_ms": 1074,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "say_this": "Can you tell me more about how your team would benefit from this solution?",
+        "why": "The sentiment is positive, but no key topics have been identified. Using calibrated questions will encourage the prospect to elaborate and uncover specific benefits.",
+        "confidence": "high"
+      },
+      "actual_tool": 6,
+      "actual_tool_name": "Calibrated Questions"
+    },
+    {
+      "scenario_id": 25,
+      "prospect_statement": "Everything looks good on paper. I just need to make sure all the stakeholders are comfortable before we proceed.",
+      "expected_tool": 9,
+      "expected_tool_name": "Black Swan",
+      "correct": false,
+      "response_time_ms": 895,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "say_this": "What specific concerns do the stakeholders have?",
+        "why": "The prospect is neutral and needs guidance to elaborate on their concerns, shifting control to uncover hidden issues.",
+        "confidence": "medium"
+      },
+      "actual_tool": 6,
+      "actual_tool_name": "Calibrated Questions"
+    },
+    {
+      "scenario_id": 26,
+      "prospect_statement": "I like the solution, but there's something holding me back that I can't quite put my finger on.",
+      "expected_tool": 9,
+      "expected_tool_name": "Black Swan",
+      "correct": true,
+      "response_time_ms": 944,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Black Swan",
+        "say_this": "Can you tell me more about what's holding you back?",
+        "why": "Prospect is hesitant but hasn't specified the issue, use Black Swan to uncover hidden concerns or desires.",
+        "confidence": "high"
+      },
+      "actual_tool": 9,
+      "actual_tool_name": "Black Swan"
+    },
+    {
+      "scenario_id": 27,
+      "prospect_statement": "The technical specs look solid. It's really more about the organizational dynamics at play here.",
+      "expected_tool": 9,
+      "expected_tool_name": "Black Swan",
+      "correct": false,
+      "response_time_ms": 961,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "say_this": "Could you tell me more about the organizational dynamics that concern you?",
+        "why": "The prospect mentioned organizational dynamics but didn't elaborate. Using calibrated questions can encourage them to share more details.",
+        "confidence": "high"
+      },
+      "actual_tool": 6,
+      "actual_tool_name": "Calibrated Questions"
+    },
+    {
+      "scenario_id": 28,
+      "prospect_statement": "That sounds promising. I'm curious how this would work in our specific environment.",
+      "expected_tool": 10,
+      "expected_tool_name": "Buy-In",
+      "correct": false,
+      "response_time_ms": 887,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "say_this": "How do you envision this solution fitting into your current environment?",
+        "why": "Prospect is curious about implementation, use calibrated questions to deepen understanding and engagement",
+        "confidence": "high"
+      },
+      "actual_tool": 6,
+      "actual_tool_name": "Calibrated Questions"
+    },
+    {
+      "scenario_id": 29,
+      "prospect_statement": "I like what I'm hearing. Can you tell me more about the integration process?",
+      "expected_tool": 10,
+      "expected_tool_name": "Buy-In",
+      "correct": false,
+      "response_time_ms": 1114,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "say_this": "Sure, can you tell me what specific aspects of integration are most important to you?",
+        "why": "Prospect is showing interest and openness. Using calibrated questions will encourage them to share more details which could be crucial for addressing their needs.",
+        "confidence": "high"
+      },
+      "actual_tool": 6,
+      "actual_tool_name": "Calibrated Questions"
+    },
+    {
+      "scenario_id": 30,
+      "prospect_statement": "We've tried similar tools before. What makes this different?",
+      "expected_tool": 10,
+      "expected_tool_name": "Buy-In",
+      "correct": false,
+      "response_time_ms": 980,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "say_this": "What specific aspects of previous tools didn't meet your expectations?",
+        "why": "Prospect is skeptical about the differences, use calibrated questions to understand their concerns and guide them towards a better solution.",
+        "confidence": "high"
+      },
+      "actual_tool": 6,
+      "actual_tool_name": "Calibrated Questions"
+    },
+    {
+      "scenario_id": 31,
+      "prospect_statement": "I'm feeling pressured to make a decision right now and I don't like that. This is a big investment and I need time.",
+      "expected_tool": 11,
+      "expected_tool_name": "DJ Voice",
+      "correct": false,
+      "response_time_ms": 1055,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Empathy Response",
+        "say_this": "I understand, making a big investment can be overwhelming and it's important to take your time.",
+        "why": "The prospect is feeling pressured and needs reassurance. An empathy response will help them feel understood and less defensive.",
+        "confidence": "high"
+      },
+      "actual_tool": 2,
+      "actual_tool_name": "Empathy Response"
+    },
+    {
+      "scenario_id": 32,
+      "prospect_statement": "Everyone is telling me to hurry up and decide but this feels rushed. I'm stressed about making the wrong choice.",
+      "expected_tool": 11,
+      "expected_tool_name": "DJ Voice",
+      "correct": false,
+      "response_time_ms": 976,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Empathy Response",
+        "say_this": "I understand, making a decision under pressure can be really stressful.",
+        "why": "The prospect is expressing negative sentiment and feeling rushed. An empathy response will help them feel understood and reduce stress.",
+        "confidence": "high"
+      },
+      "actual_tool": 2,
+      "actual_tool_name": "Empathy Response"
+    },
+    {
+      "scenario_id": 33,
+      "prospect_statement": "I'm anxious about what happens if this doesn't work. We can't afford another failure right now.",
+      "expected_tool": 11,
+      "expected_tool_name": "DJ Voice",
+      "correct": false,
+      "response_time_ms": 1022,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Empathy Response",
+        "say_this": "I understand your concern, it's natural to worry about potential risks.",
+        "why": "The prospect is expressing anxiety and needs emotional support before moving forward. This will help build rapport and address their concerns directly.",
+        "confidence": "high"
+      },
+      "actual_tool": 2,
+      "actual_tool_name": "Empathy Response"
+    },
+    {
+      "scenario_id": 34,
+      "prospect_statement": "I'm not sure this is going to work for us. It seems like a big risk with uncertain outcomes.",
+      "expected_tool": 12,
+      "expected_tool_name": "Truth with No",
+      "correct": false,
+      "response_time_ms": 1177,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Negative Assumption",
+        "say_this": "I understand your concern about taking on a new solution that has uncertain outcomes. Let's discuss how we can mitigate risks and ensure success.",
+        "why": "The prospect is hesitant due to perceived risk, addressing this upfront can help build trust and move the conversation forward.",
+        "confidence": "high"
+      },
+      "actual_tool": 7,
+      "actual_tool_name": "Negative Assumption"
+    },
+    {
+      "scenario_id": 35,
+      "prospect_statement": "I'm hesitant about the implementation timeline. Three months feels optimistic.",
+      "expected_tool": 12,
+      "expected_tool_name": "Truth with No",
+      "correct": false,
+      "response_time_ms": 1248,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Negative Assumption",
+        "say_this": "I understand that a three-month timeline might seem ambitious. Let's discuss potential risks and how we can mitigate them.",
+        "why": "The prospect is hesitant about the implementation timeline, indicating an objection or concern. Addressing this upfront with Negative Assumption helps to disarm it and move forward positively.",
+        "confidence": "high"
+      },
+      "actual_tool": 7,
+      "actual_tool_name": "Negative Assumption"
+    },
+    {
+      "scenario_id": 36,
+      "prospect_statement": "I'm uncertain if this is the right move for us right now. There are too many unknowns.",
+      "expected_tool": 12,
+      "expected_tool_name": "Truth with No",
+      "correct": false,
+      "response_time_ms": 1046,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Empathy Response",
+        "say_this": "I understand, it's natural to feel uncertain when there are many unknowns.",
+        "why": "The sentiment is negative and the prospect is expressing doubt. An empathy response can help build rapport and address their concerns directly.",
+        "confidence": "high"
+      },
+      "actual_tool": 2,
+      "actual_tool_name": "Empathy Response"
+    },
+    {
+      "scenario_id": 37,
+      "prospect_statement": "I've been thinking about this extensively. We've had bad experiences with similar solutions. The implementation was a nightmare. I'm not convinced this time will be different.",
+      "expected_tool": 13,
+      "expected_tool_name": "Take Away",
+      "correct": false,
+      "response_time_ms": 945,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Empathy Response",
+        "say_this": "I understand, previous experiences can certainly shape our expectations and concerns.",
+        "why": "The prospect is expressing negative sentiment about past experiences. An empathy response acknowledges their feelings and builds rapport.",
+        "confidence": "high"
+      },
+      "actual_tool": 2,
+      "actual_tool_name": "Empathy Response"
+    },
+    {
+      "scenario_id": 38,
+      "prospect_statement": "This is more expensive than I expected. I don't know if we can justify this cost to the CFO.",
+      "expected_tool": 13,
+      "expected_tool_name": "Take Away",
+      "correct": false,
+      "response_time_ms": 1263,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Negative Assumption",
+        "say_this": "I understand your concern about cost. Let's address how we can present this as a value-driven investment to the CFO.",
+        "why": "The prospect has raised a pricing objection, indicating urgency for intervention (weight 7). Addressing concerns upfront helps disarm objections and keeps the conversation moving forward positively.",
+        "confidence": "high"
+      },
+      "actual_tool": 7,
+      "actual_tool_name": "Negative Assumption"
+    },
+    {
+      "scenario_id": 39,
+      "prospect_statement": "I need to think about this and talk to my team. Maybe we should revisit this in a few months when things settle down.",
+      "expected_tool": 13,
+      "expected_tool_name": "Take Away",
+      "correct": false,
+      "response_time_ms": 927,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "say_this": "What specific concerns do you have about timing?",
+        "why": "Prospect needs more clarity on objections and is hesitant to commit. Asking calibrated questions can help uncover hidden issues.",
+        "confidence": "medium"
+      },
+      "actual_tool": 6,
+      "actual_tool_name": "Calibrated Questions"
+    }
+  ]
+}

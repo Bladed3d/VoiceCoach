@@ -1,0 +1,33 @@
+# Task ID: 1
+# Title: Phase 1: Delete Old AI Generation System
+# Status: pending
+# Dependencies: None
+# Priority: high
+# Description: Remove all old prompt generation files that will be replaced by template system. Verify no imports remain. Save original 13ToolsRAG-01-condensed.json for A/B testing.
+# Details:
+IMPORTANT: SAVE the original 13ToolsRAG-01-condensed.json before making any changes. We need it for A/B testing old vs new system.
+
+Files to delete:
+- src/services/coaching/OllamaPromptService.ts
+- src/services/coaching/OllamaPromptBuilder.ts
+- src/services/coaching/OllamaInstructionLoader.ts
+- src/services/coaching/OllamaInstructionLoader-Browser.ts
+- src/services/coaching/ollama-service-enhanced.ts
+- src/services/coaching/ollama-compatibility-wrapper.ts
+
+Verification:
+- Search codebase for imports of deleted files (should find NONE)
+- Grep for "OllamaPromptService" (should only find in git history)
+- Grep for "OllamaPromptBuilder" (should only find in git history)
+- Verify 13ToolsRAG-01-condensed.json still exists and is unchanged after deletion
+- App should fail to build (expected - we'll fix in next phase)
+
+# Test Strategy:
+1. Make a backup copy of 13ToolsRAG-01-condensed.json
+2. Delete all 6 files
+3. Run: grep -r "OllamaPromptService" src/ (expect: no results)
+4. Run: grep -r "OllamaPromptBuilder" src/ (expect: no results)
+5. Run: grep -r "ollama-service-enhanced" src/ (expect: no results)
+6. Verify files no longer exist in filesystem
+7. Verify 13ToolsRAG-01-condensed.json still exists and is unchanged
+8. Commit deletion to git with message: "Delete old AI generation system for template pivot"

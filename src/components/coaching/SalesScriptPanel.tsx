@@ -8,6 +8,7 @@ import { SalesScriptService, SalesScript, ScriptProgress } from '../../services/
 import { ScriptProgressTracker, StageDetectionResult, ConversationEntry } from '../../services/coaching/script-progress-tracker';
 import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
 import { SentimentData } from '../../types/coaching';
+import { ManualSentimentButtons } from './ManualSentimentButtons';
 
 interface SalesScriptPanelProps {
   scriptItems: any[];
@@ -18,6 +19,8 @@ interface SalesScriptPanelProps {
   onClearUsed: () => void;
   onCollapse?: () => void;
   onStageSelected?: (stageNumber: number) => void;
+  onManualSentiment?: (score: -50 | -25 | 0 | 25 | 50, emoji: string) => void;
+  manualSentiments?: Array<{ timestamp: number; score: number; transcriptIndex: number; emoji: string }>;
 }
 
 export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
@@ -28,7 +31,9 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
   onMarkUsed: _onMarkUsed,
   onClearUsed: _onClearUsed,
   onCollapse,
-  onStageSelected
+  onStageSelected,
+  onManualSentiment,
+  manualSentiments = []
 }) => {
   // Convert conversation history format for script tracking
   const conversationHistory: ConversationEntry[] = rawConversationHistory.map(entry => ({
@@ -277,6 +282,40 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
                               vectorEffect="non-scaling-stroke"
                             />
                           )}
+
+                          {/* Manual sentiment markers (blue dots) */}
+                          {manualSentiments.map((manual, index) => {
+                            // Find position based on transcript index
+                            const relativeIndex = Math.min(manual.transcriptIndex, sentimentData.length - 1);
+                            const displayIndex = Math.min(relativeIndex, 19);
+                            const x = (displayIndex / 20) * 100;
+                            // Map manual score (-50 to +50) to graph coordinates
+                            const normalizedValue = (manual.score / 50) * 10; // Convert to -10..10 range
+                            const y = 50 - (normalizedValue / 10 * 50);
+
+                            return (
+                              <g key={`${manual.timestamp}-${index}`}>
+                                {/* Blue outer ring */}
+                                <circle
+                                  cx={x}
+                                  cy={y}
+                                  r="5"
+                                  fill="none"
+                                  stroke="#3b82f6"
+                                  strokeWidth="2"
+                                  vectorEffect="non-scaling-stroke"
+                                />
+                                {/* Blue center dot */}
+                                <circle
+                                  cx={x}
+                                  cy={y}
+                                  r="3"
+                                  fill="#3b82f6"
+                                  vectorEffect="non-scaling-stroke"
+                                />
+                              </g>
+                            );
+                          })}
                         </svg>
                       ) : (
                         <div className="h-full flex items-center justify-center text-slate-400 text-xs">
@@ -295,6 +334,14 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
                       )}
                     </div>
                   </div>
+
+                  {/* Manual Sentiment Buttons */}
+                  {onManualSentiment && (
+                    <ManualSentimentButtons
+                      onSentimentClick={onManualSentiment}
+                      disabled={!isRecording}
+                    />
+                  )}
                 </div>
 
                 {/* Tool Recommendations */}

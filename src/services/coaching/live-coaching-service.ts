@@ -11,6 +11,7 @@ import { SessionManagerService } from './SessionManagerService';
 import { ToolTemplateEngine, TemplateResult } from './ToolTemplateEngine';
 import { PatternMatchingLibrary, MatchingContext } from './PatternMatchingLibrary';
 import { ToolUsageTracker } from './ToolUsageTracker';
+import { OllamaPromptService, ollamaPromptService } from './OllamaPromptService';
 
 export interface LiveCoachingConfig {
   ollama: OllamaConfig;
@@ -44,6 +45,7 @@ export class LiveCoachingService {
 
   // Core services
   private ollamaService: OllamaCoachingService;
+  private ollamaPromptService: OllamaPromptService;
   private templateEngine: ToolTemplateEngine;
   private patternMatcher: PatternMatchingLibrary;
   private usageTracker: ToolUsageTracker;
@@ -70,28 +72,54 @@ export class LiveCoachingService {
 
     // Initialize core services
     this.ollamaService = new OllamaCoachingService(config.ollama);
-    this.templateEngine = new ToolTemplateEngine();
+    // Use singleton instance so Settings reload affects coaching
+    this.ollamaPromptService = ollamaPromptService;
+    // Get user-selected RAG file from localStorage (same as Documents selector)
+    let ragFilePath = 'rag/13ToolsRAG-01-templates.json'; // Default fallback
+    try {
+      const selectedDocs = localStorage.getItem('voicecoach-selected-documents');
+      if (selectedDocs) {
+        const docs = JSON.parse(selectedDocs);
+        // Use first selected document if it's a template file
+        if (docs.length > 0 && docs[0].includes('template')) {
+          ragFilePath = docs[0];
+
+          // DEFENSIVE: Fix old localStorage data missing 'rag/' prefix
+          if (!ragFilePath.includes('/') && !ragFilePath.startsWith('rag/')) {
+            console.warn(`⚠️ Fixing RAG path missing 'rag/' prefix: ${ragFilePath}`);
+            ragFilePath = `rag/${ragFilePath}`;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Could not load selected documents, using default:', e);
+    }
+
+    console.log('🔧 LiveCoachingService: Using RAG file:', ragFilePath);
+    this.templateEngine = new ToolTemplateEngine(ragFilePath);
     this.patternMatcher = new PatternMatchingLibrary(this.templateEngine);
     this.usageTracker = new ToolUsageTracker();
 
     this.trail.light(6200, {
-      operation: 'live_coaching_service_initialized',
+      operation: 'live_coaching_service_constructor_complete',
       ollamaModel: config.ollama.model,
       templateSystem: true,
       timestamp: Date.now()
     });
 
-    console.log('✅ LiveCoachingService initialized with Template System');
+    console.log('✅ LiveCoachingService constructor complete - call initialize() to load templates');
   }
 
   async initialize(): Promise<boolean> {
     try {
+      // CRITICAL: Load templates before using PatternMatchingLibrary!
+      console.log('🔧 LiveCoachingService: Loading templates...');
+      await this.templateEngine.loadConfig();
+      console.log('✅ LiveCoachingService: Templates loaded successfully');
       this.trail.light(6201, { operation: 'live_coaching_initialization_start' });
       console.log('🔍 LiveCoachingService.initialize(): Starting initialization...');
 
-      // Load template engine configuration
-      console.log('🔍 LiveCoachingService.initialize(): Calling templateEngine.loadConfig()...');
-      await this.templateEngine.loadConfig();
+      // Templates already loaded above
       console.log(`✅ Template engine loaded: ${this.templateEngine.getToolCount()} tools`);
 
       // Test Ollama connection (non-blocking - pattern matching works without Ollama)
@@ -288,14 +316,12 @@ export class LiveCoachingService {
       let toolId: number;
       let toolName: string;
       let matchType: 'pattern' | 'ai';
-      let confidence: 'high' | 'medium' | 'low';
 
       if (patternMatch) {
         // Pattern match successful!
         toolId = patternMatch.toolId;
         toolName = patternMatch.toolName;
         matchType = 'pattern';
-        confidence = patternMatch.confidence;
 
         this.trail.light(6252, {
           operation: 'pattern_match_success',
@@ -306,7 +332,7 @@ export class LiveCoachingService {
           processingTime: performance.now() - startTime
         });
 
-        console.log(`✅ Pattern Match: Tool ${toolId} (${toolName}) - ${confidence} confidence`);
+        console.log(`✅ Pattern Match: Tool ${toolId} (${toolName}) - Score: ${patternMatch.score}`);
 
         // Update window title to show pattern matching is working
         if (typeof document !== 'undefined') {
@@ -323,17 +349,15 @@ export class LiveCoachingService {
         const aiToolId = await this.selectToolViaAI(transcript, sentiment, stage);
 
         if (!aiToolId) {
-          // AI also failed, use default
+          // AI also failed, use default based on sentiment
           toolId = 1; // Default to Mirroring
           toolName = 'Mirroring';
           matchType = 'ai';
-          confidence = 'low';
         } else {
           toolId = aiToolId;
           const tool = this.templateEngine.getTool(toolId);
           toolName = tool?.name || `Tool ${toolId}`;
           matchType = 'ai';
-          confidence = 'medium';
 
           this.trail.light(6253, {
             operation: 'ai_tool_selection_success',
@@ -372,15 +396,14 @@ export class LiveCoachingService {
       });
 
       // Step 4: Send to UI
-      await this.sendPromptToUI(templateResult, matchType, confidence);
+      await this.sendPromptToUI(templateResult, matchType);
 
       // Step 5: Log usage for learning
       this.usageTracker.logToolShown(toolId, toolName, {
         transcript,
         sentiment,
         stage,
-        matchType,
-        confidence
+        matchType
       });
 
     } catch (error) {
@@ -401,29 +424,39 @@ export class LiveCoachingService {
     stage: number
   ): Promise<number | null> {
     try {
-      const context: CoachingContext = {
-        originalDocument: this.currentDocument?.originalContent || '',
-        processedInsights: this.currentDocument?.documentContent,
-        conversationHistory: this.conversationHistory.slice(-5),
-        currentTranscript: transcript
-      };
+      // Use OllamaPromptService.generateCoaching for proper instruction file usage
+      const tools = this.templateEngine.getAllTools();
 
-      // Ask Ollama to return just a tool number
-      const prompt = `Based on this sales conversation context, select the best coaching tool (1-13):
+      const result = await this.ollamaPromptService.generateCoaching({
+        transcript,
+        sentiment,
+        salesStage: stage.toString(),
+        tools, // Pass tools from ToolTemplateEngine
+        topics: [],
+        objections: []
+      });
 
-Transcript: "${transcript}"
-Sentiment: ${sentiment}
-Stage: ${stage}
+      if (!result.success || !result.response) {
+        return null;
+      }
 
-Available tools:
-${this.templateEngine.getAllTools().map(t => `${t.id}. ${t.name} - ${t.when_use}`).join('\n')}
+      const response = result.response;
 
-Respond with ONLY the tool number (1-13), nothing else.`;
+      // Try to parse as JSON first (expert-patterns format)
+      try {
+        const jsonMatch = response.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.tool_id && parsed.tool_id >= 1 && parsed.tool_id <= 13) {
+            return parsed.tool_id;
+          }
+        }
+      } catch {
+        // Not JSON, try number extraction
+      }
 
-      const response = await this.ollamaService.generateRawResponse(prompt);
-
-      // Extract number from response
-      const toolIdMatch = response?.match(/\d+/);
+      // Fallback: Extract number from response
+      const toolIdMatch = response.match(/\d+/);
       if (toolIdMatch) {
         const toolId = parseInt(toolIdMatch[0], 10);
         if (toolId >= 1 && toolId <= 13) {
@@ -477,8 +510,7 @@ Respond with ONLY the tool number (1-13), nothing else.`;
    */
   private async sendPromptToUI(
     templateResult: TemplateResult,
-    matchType: 'pattern' | 'ai',
-    confidence: 'high' | 'medium' | 'low'
+    matchType: 'pattern' | 'ai'
   ): Promise<void> {
     const suggestionText = `Tool: ${templateResult.toolName}\n${templateResult.filledPrompt}`;
 
@@ -486,7 +518,7 @@ Respond with ONLY the tool number (1-13), nothing else.`;
       type: 'coaching_suggestion',
       suggestion: suggestionText,
       trigger: `${matchType === 'pattern' ? 'Pattern' : 'AI'}: ${templateResult.toolName}`,
-      priority: confidence.toUpperCase() as 'HIGH' | 'MEDIUM' | 'LOW',
+      priority: matchType === 'pattern' ? 'HIGH' : 'MEDIUM',
       category: templateResult.toolName as any,
       context: JSON.stringify({
         toolId: templateResult.toolId,

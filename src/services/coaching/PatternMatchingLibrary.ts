@@ -23,10 +23,9 @@ export interface MatchingContext {
 export interface PatternMatchResult {
   toolId: number;
   toolName: string;
-  confidence: 'high' | 'medium' | 'low';
   matchType: 'keyword' | 'regex' | 'combined';
   matchedPattern: string;
-  score: number; // 0-100 confidence score
+  score: number; // 0-100 match strength (for debugging/logging only)
 }
 
 /**
@@ -66,7 +65,8 @@ export class PatternMatchingLibrary {
         operation: 'pattern_matching_start',
         transcriptLength: context.transcript.length,
         sentiment: context.sentiment,
-        stage: context.stage
+        stage: context.stage,
+        availableTools: this.tools.length
       });
 
       const transcript = context.transcript.toLowerCase();
@@ -77,13 +77,27 @@ export class PatternMatchingLibrary {
         const match = this.matchSingleTool(tool, transcript, context);
         if (match) {
           matchScores.push(match);
+
+          this.trail.light(6611, {
+            operation: 'tool_scored',
+            toolId: tool.id,
+            toolName: tool.name,
+            score: match.score,
+            matchType: match.matchType
+          });
         }
       }
+
+      this.trail.light(6612, {
+        operation: 'all_tools_evaluated',
+        totalCandidates: matchScores.length,
+        topScore: matchScores[0]?.score || 0
+      });
 
       // Sort by score descending
       matchScores.sort((a, b) => b.score - a.score);
 
-      // Return best match if confidence is sufficient
+      // Return best match if score is sufficient
       if (matchScores.length > 0) {
         const bestMatch = matchScores[0];
 
@@ -94,7 +108,6 @@ export class PatternMatchingLibrary {
           const result: PatternMatchResult = {
             toolId: bestMatch.tool.id,
             toolName: bestMatch.tool.name,
-            confidence: this.scoreToConfidence(bestMatch.score),
             matchType: bestMatch.matchType as 'keyword' | 'regex' | 'combined',
             matchedPattern: bestMatch.pattern,
             score: bestMatch.score
@@ -149,6 +162,14 @@ export class PatternMatchingLibrary {
       score += 40; // Base score for keyword match
       matchType = 'keyword';
       matchedPattern = keywordMatch.pattern;
+
+      this.trail.light(6610, {
+        operation: 'keyword_match_found',
+        toolId: tool.id,
+        toolName: tool.name,
+        matchedKeyword: keywordMatch.pattern,
+        initialScore: score
+      });
     }
 
     // 2. Regex matching (fallback for complex patterns)
@@ -275,13 +296,9 @@ export class PatternMatchingLibrary {
   }
 
   /**
-   * Convert score to confidence level
+   * Removed: scoreToConfidence - confidence levels removed from system
+   * Pattern either matches (score >= 60) or doesn't match (score < 60)
    */
-  private scoreToConfidence(score: number): 'high' | 'medium' | 'low' {
-    if (score >= 80) return 'high';
-    if (score >= 65) return 'medium';
-    return 'low';
-  }
 
   /**
    * Get all tools that match with any confidence
@@ -300,7 +317,6 @@ export class PatternMatchingLibrary {
         results.push({
           toolId: match.tool.id,
           toolName: match.tool.name,
-          confidence: this.scoreToConfidence(match.score),
           matchType: match.matchType as 'keyword' | 'regex' | 'combined',
           matchedPattern: match.pattern,
           score: match.score

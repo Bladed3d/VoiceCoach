@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floating Word Cloud</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        .container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .word {
+            position: absolute;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            user-select: none;
+        }
+        
+        .word:hover {
+            transform: scale(1.2);
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.5);
+        }
+        
+        .controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        
+        .control-group {
+            margin-bottom: 10px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #333;
+        }
+        
+        input[type="range"] {
+            width: 120px;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        button:hover {
+            background: #5a6fd8;
+        }
+        
+        .file-input {
+            margin-bottom: 10px;
+        }
+        
+        .file-input input[type="file"] {
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="wordContainer"></div>
+    
+    <div class="controls">
+        <div class="file-input">
+            <label for="csvFile">Upload CSV File:</label>
+            <input type="file" id="csvFile" accept=".csv" />
+        </div>
+        
+        <div class="control-group">
+            <label for="speedSlider">Animation Speed: <span id="speedValue">1</span></label>
+            <input type="range" id="speedSlider" min="0.1" max="3" step="0.1" value="1">
+        </div>
+        
+        <div class="control-group">
+            <label for="sizeSlider">Word Size: <span id="sizeValue">1</span></label>
+            <input type="range" id="sizeSlider" min="0.5" max="2" step="0.1" value="1">
+        </div>
+        
+        <button onclick="regenerateCloud()">Regenerate</button>
+        <button onclick="toggleAnimation()">Pause/Resume</button>
+    </div>
+
+    <script>
+        // Sample data - replace with your CSV data
+        let wordsData = [
+            'adventure', 'action', 'strategy', 'puzzle', 'racing', 'sports', 'simulation',
+            'role-playing', 'shooter', 'platform', 'fighting', 'casual', 'arcade',
+            'multiplayer', 'single-player', 'fantasy', 'sci-fi', 'horror', 'comedy',
+            'indie', 'retro', 'modern', 'classic', 'mobile', 'console', 'pc'
+        ];
+        
+        // Comprehensive stop words list
+        const stopWords = new Set([
+            'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with',
+            'by', 'from', 'up', 'about', 'into', 'through', 'during', 'before', 'after',
+            'above', 'below', 'between', 'among', 'throughout', 'despite', 'towards', 'upon',
+            'concerning', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has',
+            'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might',
+            'must', 'shall', 'can', 'this', 'that', 'these', 'those', 'i', 'me', 'my', 'myself',
+            'we', 'our', 'ours', 'ourselves', 'you', 'your', 'yours', 'yourself', 'yourselves',
+            'he', 'him', 'his', 'himself', 'she', 'her', 'hers', 'herself', 'it', 'its', 'itself',
+            'they', 'them', 'their', 'theirs', 'themselves', 'what', 'which', 'who', 'whom',
+            'whose', 'where', 'when', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more',
+            'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so',
+            'than', 'too', 'very', 's', 't', 'just', 'don', 'now', 'edition', 'complete', 'game'
+        ]);
+        
+        let words = [];
+        let animationSpeed = 1;
+        let wordSizeMultiplier = 1;
+        let animationPaused = false;
+        
+        // Color palette for words
+        const colors = [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', 
+            '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F',
+            '#BB8FCE', '#85C1E9', '#F8C471', '#82E0AA'
+        ];
+        
+        class FloatingWord {
+            constructor(text, x, y, size, frequency) {
+                this.text = text;
+                this.x = x;
+                this.y = y;
+                this.baseX = x;
+                this.baseY = y;
+                this.size = size;
+                this.frequency = frequency;
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.angle = Math.random() * Math.PI * 2;
+                // Smaller float radius for more subtle movement
+                this.floatRadius = Math.random() * 15 + 8;
+                this.floatSpeed = (Math.random() * 0.015 + 0.008);
+                this.rotation = Math.random() < 0.35 ? (Math.random() < 0.5 ? 90 : -90) : 0;
+                this.rotationAngle = Math.random() * 360;
+                this.element = null;
+                this.createDOMElement();
+            }
+            
+            createDOMElement() {
+                this.element = document.createElement('div');
+                this.element.className = 'word';
+                this.element.textContent = this.text;
+                this.element.style.color = this.color;
+                this.element.style.fontSize = `${this.size * wordSizeMultiplier}px`;
+                this.element.style.left = `${this.x}px`;
+                this.element.style.top = `${this.y}px`;
+                this.element.style.transform = `rotate(${this.rotation}deg)`;
+                this.element.style.transformOrigin = 'center center';
+                // Make high frequency words bolder and more prominent
+                if (this.frequency > 5) {
+                    this.element.style.fontWeight = '900';
+                } else if (this.frequency > 3) {
+                    this.element.style.fontWeight = 'bold';
+                } else {
+                    this.element.style.fontWeight = 'normal';
+                }
+                document.getElementById('wordContainer').appendChild(this.element);
+            }
+            
+            update() {
+                if (animationPaused) return;
+                
+                this.angle += this.floatSpeed * animationSpeed;
+                
+                // Gentle floating motion
+                const offsetX = Math.cos(this.angle) * this.floatRadius * 0.5;
+                const offsetY = Math.sin(this.angle * 0.7) * this.floatRadius;
+                
+                this.x = this.baseX + offsetX;
+                this.y = this.baseY + offsetY;
+                
+                // Keep words within bounds
+                const container = document.getElementById('wordContainer');
+                const maxX = container.clientWidth - this.element.offsetWidth;
+                const maxY = container.clientHeight - this.element.offsetHeight;
+                
+                if (this.x < 0 || this.x > maxX) {
+                    this.baseX = Math.max(100, Math.min(maxX - 100, this.baseX));
+                }
+                if (this.y < 0 || this.y > maxY) {
+                    this.baseY = Math.max(100, Math.min(maxY - 100, this.baseY));
+                }
+                
+                this.element.style.left = `${this.x}px`;
+                this.element.style.top = `${this.y}px`;
+                this.element.style.fontSize = `${this.size * wordSizeMultiplier}px`;
+            }
+            
+            remove() {
+                if (this.element && this.element.parentNode) {
+                    this.element.parentNode.removeChild(this.element);
+                }
+            }
+        }
+        
+        function generateWordFrequency(wordList) {
+            const frequency = {};
+            wordList.forEach(word => {
+                const cleanWord = word.toLowerCase()
+                    .replace(/[^a-zA-Z]/g, '')
+                    .trim();
+                
+                // Filter out stop words and short words
+                if (cleanWord.length > 2 && !stopWords.has(cleanWord)) {
+                    frequency[cleanWord] = (frequency[cleanWord] || 0) + 1;
+                }
+            });
+            
+            // Convert to array and sort by frequency
+            return Object.entries(frequency)
+                .filter(([word, freq]) => freq >= 1) // Only words that appear at least once
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 100); // Limit to top 100 words
+        }
+        
+        function createWordCloud(wordList) {
+            // Clear existing words
+            words.forEach(word => word.remove());
+            words = [];
+            
+            const wordFreq = generateWordFrequency(wordList);
+            const container = document.getElementById('wordContainer');
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+            
+            if (wordFreq.length === 0) {
+                console.log('No valid words found after filtering');
+                return;
+            }
+            
+            // Calculate min/max frequencies for better size scaling
+            const maxFreq = Math.max(...wordFreq.map(w => w[1]));
+            const minFreq = Math.min(...wordFreq.map(w => w[1]));
+            
+            // Array to track occupied positions for collision detection
+            const occupiedPositions = [];
+            
+            wordFreq.forEach(([word, freq], index) => {
+                // Calculate size based on frequency with more dramatic scaling
+                const minSize = 12;
+                const maxSize = index === 0 ? 80 : (index < 3 ? 60 : (index < 8 ? 40 : 24));
+                const normalizedFreq = maxFreq > minFreq ? (freq - minFreq) / (maxFreq - minFreq) : 0.5;
+                const size = minSize + (maxSize - minSize) * Math.pow(normalizedFreq, 0.7);
+                
+                // Find position without overlap
+                let x, y, attempts = 0;
+                let positioned = false;
+                
+                while (!positioned && attempts < 100) {
+                    if (index === 0) {
+                        // First (largest) word goes in center
+                        x = containerWidth/2 - (word.length * size * 0.3);
+                        y = containerHeight/2 - size/2;
+                    } else {
+                        // Use Archimedean spiral for positioning
+                        const angle = index * 0.5;
+                        const radius = Math.sqrt(index) * 25;
+                        x = containerWidth/2 + Math.cos(angle) * radius - (word.length * size * 0.3);
+                        y = containerHeight/2 + Math.sin(angle) * radius - size/2;
+                        
+                        // Add some randomness to break the spiral pattern
+                        x += (Math.random() - 0.5) * 60;
+                        y += (Math.random() - 0.5) * 60;
+                    }
+                    
+                    // Ensure within bounds
+                    x = Math.max(10, Math.min(containerWidth - word.length * size * 0.6, x));
+                    y = Math.max(10, Math.min(containerHeight - size * 1.5, y));
+                    
+                    // Check for collisions with existing words
+                    const wordWidth = word.length * size * 0.6;
+                    const wordHeight = size * 1.2;
+                    
+                    let collision = false;
+                    for (let pos of occupiedPositions) {
+                        if (x < pos.x + pos.width && x + wordWidth > pos.x &&
+                            y < pos.y + pos.height && y + wordHeight > pos.y) {
+                            collision = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!collision || attempts > 80) {
+                        positioned = true;
+                        occupiedPositions.push({
+                            x: x,
+                            y: y,
+                            width: wordWidth,
+                            height: wordHeight
+                        });
+                    }
+                    
+                    attempts++;
+                }
+                
+                const floatingWord = new FloatingWord(word, x, y, size, freq);
+                words.push(floatingWord);
+            });
+            
+            console.log(`Created word cloud with ${words.length} words`);
+        }
+        
+        function animate() {
+            words.forEach(word => word.update());
+            requestAnimationFrame(animate);
+        }
+        
+        function regenerateCloud() {
+            createWordCloud(wordsData);
+        }
+        
+        function toggleAnimation() {
+            animationPaused = !animationPaused;
+        }
+        
+        // CSV file handling
+        document.getElementById('csvFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const csv = e.target.result;
+                    const lines = csv.split('\n');
+                    const headers = lines[0].split(',');
+                    
+                    // Find title column (assuming it's named 'title' or similar)
+                    const titleIndex = headers.findIndex(h => 
+                        h.toLowerCase().includes('title') || 
+                        h.toLowerCase().includes('name') ||
+                        h.toLowerCase().includes('game')
+                    );
+                    
+                    if (titleIndex !== -1) {
+                        wordsData = [];
+                        for (let i = 1; i < lines.length; i++) {
+                            const columns = lines[i].split(',');
+                            if (columns[titleIndex]) {
+                                const title = columns[titleIndex].replace(/"/g, '');
+                                wordsData.push(...title.split(' '));
+                            }
+                        }
+                        createWordCloud(wordsData);
+                    } else {
+                        alert('Could not find title column in CSV. Please ensure your CSV has a column named "title", "name", or "game".');
+                    }
+                };
+                reader.readAsText(file);
+            }
+        });
+        
+        // Control handlers
+        document.getElementById('speedSlider').addEventListener('input', function() {
+            animationSpeed = parseFloat(this.value);
+            document.getElementById('speedValue').textContent = animationSpeed;
+        });
+        
+        document.getElementById('sizeSlider').addEventListener('input', function() {
+            wordSizeMultiplier = parseFloat(this.value);
+            document.getElementById('sizeValue').textContent = wordSizeMultiplier;
+        });
+        
+        // Initialize
+        createWordCloud(wordsData);
+        animate();
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            setTimeout(() => createWordCloud(wordsData), 100);
+        });
+    </script>
+</body>
+</html>

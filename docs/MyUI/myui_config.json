@@ -1,0 +1,12 @@
+{
+  "api_key": "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",
+  "default_models": [
+    "deepseek/deepseek-chat",
+    "anthropic/claude-3-5-sonnet-20241022",
+    "openai/gpt-4o-mini",
+    "xai/grok-beta"
+  ],
+  "internal_paths": 4,
+  "synthesis_model": "z-ai/glm-4.6",
+  "prompt_gen_model": "z-ai/glm-4.5"
+}

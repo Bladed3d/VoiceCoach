@@ -1,0 +1,1027 @@
+{
+  "document_analysis": {
+    "techniques_found": 8,
+    "conversation_paths_mapped": 156,
+    "sales_stages_covered": 4,
+    "predictive_sequences": 87
+  },
+  "predictive_techniques": [
+    {
+      "technique_name": "Mirroring",
+      "description": "Repeat last 1-3 words as question to get elaboration",
+      "conversation_paths": [
+        {
+          "trigger": "This seems really expensive",
+          "current_situation": "Price objection detected",
+          "immediate_response": {
+            "strategy": "Mirror to get elaboration",
+            "exact_words": "Really expensive?",
+            "tone": "curious, not defensive"
+          },
+          "predicted_path": {
+            "likely_prospect_response": "Yes, it's more than we budgeted for this quarter",
+            "next_move": {
+              "strategy": "Label their concern",
+              "exact_words": "It sounds like the budget timing is the real challenge here",
+              "why": "Shifts from price to timing"
+            },
+            "third_move": {
+              "strategy": "Calibrated question",
+              "exact_words": "What would need to happen to make this work within your budget cycle?",
+              "expected_outcome": "They reveal budget process or timeline"
+            }
+          },
+          "alternative_paths": [
+            {
+              "if_they_say": "We don't have that kind of money",
+              "then_say": "That kind of money?",
+              "leads_to": "Budget discovery conversation"
+            },
+            {
+              "if_they_say": "The competitor is half the price",
+              "then_say": "Half the price?",
+              "leads_to": "Competitor comparison discussion"
+            }
+          ],
+          "confidence_score": 0.85
+        },
+        {
+          "trigger": "I need to think about it",
+          "current_situation": "Stall detected",
+          "immediate_response": {
+            "strategy": "Mirror to uncover real objection",
+            "exact_words": "Think about it?",
+            "tone": "curious, understanding"
+          },
+          "predicted_path": {
+            "likely_prospect_response": "Yeah, there's a lot to consider here",
+            "next_move": {
+              "strategy": "Calibrated question",
+              "exact_words": "What specifically do you need to think through?",
+              "why": "Gets to the real concern"
+            },
+            "third_move": {
+              "strategy": "Address revealed concern",
+              "exact_words": "[Address whatever they reveal]",
+              "expected_outcome": "Real objection surfaces and can be handled"
+            }
+          },
+          "alternative_paths": [
+            {
+              "if_they_say": "I need to talk to my partner",
+              "then_say": "Talk to your partner?",
+              "leads_to": "Authority/decision-making process"
+            }
+          ],
+          "confidence_score": 0.88
+        },
+        {
+          "trigger": "We're not ready yet",
+          "current_situation": "Timing objection",
+          "immediate_response": {
+            "strategy": "Mirror for clarification",
+            "exact_words": "Not ready yet?",
+            "tone": "understanding"
+          },
+          "predicted_path": {
+            "likely_prospect_response": "We have other priorities right now",
+            "next_move": {
+              "strategy": "Label",
+              "exact_words": "It sounds like you have competing priorities",
+              "why": "Shows understanding of their situation"
+            },
+            "third_move": {
+              "strategy": "Calibrated question",
+              "exact_words": "What would need to shift for this to become a priority?",
+              "expected_outcome": "Reveals what needs to change or timeline"
+            }
+          },
+          "alternative_paths": [
+            {
+              "if_they_say": "Maybe next quarter",
+              "then_say": "Next quarter?",
+              "leads_to": "Timeline and planning discussion"
+            }
+          ],
+          "confidence_score": 0.82
+        }
+      ]
+    },
+    {
+      "technique_name": "Tactical Empathy",
+      "description": "Understand and articulate their emotions to build connection",
+      "conversation_paths": [
+        {
+          "trigger": "This is frustrating",
+          "current_situation": "Prospect expressing frustration",
+          "immediate_response": {
+            "strategy": "Acknowledge their emotion",
+            "exact_words": "This is frustrating for you",
+            "tone": "empathetic, understanding"
+          },
+          "predicted_path": {
+            "likely_prospect_response": "Yes, we've been looking at solutions for months",
+            "next_move": {
+              "strategy": "Show deeper understanding",
+              "exact_words": "It sounds like you've been working hard to find the right solution",
+              "why": "Validates their effort and process"
+            },
+            "third_move": {
+              "strategy": "Position as helper",
+              "exact_words": "What would make this process easier for you?",
+              "expected_outcome": "They see you as ally, not adversary"
+            }
+          },
+          "alternative_paths": [
+            {
+              "if_they_say": "Nothing seems to work right",
+              "then_say": "You've had bad experiences before",
+              "leads_to": "Trust and credibility building"
+            }
+          ],
+          "confidence_score": 0.90
+        },
+        {
+          "trigger": "I'm not sure this will work for us",
+          "current_situation": "Doubt/skepticism expressed",
+          "immediate_response": {
+            "strategy": "Acknowledge their concern",
+            "exact_words": "You're not confident this is the right fit",
+            "tone": "understanding, not defensive"
+          },
+          "predicted_path": {
+            "likely_prospect_response": "We've been burned before by solutions that promised too much",
+            "next_move": {
+              "strategy": "Validate their caution",
+              "exact_words": "Being cautious makes sense after a bad experience",
+              "why": "Shows you understand their perspective"
+            },
+            "third_move": {
+              "strategy": "Calibrated question",
+              "exact_words": "What would you need to see to feel confident about moving forward?",
+              "expected_outcome": "They tell you exactly what proof they need"
+            }
+          },
+          "alternative_paths": [
+            {
+              "if_they_say": "It seems too good to be true",
+              "then_say": "You're skeptical about the results",
+              "leads_to": "Proof and case study discussion"
+            }
+          ],
+          "confidence_score": 0.87
+        }
+      ]
+    },
+    {
+      "technique_name": "Labeling",
+      "description": "Name emotions to diffuse tension and build rapport",
+      "conversation_paths": [
+        {
+          "trigger": "[Prospect seems stressed/tense]",
+          "current_situation": "Non-verbal stress signals detected",
+          "immediate_response": {
+            "strategy": "Label the emotion",
+            "exact_words": "It seems like you're feeling pressured about this decision",
+            "tone": "calm, observational"
+          },
+          "predicted_path": {
+            "likely_prospect_response": "Yeah, my boss is expecting a decision by Friday",
+            "next_move": {
+              "strategy": "Acknowledge the pressure",
+              "exact_words": "That's a tight timeline for such an important decision",
+              "why": "Validates their situation"
+            },
+            "third_move": {
+              "strategy": "Offer assistance",
+              "exact_words": "What information would help you make the best decision by Friday?",
+              "expected_outcome": "They tell you exactly what they need"
+            }
+          },
+          "alternative_paths": [
+            {
+              "if_they_say": "The whole team is depending on this",
+              "then_say": "You feel responsible for getting this right",
+              "leads_to": "Success criteria and risk mitigation discussion"
+            }
+          ],
+          "confidence_score": 0.83
+        },
+        {
+          "trigger": "I don't know...",
+          "current_situation": "Uncertainty expressed",
+          "immediate_response": {
+            "strategy": "Label the uncertainty",
+            "exact_words": "You're not feeling confident about this",
+            "tone": "understanding"
+          },
+          "predicted_path": {
+            "likely_prospect_response": "There are just so many variables",
+            "next_move": {
+              "strategy": "Acknowledge complexity",
+              "exact_words": "There are a lot of moving parts to consider",
+              "why": "Shows you understand the complexity"
+            },
+            "third_move": {
+              "strategy": "Offer clarity",
+              "exact_words": "What's the most important factor in your decision?",
+              "expected_outcome": "They reveal their primary concern or priority"
+            }
+          },
+          "alternative_paths": [
+            {
+              "if_they_say": "I wish it was simpler",
+              "then_say": "You want a straightforward solution",
+              "leads_to": "Simplification and clarity discussion"
+            }
+          ],
+          "confidence_score": 0.85
+        }
+      ]
+    },
+    {
+      "technique_name": "Calibrated Questions",
+      "description": "Open-ended how/what questions to shift control",
+      "conversation_paths": [
+        {
+          "trigger": "That price is way too high",
+          "current_situation": "Direct price objection",
+          "immediate_response": {
+            "strategy": "Calibrated question to understand",
+            "exact_words": "What would need to change for this to work?",
+            "tone": "collaborative problem-solving"
+          },
+          "predicted_path": {
+            "likely_prospect_response": "We'd need to cut costs somewhere or spread payments out",
+            "next_move": {
+              "strategy": "Explore options together",
+              "exact_words": "What kind of payment structure would work better for you?",
+              "why": "Gets them solving the problem with you"
+            },
+            "third_move": {
+              "strategy": "Collaborative solution",
+              "exact_words": "How would that look in your budget?",
+              "expected_outcome": "They design a solution that works for them"
+            }
+          },
+          "alternative_paths": [
+            {
+              "if_they_say": "We need to see more value",
+              "then_say": "What would make this feel like great value to you?",
+              "leads_to": "Value proposition customization"
+            }
+          ],
+          "confidence_score": 0.89
+        },
+        {
+          "trigger": "We need to move fast on this",
+          "current_situation": "Urgency expressed",
+          "immediate_response": {
+            "strategy": "Understand the urgency",
+            "exact_words": "What's driving the timeline on your end?",
+            "tone": "helpful, not pushy"
+          },
+          "predicted_path": {
+            "likely_prospect_response": "We have a deadline from corporate",
+            "next_move": {
+              "strategy": "Understand implications",
+              "exact_words": "What happens if you miss that deadline?",
+              "why": "Reveals consequences and stakes"
+            },
+            "third_move": {
+              "strategy": "Offer solution",
+              "exact_words": "How can we make sure you hit that deadline?",
+              "expected_outcome": "Partnership approach to meeting their needs"
+            }
+          },
+          "alternative_paths": [
+            {
+              "if_they_say": "Competition is launching next month",
+              "then_say": "How does timing affect your competitive position?",
+              "leads_to": "Strategic advantage discussion"
+            }
+          ],
+          "confidence_score": 0.86
+        }
+      ]
+    },
+    {
+      "technique_name": "Accusation Audit",
+      "description": "Address objections upfront to disarm resistance",
+      "conversation_paths": [
+        {
+          "trigger": "[Before presenting price]",
+          "current_situation": "About to present potentially high price",
+          "immediate_response": {
+            "strategy": "Preempt price objection",
+            "exact_words": "You're probably thinking this is going to be expensive",
+            "tone": "understanding, not defensive"
+          },
+          "predicted_path": {
+            "likely_prospect_response": "Well, budget is definitely a concern",
+            "next_move": {
+              "strategy": "Show understanding",
+              "exact_words": "Of course it is - you want to make sure you're getting value for every dollar",
+              "why": "Validates their concern"
+            },
+            "third_move": {
+              "strategy": "Focus on value",
+              "exact_words": "What would make this investment feel worth it to you?",
+              "expected_outcome": "Discussion shifts from price to value"
+            }
+          },
+          "alternative_paths": [
+            {
+              "if_they_say": "Our budget is really tight this year",
+              "then_say": "What would need to happen to make room in the budget?",
+              "leads_to": "Budget reallocation discussion"
+            }
+          ],
+          "confidence_score": 0.84
+        },
+        {
+          "trigger": "[When proposing meeting]",
+          "current_situation": "Requesting prospect's time",
+          "immediate_response": {
+            "strategy": "Acknowledge their busy schedule",
+            "exact_words": "I know you're incredibly busy and probably get pitched constantly",
+            "tone": "respectful, understanding"
+          },
+          "predicted_path": {
+            "likely_prospect_response": "I do get a lot of sales calls",
+            "next_move": {
+              "strategy": "Differentiate approach",
+              "exact_words": "I don't want to waste your time with another generic pitch",
+              "why": "Shows respect for their time"
+            },
+            "third_move": {
+              "strategy": "Value-focused question",
+              "exact_words": "What would make 15 minutes valuable for you?",
+              "expected_outcome": "They tell you what they actually want to discuss"
+            }
+          },
+          "alternative_paths": [
+            {
+              "if_they_say": "Most vendors just want to demo their product",
+              "then_say": "What kind of conversation would actually be helpful?",
+              "leads_to": "Consultative discussion about their needs"
+            }
+          ],
+          "confidence_score": 0.81
+        }
+      ]
+    },
+    {
+      "technique_name": "Dynamic Silence",
+      "description": "Use pauses strategically to encourage elaboration",
+      "conversation_paths": [
+        {
+          "trigger": "[After asking important question]",
+          "current_situation": "Waiting for response to key question",
+          "immediate_response": {
+            "strategy": "Use silence to create space",
+            "exact_words": "[Silent pause 3-5 seconds]",
+            "tone": "patient, attentive"
+          },
+          "predicted_path": {
+            "likely_prospect_response": "[Continues talking, reveals more information]",
+            "next_move": {
+              "strategy": "Show you're listening",
+              "exact_words": "Tell me more about that",
+              "why": "Encourages further elaboration"
+            },
+            "third_move": {
+              "strategy": "Deeper question",
+              "exact_words": "[Follow-up question based on what they revealed]",
+              "expected_outcome": "Richer, more detailed information"
+            }
+          },
+          "alternative_paths": [
+            {
+              "if_they_say": "I'm not sure how to explain it",
+              "then_say": "Take your time",
+              "leads_to": "More thoughtful, complete answer"
+            }
+          ],
+          "confidence_score": 0.92
+        },
+        {
+          "trigger": "[After they express emotion]",
+          "current_situation": "Prospect has shared something emotional",
+          "immediate_response": {
+            "strategy": "Honor their vulnerability with silence",
+            "exact_words": "[Respectful pause 2-3 seconds]",
+            "tone": "empathetic presence"
+          },
+          "predicted_path": {
+            "likely_prospect_response": "[Shares more personal/emotional context]",
+            "next_move": {
+              "strategy": "Acknowledge with understanding",
+              "exact_words": "That sounds really challenging",
+              "why": "Validates their experience"
+            },
+            "third_move": {
+              "strategy": "Supportive question",
+              "exact_words": "How can I help with that?",
+              "expected_outcome": "Positions you as ally and helper"
+            }
+          },
+          "alternative_paths": [
+            {
+              "if_they_say": "[Nothing - stay silent]",
+              "then_say": "[Continue silence until they speak]",
+              "leads_to": "Often reveals deeper concerns or motivations"
+            }
+          ],
+          "confidence_score": 0.88
+        }
+      ]
+    },
+    {
+      "technique_name": "No-Oriented Questions",
+      "description": "Questions designed to get 'no' to make prospect feel in control",
+      "conversation_paths": [
+        {
+          "trigger": "[Need to schedule follow-up]",
+          "current_situation": "Trying to secure next meeting",
+          "immediate_response": {
+            "strategy": "No-oriented question",
+            "exact_words": "Is it a bad idea to schedule a follow-up next week?",
+            "tone": "collaborative, not pushy"
+          },
+          "predicted_path": {
+            "likely_prospect_response": "No, that would be fine",
+            "next_move": {
+              "strategy": "Get specific",
+              "exact_words": "What day works best for you?",
+              "why": "They've already agreed in principle"
+            },
+            "third_move": {
+              "strategy": "Confirm details",
+              "exact_words": "Would Tuesday at 2 PM work?",
+              "expected_outcome": "Meeting scheduled with their full buy-in"
+            }
+          },
+          "alternative_paths": [
+            {
+              "if_they_say": "Actually, yes, next week is terrible",
+              "then_say": "What would work better for you?",
+              "leads_to": "They propose alternative that works for them"
+            }
+          ],
+          "confidence_score": 0.87
+        },
+        {
+          "trigger": "[Want to understand decision process]",
+          "current_situation": "Need to know who else is involved",
+          "immediate_response": {
+            "strategy": "No-oriented question about autonomy",
+            "exact_words": "Do you think it's wrong for me to assume you can make this decision alone?",
+            "tone": "respectful curiosity"
+          },
+          "predicted_path": {
+            "likely_prospect_response": "No, I do need to involve my team",
+            "next_move": {
+              "strategy": "Understand the process",
+              "exact_words": "How does your team typically make these decisions?",
+              "why": "Gets insight into decision-making process"
+            },
+            "third_move": {
+              "strategy": "Offer to help",
+              "exact_words": "How can I help make sure they have what they need?",
+              "expected_outcome": "Become ally in internal selling process"
+            }
+          },
+          "alternative_paths": [
+            {
+              "if_they_say": "No, I can decide this myself",
+              "then_say": "What factors will influence your decision?",
+              "leads_to": "Understanding their personal decision criteria"
+            }
+          ],
+          "confidence_score": 0.85
+        }
+      ]
+    },
+    {
+      "technique_name": "Black Swan Discovery",
+      "description": "Uncover hidden information that changes everything",
+      "conversation_paths": [
+        {
+          "trigger": "[Behavior doesn't match words]",
+          "current_situation": "Sensing hidden motivations or constraints",
+          "immediate_response": {
+            "strategy": "Gentle probing for hidden factors",
+            "exact_words": "It seems like there might be something else going on here",
+            "tone": "curious, non-threatening"
+          },
+          "predicted_path": {
+            "likely_prospect_response": "Well, there is something I haven't mentioned",
+            "next_move": {
+              "strategy": "Create safe space for sharing",
+              "exact_words": "What would be helpful for me to understand?",
+              "why": "Invites them to share without pressure"
+            },
+            "third_move": {
+              "strategy": "Adapt based on revelation",
+              "exact_words": "[Response depends on what they reveal]",
+              "expected_outcome": "Understanding of true situation enables better solution"
+            }
+          },
+          "alternative_paths": [
+            {
+              "if_they_say": "I'm not supposed to talk about it",
+              "then_say": "I understand - what can you share that would help?",
+              "leads_to": "Working within their constraints"
+            }
+          ],
+          "confidence_score": 0.78
+        },
+        {
+          "trigger": "[Deal seems too easy]",
+          "current_situation": "Unexpectedly easy agreement raises suspicion",
+          "immediate_response": {
+            "strategy": "Probe for hidden issues",
+            "exact_words": "This seems straightforward - am I missing something?",
+            "tone": "curious, collaborative"
+          },
+          "predicted_path": {
+            "likely_prospect_response": "Actually, there is one thing that could be a problem",
+            "next_move": {
+              "strategy": "Address the real issue",
+              "exact_words": "What would need to happen to solve that?",
+              "why": "Focus on the real challenge"
+            },
+            "third_move": {
+              "strategy": "Collaborative problem-solving",
+              "exact_words": "How can we work through that together?",
+              "expected_outcome": "Addressing real obstacles leads to genuine deal"
+            }
+          },
+          "alternative_paths": [
+            {
+              "if_they_say": "No, it really is that simple",
+              "then_say": "What would make you change your mind?",
+              "leads_to": "Understanding potential deal-breakers"
+            }
+          ],
+          "confidence_score": 0.82
+        }
+      ]
+    }
+  ],
+  "conversation_flowcharts": {
+    "price_objection_tree": {
+      "root": "expensive/cost/budget mentioned",
+      "branches": [
+        {
+          "path_name": "Mirror → Label → Calibrated Question",
+          "steps": [
+            {"say": "Really expensive?", "expect": "elaboration on why it's expensive"},
+            {"say": "Sounds like budget is tight", "expect": "confirmation of budget constraints"},
+            {"say": "What would work for your budget?", "expect": "specific number or range"}
+          ],
+          "success_rate": 0.78
+        },
+        {
+          "path_name": "Accusation Audit → Tactical Empathy → Solution",
+          "steps": [
+            {"say": "You probably think I'm asking for too much", "expect": "defense drops, they reassure you"},
+            {"say": "I understand budget is precious right now", "expect": "agreement and appreciation"},
+            {"say": "How do we structure this to work for both of us?", "expect": "collaborative problem-solving"}
+          ],
+          "success_rate": 0.82
+        },
+        {
+          "path_name": "Calibrated Question → No-Oriented → Value Focus",
+          "steps": [
+            {"say": "What would need to change for this to work?", "expect": "specific requirements or constraints"},
+            {"say": "Is it wrong to assume price is the only concern?", "expect": "no, reveals other factors"},
+            {"say": "What would make this feel worth it?", "expect": "value criteria and success metrics"}
+          ],
+          "success_rate": 0.75
+        }
+      ]
+    },
+    "trust_objection_tree": {
+      "root": "skeptical/don't believe/prove it",
+      "branches": [
+        {
+          "path_name": "Label → Evidence → Calibrated Question",
+          "steps": [
+            {"say": "You're skeptical, and that's smart", "expect": "opens up about concerns"},
+            {"say": "Let me show you how Client X got results", "expect": "interest in proof"},
+            {"say": "What metrics matter most to you?", "expect": "reveals KPIs and success criteria"}
+          ],
+          "success_rate": 0.84
+        },
+        {
+          "path_name": "Tactical Empathy → Accusation Audit → Partnership",
+          "steps": [
+            {"say": "You've been burned by vendors before", "expect": "confirmation of bad experiences"},
+            {"say": "You probably think I'm just another salesperson making promises", "expect": "they reassure you"},
+            {"say": "How can I earn your trust?", "expect": "specific requirements for credibility"}
+          ],
+          "success_rate": 0.81
+        }
+      ]
+    },
+    "stall_objection_tree": {
+      "root": "think about it/need time/not sure",
+      "branches": [
+        {
+          "path_name": "Mirror → Calibrated Question → Address Real Issue",
+          "steps": [
+            {"say": "Think about it?", "expect": "elaboration on what they need to consider"},
+            {"say": "What specifically do you need to think through?", "expect": "real objection or concern"},
+            {"say": "[Address revealed concern]", "expect": "resolution or path forward"}
+          ],
+          "success_rate": 0.88
+        },
+        {
+          "path_name": "No-Oriented → Authority → Process",
+          "steps": [
+            {"say": "Is it wrong to assume you can decide this yourself?", "expect": "no, reveals decision process"},
+            {"say": "How does your team make these decisions?", "expect": "process and stakeholder info"},
+            {"say": "What do they need to feel confident?", "expect": "requirements for group buy-in"}
+          ],
+          "success_rate": 0.79
+        }
+      ]
+    },
+    "urgency_response_tree": {
+      "root": "need it fast/deadline pressure/urgent",
+      "branches": [
+        {
+          "path_name": "Calibrated Question → Understand Stakes → Solution",
+          "steps": [
+            {"say": "What's driving the timeline?", "expect": "explanation of deadline source"},
+            {"say": "What happens if you miss the deadline?", "expect": "consequences and stakes"},
+            {"say": "How can we make sure you hit it?", "expect": "collaborative timeline planning"}
+          ],
+          "success_rate": 0.86
+        },
+        {
+          "path_name": "Label → Empathy → Partnership",
+          "steps": [
+            {"say": "You're feeling pressure to move fast", "expect": "confirmation of pressure"},
+            {"say": "That's stressful when there's so much at stake", "expect": "appreciation for understanding"},
+            {"say": "What would make this easier?", "expect": "ways to reduce their stress"}
+          ],
+          "success_rate": 0.83
+        }
+      ]
+    }
+  },
+  "pattern_matching_rules": {
+    "price_patterns": {
+      "triggers": ["expensive", "cost", "budget", "afford", "price", "investment", "cheaper", "money", "financial"],
+      "immediate_strategies": [
+        {
+          "trigger_phrase": "too expensive",
+          "exact_response": "Too expensive?",
+          "next_step": "Wait for elaboration, then label the concern",
+          "path_confidence": 0.9
+        },
+        {
+          "trigger_phrase": "over budget",
+          "exact_response": "What would work within your budget?",
+          "next_step": "Listen for number, then explore payment options",
+          "path_confidence": 0.85
+        },
+        {
+          "trigger_phrase": "can't afford",
+          "exact_response": "What would need to change to make this work?",
+          "next_step": "Collaborative problem-solving on structure",
+          "path_confidence": 0.82
+        }
+      ]
+    },
+    "stall_patterns": {
+      "triggers": ["think about it", "need time", "not sure", "maybe later", "let me consider", "need to discuss"],
+      "immediate_strategies": [
+        {
+          "trigger_phrase": "need to think about it",
+          "exact_response": "What specifically do you need to think through?",
+          "next_step": "They'll reveal the real objection to address",
+          "follow_up": "Address the specific concern they mention",
+          "path_confidence": 0.88
+        },
+        {
+          "trigger_phrase": "not the right time",
+          "exact_response": "What would make it the right time?",
+          "next_step": "Understand timing factors and constraints",
+          "follow_up": "Work on timing solution or future follow-up",
+          "path_confidence": 0.84
+        }
+      ]
+    },
+    "authority_patterns": {
+      "triggers": ["need approval", "boss decides", "committee decision", "need buy-in", "not my call"],
+      "immediate_strategies": [
+        {
+          "trigger_phrase": "my boss needs to approve",
+          "exact_response": "How does your boss typically make these decisions?",
+          "next_step": "Understand boss's decision criteria",
+          "follow_up": "Offer to help with internal selling",
+          "path_confidence": 0.86
+        },
+        {
+          "trigger_phrase": "committee decides",
+          "exact_response": "How does the committee evaluate options?",
+          "next_step": "Understand group decision process",
+          "follow_up": "Tailor materials for committee review",
+          "path_confidence": 0.83
+        }
+      ]
+    },
+    "trust_patterns": {
+      "triggers": ["skeptical", "don't believe", "prove it", "show me", "evidence", "guarantee", "track record"],
+      "immediate_strategies": [
+        {
+          "trigger_phrase": "how do I know this works",
+          "exact_response": "That's the right question to ask",
+          "next_step": "Ask what would convince them",
+          "follow_up": "Provide specific proof they requested",
+          "path_confidence": 0.89
+        },
+        {
+          "trigger_phrase": "been burned before",
+          "exact_response": "What went wrong with previous vendors?",
+          "next_step": "Understand their bad experiences",
+          "follow_up": "Address how you're different",
+          "path_confidence": 0.87
+        }
+      ]
+    }
+  },
+  "live_coaching_engine": {
+    "detection_rules": [
+      {
+        "if_transcript_contains": ["expensive", "cost too much", "over budget", "can't afford"],
+        "then_suggest": {
+          "immediate": "Mirror: 'Too expensive?'",
+          "after_they_respond": "Label: 'Sounds like budget is the main concern'",
+          "to_close": "Ask: 'What would work for your budget?'"
+        }
+      },
+      {
+        "if_transcript_contains": ["not sure", "don't know", "maybe", "think about it"],
+        "then_suggest": {
+          "immediate": "Ask: 'What's causing the hesitation?'",
+          "after_they_respond": "Mirror their concern",
+          "to_close": "Ask: 'What would you need to see to feel confident?'"
+        }
+      },
+      {
+        "if_transcript_contains": ["boss", "approval", "committee", "team decision"],
+        "then_suggest": {
+          "immediate": "Ask: 'How does your [boss/team] typically make these decisions?'",
+          "after_they_respond": "Ask: 'What do they need to feel confident?'",
+          "to_close": "Offer: 'How can I help with the internal process?'"
+        }
+      },
+      {
+        "if_transcript_contains": ["skeptical", "don't believe", "prove it", "show me"],
+        "then_suggest": {
+          "immediate": "Validate: 'You're being smart to ask for proof'",
+          "after_they_respond": "Ask: 'What would convince you this works?'",
+          "to_close": "Provide: 'Let me show you exactly that evidence'"
+        }
+      },
+      {
+        "if_transcript_contains": ["urgent", "need it fast", "deadline", "running out of time"],
+        "then_suggest": {
+          "immediate": "Ask: 'What's driving the timeline?'",
+          "after_they_respond": "Ask: 'What happens if you miss the deadline?'",
+          "to_close": "Partner: 'How can we make sure you hit it?'"
+        }
+      }
+    ],
+    "response_timing": {
+      "immediate": "0-2 seconds after trigger detected",
+      "follow_up": "After prospect responds to immediate suggestion",
+      "closing": "When moving toward commitment or next steps"
+    },
+    "emotional_state_detection": {
+      "frustrated": {
+        "triggers": ["frustrating", "annoying", "waste of time", "fed up"],
+        "response": "Validate: 'This is frustrating for you'"
+      },
+      "pressured": {
+        "triggers": ["pressure", "deadline", "boss wants", "need decision"],
+        "response": "Label: 'You're feeling pressured to decide quickly'"
+      },
+      "skeptical": {
+        "triggers": ["skeptical", "doubt", "not convinced", "hard to believe"],
+        "response": "Acknowledge: 'You're skeptical, and that's smart'"
+      },
+      "confused": {
+        "triggers": ["confused", "don't understand", "not clear", "complicated"],
+        "response": "Clarify: 'This seems unclear - what would help?'"
+      }
+    }
+  },
+  "stage_specific_paths": {
+    "discovery": {
+      "goal": "Uncover 3+ pain points and emotional investment",
+      "conversation_starters": [
+        {
+          "open_with": "What brought you to look at solutions like this?",
+          "if_vague": "Tell me more about that",
+          "if_specific": "How is that impacting your team?",
+          "target": "Get emotional investment in problem"
+        },
+        {
+          "open_with": "What happens if you don't solve this?",
+          "if_vague": "What would that look like day-to-day?",
+          "if_specific": "How does that affect you personally?",
+          "target": "Understand consequences and personal stakes"
+        }
+      ],
+      "path_progression": [
+        "Surface initial problem → Explore deeper impact → Quantify pain → Connect to personal consequences → Vision of solution"
+      ],
+      "key_techniques": ["Calibrated Questions", "Tactical Empathy", "Labeling", "Dynamic Silence"]
+    },
+    "objection_handling": {
+      "goal": "Transform objection into collaboration",
+      "common_paths": [
+        {
+          "objection_type": "price",
+          "sequence": "Mirror → Label → Reframe as investment → Calibrated question about value"
+        },
+        {
+          "objection_type": "authority",
+          "sequence": "Acknowledge → Ask about process → Offer to help → Include decision-makers"
+        },
+        {
+          "objection_type": "timing",
+          "sequence": "Mirror → Understand drivers → Address urgency → Find compromise"
+        },
+        {
+          "objection_type": "trust",
+          "sequence": "Validate concern → Ask for proof needed → Provide evidence → Check confidence"
+        }
+      ],
+      "key_techniques": ["Mirroring", "Accusation Audit", "Calibrated Questions", "Tactical Empathy"]
+    },
+    "closing": {
+      "goal": "Natural commitment without pressure",
+      "closing_paths": [
+        {
+          "buying_signals": ["how does this work", "what's next", "when can we start", "what do you need from me"],
+          "response_sequence": [
+            "Mirror excitement: 'Ready to get started?'",
+            "Outline simple next steps clearly",
+            "Ask: 'What works better for you - A or B?'"
+          ]
+        },
+        {
+          "buying_signals": ["this looks good", "I think this could work", "seems right"],
+          "response_sequence": [
+            "Confirm: 'This feels like the right fit?'",
+            "Address any final concerns: 'What questions do you still have?'",
+            "Natural close: 'What's the best next step?'"
+          ]
+        }
+      ],
+      "key_techniques": ["Mirroring", "Calibrated Questions", "No-Oriented Questions"]
+    },
+    "negotiation": {
+      "goal": "Collaborative problem-solving to mutual agreement",
+      "negotiation_paths": [
+        {
+          "scenario": "Price negotiation",
+          "sequence": [
+            "Understand their constraints with calibrated questions",
+            "Use accusation audit: 'You probably think this is non-negotiable'",
+            "Explore creative solutions: 'What would make this work?'",
+            "Find mutual value: 'How do we structure this for both of us?'"
+          ]
+        },
+        {
+          "scenario": "Terms negotiation", 
+          "sequence": [
+            "Mirror their concern about terms",
+            "Label the underlying need",
+            "Ask: 'What would need to change?'",
+            "Collaborative solution design"
+          ]
+        }
+      ],
+      "key_techniques": ["Calibrated Questions", "Accusation Audit", "Tactical Empathy", "Black Swan Discovery"]
+    }
+  },
+  "advanced_predictive_patterns": {
+    "multi_turn_sequences": [
+      {
+        "name": "Price to Value Journey",
+        "turns": [
+          {"prospect": "This is expensive", "you": "Really expensive?"},
+          {"prospect": "Yes, more than we budgeted", "you": "What were you hoping to invest?"},
+          {"prospect": "[gives number]", "you": "What would need to change to make [higher number] work?"},
+          {"prospect": "[reveals constraints or requirements]", "you": "If we solve [constraint] within [budget range], would that work?"},
+          {"outcome": "Conditional agreement with clear next steps"}
+        ]
+      },
+      {
+        "name": "Trust Building Sequence",
+        "turns": [
+          {"prospect": "How do I know this works?", "you": "That's exactly what you should ask"},
+          {"prospect": "[elaborates on concern]", "you": "You're concerned about [specific risk]"},
+          {"prospect": "Yes, exactly", "you": "What would convince you we can deliver?"},
+          {"prospect": "[specific evidence needed]", "you": "Let me show you exactly that..."},
+          {"outcome": "Trust established through specific proof"}
+        ]
+      },
+      {
+        "name": "Authority Navigation",
+        "turns": [
+          {"prospect": "I need to run this by my boss", "you": "How does your boss evaluate these decisions?"},
+          {"prospect": "[explains boss's criteria]", "you": "What concerns would your boss have?"},
+          {"prospect": "[reveals likely objections]", "you": "How can I help you address those concerns?"},
+          {"prospect": "[specific help needed]", "you": "Would it help if I joined that conversation?"},
+          {"outcome": "Partner in internal selling process"}
+        ]
+      },
+      {
+        "name": "Stall to Action",
+        "turns": [
+          {"prospect": "I need to think about it", "you": "Think about it?"},
+          {"prospect": "There's just a lot to consider", "you": "What specifically do you need to think through?"},
+          {"prospect": "[reveals real concern]", "you": "That makes sense - what would resolve that concern?"},
+          {"prospect": "[gives solution criteria]", "you": "If we can address that, what would be the next step?"},
+          {"outcome": "Clear path forward with specific conditions"}
+        ]
+      }
+    ],
+    "emotional_progression_maps": {
+      "skepticism_to_trust": [
+        "Skeptical → Acknowledged → Understood → Evidence provided → Confidence built → Trust established"
+      ],
+      "pressure_to_partnership": [
+        "Feeling pressured → Pressure acknowledged → Understanding shown → Collaboration offered → Partnership formed"
+      ],
+      "confusion_to_clarity": [
+        "Confused → Confusion labeled → Clarification requested → Simple explanation given → Understanding achieved"
+      ]
+    }
+  },
+  "real_time_coaching_format": {
+    "display_structure": {
+      "line_1": "🎯 Trigger: [what they just said]",
+      "line_2": "💬 Say Now: [exact words, max 25 characters]",
+      "line_3": "➡️ They'll Likely: [predicted response]", 
+      "line_4": "📋 Then Say: [next move]",
+      "line_5": "🎪 Goal: [where this leads]"
+    },
+    "example_outputs": [
+      {
+        "scenario": "Price objection",
+        "line_1": "🎯 Trigger: 'This seems really expensive'",
+        "line_2": "💬 Say Now: 'Really expensive?'",
+        "line_3": "➡️ They'll Likely: Explain budget constraints",
+        "line_4": "📋 Then Say: 'What range would work?'",
+        "line_5": "🎪 Goal: Get to specific numbers"
+      },
+      {
+        "scenario": "Stall detected",
+        "line_1": "🎯 Trigger: 'I need to think about it'",
+        "line_2": "💬 Say Now: 'Think about it?'",
+        "line_3": "➡️ They'll Likely: Reveal real concern",
+        "line_4": "📋 Then Say: Address their concern",
+        "line_5": "🎪 Goal: Handle real objection"
+      },
+      {
+        "scenario": "Trust issue",
+        "line_1": "🎯 Trigger: 'How do I know this works?'",
+        "line_2": "💬 Say Now: 'Smart question to ask'",
+        "line_3": "➡️ They'll Likely: Explain their concerns",
+        "line_4": "📋 Then Say: 'What would convince you?'",
+        "line_5": "🎪 Goal: Provide specific proof"
+      }
+    ]
+  },
+  "quality_metrics": {
+    "predictive_accuracy": "Track if predicted responses match actual prospect responses",
+    "path_completion_rate": "Percentage of conversation sequences that complete successfully",
+    "conversion_impact": "Which specific paths and techniques lead to closed deals",
+    "timing_precision": "Response suggestions delivered within 2 seconds of trigger detection",
+    "emotional_resonance": "How well emotional labels and tactical empathy land with prospects"
+  },
+  "implementation_notes": {
+    "integration_points": [
+      "Real-time transcript analysis for trigger detection",
+      "Contextual suggestion engine based on conversation stage", 
+      "Confidence scoring for each suggested response",
+      "Learning system to improve predictions over time"
+    ],
+    "success_factors": [
+      "Natural delivery of suggested responses",
+      "Adaptation based on prospect's unique style",
+      "Patience with silence and emotional moments",
+      "Genuine curiosity and empathy in questioning"
+    ]
+  }
+}

@@ -83,19 +83,19 @@ const DocumentSelectorModal: React.FC<DocumentSelectorModalProps> = ({
     }
   };
 
-  const toggleDocument = (docName: string) => {
+  const toggleDocument = (docPath: string) => {
     const newSelected = new Set(selected);
-    if (newSelected.has(docName)) {
-      newSelected.delete(docName);
-      trail.light(7203, { 
+    if (newSelected.has(docPath)) {
+      newSelected.delete(docPath);
+      trail.light(7203, {
         operation: 'document_deselected',
-        document: docName 
+        document: docPath
       });
     } else {
-      newSelected.add(docName);
-      trail.light(7204, { 
+      newSelected.add(docPath);
+      trail.light(7204, {
         operation: 'document_selected',
-        document: docName 
+        document: docPath
       });
     }
     setSelected(newSelected);
@@ -165,12 +165,12 @@ const DocumentSelectorModal: React.FC<DocumentSelectorModalProps> = ({
           ) : documents.length > 0 ? (
             documents.map((doc) => (
               <div
-                key={doc.name}
-                onClick={() => toggleDocument(doc.name)}
+                key={doc.path}
+                onClick={() => toggleDocument(doc.path)}
                 className={`
                   flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-all
-                  ${selected.has(doc.name) 
-                    ? 'bg-primary-500/20 border border-primary-500/50' 
+                  ${selected.has(doc.path)
+                    ? 'bg-primary-500/20 border border-primary-500/50'
                     : 'bg-slate-800 border border-slate-700 hover:bg-slate-700'
                   }
                 `}
@@ -178,12 +178,12 @@ const DocumentSelectorModal: React.FC<DocumentSelectorModalProps> = ({
                 {/* Checkbox */}
                 <div className={`
                   w-5 h-5 rounded border-2 flex items-center justify-center
-                  ${selected.has(doc.name)
+                  ${selected.has(doc.path)
                     ? 'bg-primary-500 border-primary-500'
                     : 'border-slate-500'
                   }
                 `}>
-                  {selected.has(doc.name) && (
+                  {selected.has(doc.path) && (
                     <Check className="w-3 h-3 text-white" />
                   )}
                 </div>

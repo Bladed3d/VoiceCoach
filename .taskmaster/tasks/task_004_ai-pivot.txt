@@ -1,0 +1,39 @@
+# Task ID: 4
+# Title: Phase 4: Create ToolUsageTracker.ts
+# Status: pending
+# Dependencies: 2
+# Priority: medium
+# Description: Build tracking system to log tool usage for Phase 2 learning system
+# Details:
+Create: src/services/coaching/ToolUsageTracker.ts
+
+Must include:
+- ToolUsageTracker class
+- logToolShown() method
+- logToolUsed() method
+- logToolModified() method
+- LED breadcrumbs 6650-6699
+- Data structure for storing usage logs
+
+This is foundation for Phase 2 learning, so just needs to:
+- Accept and store usage data
+- Provide basic retrieval methods
+- Not required to analyze patterns yet
+
+Verification criteria:
+- File exists at correct path
+- Can log when tool is shown to user
+- Can log when user actually uses shown tool
+- Can log when user modifies tool text before using
+- LED 6651, 6652, 6653 fire appropriately
+- Data persists in memory during session
+
+# Test Strategy:
+1. Verify file created: src/services/coaching/ToolUsageTracker.ts
+2. Test logToolShown(13) stores record
+3. Test logToolUsed(13) updates record
+4. Test logToolModified(13, "new text") stores modification
+5. Verify LED 6651 fires on tool shown
+6. Verify LED 6652 fires on tool used
+7. Verify data structure allows querying by toolId
+8. TypeScript compiles without errors

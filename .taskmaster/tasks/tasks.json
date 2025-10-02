@@ -1,0 +1,317 @@
+{
+  "ai-pivot": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Phase 1: Delete Old AI Generation System",
+        "description": "Remove all old prompt generation files that will be replaced by template system. Verify no imports remain. Save original 13ToolsRAG-01-condensed.json for A/B testing.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "details": "IMPORTANT: SAVE the original 13ToolsRAG-01-condensed.json before making any changes. We need it for A/B testing old vs new system.\n\nFiles to delete:\n- src/services/coaching/OllamaPromptService.ts\n- src/services/coaching/OllamaPromptBuilder.ts\n- src/services/coaching/OllamaInstructionLoader.ts\n- src/services/coaching/OllamaInstructionLoader-Browser.ts\n- src/services/coaching/ollama-service-enhanced.ts\n- src/services/coaching/ollama-compatibility-wrapper.ts\n\nVerification:\n- Search codebase for imports of deleted files (should find NONE)\n- Grep for \"OllamaPromptService\" (should only find in git history)\n- Grep for \"OllamaPromptBuilder\" (should only find in git history)\n- Verify 13ToolsRAG-01-condensed.json still exists and is unchanged after deletion\n- App should fail to build (expected - we'll fix in next phase)",
+        "testStrategy": "1. Make a backup copy of 13ToolsRAG-01-condensed.json\n2. Delete all 6 files\n3. Run: grep -r \"OllamaPromptService\" src/ (expect: no results)\n4. Run: grep -r \"OllamaPromptBuilder\" src/ (expect: no results)\n5. Run: grep -r \"ollama-service-enhanced\" src/ (expect: no results)\n6. Verify files no longer exist in filesystem\n7. Verify 13ToolsRAG-01-condensed.json still exists and is unchanged\n8. Commit deletion to git with message: \"Delete old AI generation system for template pivot\"",
+        "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "Phase 2: Create ToolTemplateEngine.ts",
+        "description": "Build the core template engine that manages all 13 tool templates with variable substitution using a config-driven approach",
+        "status": "done",
+        "dependencies": [
+          1
+        ],
+        "priority": "high",
+        "details": "Create: src/services/coaching/ToolTemplateEngine.ts and rag/13ToolsRAG-01-templates.json\n\nMust include:\n- ToolTemplate interface definition based on JSON structure\n- Config-driven loading from JSON files (not hard-coded templates)\n- fillTemplate() method for variable substitution\n- extractSimpleVariables() method for instant extraction\n- getTool() and getAllTools() helper methods\n- LED breadcrumbs 6550-6599\n\nJSON Structure (per tool):\n```\n{\n  \"id\": 13,\n  \"name\": \"Take Away\",\n  \"description\": \"...\",\n  \"when_use\": \"...\",\n  \"templates\": [\n    {\n      \"pattern\": \"You're right - if {{OBJECTION}} then we shouldn't move forward. What about {{CONCERN}} concerns you?\",\n      \"variables\": [\"OBJECTION\", \"CONCERN\"],\n      \"confidence\": \"high\"\n    }\n  ],\n  \"triggers\": {\n    \"keywords\": [\"expensive\", \"not sure\", \"maybe\"],\n    \"regex\": \"not sure|think about|maybe later\",\n    \"sentimentBias\": \"negative\",\n    \"stageBias\": [7, 8, 9]\n  },\n  \"variableExtraction\": {\n    \"OBJECTION\": {\n      \"method\": \"keyword\" | \"ai\",\n      \"prompt\": \"Extract objection phrase (3-5 words)\",\n      \"maxTokens\": 10\n    }\n  }\n}\n```\n\nConstructor signature:\n```typescript\nconstructor(configFile: string = '13ToolsRAG-01-templates.json')\n```\n\nVerification criteria:\n- File exists at correct path\n- JSON config file created with all 13 tools defined\n- BreadcrumbTrail imported and used (LED 6550, 6552, 6553, 8550)\n- fillTemplate() correctly replaces {{VARIABLE}} placeholders\n- extractSimpleVariables() handles Tools 1, 5, 13 at minimum\n- Config switching works without code changes",
+        "testStrategy": "1. Verify files created: src/services/coaching/ToolTemplateEngine.ts and rag/13ToolsRAG-01-templates.json\n2. Check tool count: tools.size === 13\n3. Unit test fillTemplate(1, {LAST_WORDS: \"expensive\"}) === \"expensive?\"\n4. Unit test fillTemplate(13, {OBJECTION: \"cost\", CONCERN: \"budget\"}) contains both words\n5. Verify LED 6550 fires on construction\n6. Verify LED 6553 fires on successful fill\n7. TypeScript compiles without errors\n8. Test with original: 13ToolsRAG-01-condensed.json (should still load basic data)\n9. Test with new: 13ToolsRAG-01-templates.json (full template system)\n10. Verify config switching works without code changes",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "",
+            "description": "Create ToolTemplateEngine.ts with interface definitions and constructor",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "",
+            "description": "Create 13ToolsRAG-01-templates.json with all 13 tool definitions",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "",
+            "description": "Implement config file loading with constructor parameter",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "",
+            "description": "Implement fillTemplate() method for variable substitution",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "",
+            "description": "Implement extractSimpleVariables() method",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "",
+            "description": "Implement getTool() and getAllTools() helper methods",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "",
+            "description": "Add LED breadcrumbs for key operations",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "",
+            "description": "Create unit tests for config switching between different JSON files",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Phase 3: Create PatternMatchingLibrary.ts",
+        "description": "Build pattern matching system for instant tool selection without AI (60-70% hit rate)",
+        "details": "Create: src/services/coaching/PatternMatchingLibrary.ts\n\nMust include:\n- PatternMatchingLibrary class\n- matchTool() method that checks keywords, regex, sentiment bias, stage bias\n- Returns {toolId, confidence} or null\n- LED breadcrumbs 6600-6649\n\nPattern matching logic:\n- Check tool.triggers.keywords against transcript.toLowerCase()\n- Validate sentiment bias matches context.sentiment\n- Validate stage bias includes context.stage\n- Try regex patterns if keyword match fails\n- Return null if no confident match\n\nVerification criteria:\n- File exists at correct path\n- Constructor accepts ToolTemplateEngine instance\n- matchTool() returns correct toolId for \"expensive\" → Tool 13\n- matchTool() returns null for non-matching transcript\n- LED 6602 fires on keyword match\n- LED 6603 fires on regex match\n- LED 6604 fires on no match",
+        "testStrategy": "1. Verify file created: src/services/coaching/PatternMatchingLibrary.ts\n2. Unit test: \"expensive\" transcript → toolId: 13, confidence: 'high'\n3. Unit test: \"concerned about this\" → toolId: 5 (Labeling)\n4. Unit test: \"tell me more\" → null (no pattern match)\n5. Verify sentiment bias filtering works (negative sentiment required for Tool 13)\n6. Verify stage bias filtering works (Tool 13 prefers stages 7-9)\n7. Check LED 6600 on initialization\n8. TypeScript compiles without errors",
+        "status": "done",
+        "dependencies": [
+          2
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Phase 4: Create ToolUsageTracker.ts",
+        "description": "Build tracking system to log tool usage for Phase 2 learning system",
+        "details": "Create: src/services/coaching/ToolUsageTracker.ts\n\nMust include:\n- ToolUsageTracker class\n- logToolShown() method\n- logToolUsed() method\n- logToolModified() method\n- LED breadcrumbs 6650-6699\n- Data structure for storing usage logs\n\nThis is foundation for Phase 2 learning, so just needs to:\n- Accept and store usage data\n- Provide basic retrieval methods\n- Not required to analyze patterns yet\n\nVerification criteria:\n- File exists at correct path\n- Can log when tool is shown to user\n- Can log when user actually uses shown tool\n- Can log when user modifies tool text before using\n- LED 6651, 6652, 6653 fire appropriately\n- Data persists in memory during session",
+        "testStrategy": "1. Verify file created: src/services/coaching/ToolUsageTracker.ts\n2. Test logToolShown(13) stores record\n3. Test logToolUsed(13) updates record\n4. Test logToolModified(13, \"new text\") stores modification\n5. Verify LED 6651 fires on tool shown\n6. Verify LED 6652 fires on tool used\n7. Verify data structure allows querying by toolId\n8. TypeScript compiles without errors",
+        "status": "done",
+        "dependencies": [
+          2
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Phase 5: Refactor live-coaching-service.ts",
+        "description": "Replace AI prompt generation with template system - core integration work",
+        "details": "Modify: src/services/coaching/live-coaching-service.ts\n\nChanges required:\n1. Import new components: ToolTemplateEngine, PatternMatchingLibrary, SentimentAnalyzer\n2. Delete performEnhancedRealTimeAnalysis() method (old AI generation)\n3. Add generatePromptViaTemplates() method (new template flow)\n4. Add selectToolViaAI() method (AI returns just 1-13, not full text)\n5. Add sendPromptToUI() method\n6. Initialize new services in constructor\n7. Wire into transcript processing pipeline\n8. Add LED breadcrumbs 6251-6253\n\nFlow:\nTranscript → Full sentiment analysis → Pattern match attempt → (if no match) AI tool selection → Extract variables → Fill template → Send to UI\n\nVerification criteria:\n- New imports present and functional\n- Old methods completely removed (no dead code)\n- New methods implemented per specification\n- Template engine called, not old prompt generation\n- Sentiment analyzer integration working\n- LED 6251 fires on sentiment analysis\n- LED 6252 fires on pattern match success\n- LED 6253 fires on AI selection success",
+        "testStrategy": "1. Verify imports: ToolTemplateEngine, PatternMatchingLibrary, SentimentAnalyzer\n2. Verify old methods deleted: grep \"performEnhancedRealTimeAnalysis\" (no results)\n3. Run app, say \"expensive\" → verify Tool 13 selected via LED 6252\n4. Run app, say complex phrase → verify AI selection via LED 6253\n5. Check console for sentiment analysis data (LED 6251)\n6. Verify prompts appear in UI within 400ms\n7. Verify no JSON parsing errors in console\n8. TypeScript compiles without errors\n9. App runs without crashes",
+        "status": "done",
+        "dependencies": [
+          2,
+          3
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Phase 6: Simplify sentiment-tool-selector.ts",
+        "description": "Replace complex tool selector with simple pattern + AI classification approach",
+        "details": "Modify: src/services/coaching/sentiment-tool-selector.ts\n\nComplete rewrite - delete existing complex logic, replace with:\n1. Import ToolTemplateEngine, PatternMatchingLibrary\n2. Simple selectTool() method that tries pattern first, AI second\n3. aiSelectTool() method for fallback classification\n4. LED breadcrumbs 6500-6505\n\nNew logic:\n- Try pattern match first (instant)\n- If high confidence match, return immediately\n- Otherwise call AI with minimal prompt (just return 1-13)\n- Return ToolSelection with toolId, confidence, method, processingTime\n\nRemove:\n- All complex branching logic (sentiment → stage → tool)\n- Tool response generation (now in templates)\n- buildPromptContext() (no longer needed)\n\nVerification criteria:\n- File significantly smaller (< 150 lines vs current ~440)\n- Uses PatternMatchingLibrary.matchTool()\n- Falls back to AI classification when needed\n- Returns consistent ToolSelection interface\n- LED 6500 on initialization\n- No dead code remaining",
+        "testStrategy": "1. Verify file exists and is simplified\n2. Check line count < 150 lines (vs 440 before)\n3. Verify pattern matching tried first\n4. Test: \"expensive\" → returns via pattern match (<50ms)\n5. Test: complex objection → returns via AI (~200ms)\n6. Verify ToolSelection interface returned correctly\n7. Check LED 6500 fires on init\n8. TypeScript compiles without errors\n9. Integration test with live-coaching-service works",
+        "status": "done",
+        "dependencies": [
+          2,
+          3,
+          5
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Phase 7: Integration Testing - Pattern Matching",
+        "description": "Verify pattern matching works correctly for common triggers and achieves 60-70% hit rate",
+        "status": "done",
+        "dependencies": [
+          5,
+          6
+        ],
+        "priority": "high",
+        "details": "Test pattern matching accuracy and performance:\n\nTest cases (minimum):\n1. \"That's too expensive\" → Tool 13, <50ms\n2. \"I'm concerned about the cost\" → Tool 5 or 13, <50ms\n3. \"I'm not sure about this\" → Tool 13, <50ms\n4. \"That's frustrating\" → Tool 2, <50ms\n5. \"What makes you different?\" → Tool 6 or AI fallback\n\nSuccess criteria:\n- 70%+ of common objections match via pattern (no AI needed)\n- Pattern matches complete in <50ms\n- LED 6602 or 6603 fires for successful matches\n- LED 6604 fires for fallback to AI\n- Correct tool selected for each test case\n- No false positives (wrong tool selected)\n\nVerification:\n- Create test transcript list (20+ common phrases)\n- Run each through system\n- Record: match rate, avg time, accuracy\n- Verify LEDs fire correctly\n- Document any patterns that should be added",
+        "testStrategy": "1. Create 20 test transcripts covering all tool types\n2. Run each through PatternMatchingLibrary\n3. Measure: hit rate (should be >60%), avg time (should be <50ms)\n4. Verify correct tools selected (manual review)\n5. Check LED breadcrumbs for each test\n6. Document failures → improve patterns\n7. Re-test after pattern improvements\n8. Target: 70%+ pattern match rate before proceeding",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Test Results Summary",
+            "description": "Integration tests completed with excellent results:\n- Hit Rate: 70% (exceeded 60% target)\n- Performance: 0.09ms average (well under 50ms target)\n- 20/20 tests completed in <50ms\n- Total Tests: 20\n- Passed: 14 (70.0%)\n- Failed: 6 (to be addressed in Phase 2 learning system)",
+            "status": "completed",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Pattern Improvements Made",
+            "description": "1. Added \"worried\", \"concerned\" keywords to Tool 5 (Labeling)\n2. Added \"how would\", \"how do\", \"tell me more\" to Tool 6 (Calibrated Questions)\n3. Added \"promising\", \"could help\", \"like this\" to Tool 10 (Buy-In)\n4. Added \"complicated\", \"revisit\", \"few months\" to Tool 13 (Take Away)",
+            "status": "completed",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "LED Breadcrumb Verification",
+            "description": "All required LED breadcrumbs verified:\n- 6601: pattern_matching_start ✅\n- 6602: pattern_match_found ✅\n- 6603: regex_match_found ✅\n- 6604: no_pattern_match (AI fallback) ✅",
+            "status": "completed",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Remaining Edge Cases Documentation",
+            "description": "Documented 6 remaining failures that need additional patterns:\n- Need patterns for \"think about\"\n- Need patterns for \"could help us\"\n- Need patterns for \"can you\"\nThese will be addressed in the Phase 2 learning system.",
+            "status": "completed",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Success Criteria Verification",
+            "description": "All success criteria met:\n- Hit rate ≥60%: Achieved 70%\n- Avg time <50ms: Achieved 0.09ms\n- LED breadcrumbs fire correctly\n- Correct tools selected for test cases",
+            "status": "completed",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Phase 8: Integration Testing - AI Tool Selection",
+        "description": "Verify AI classification works correctly for complex scenarios requiring contextual analysis",
+        "details": "Test AI tool selection for cases where pattern matching doesn't apply:\n\nTest cases (minimum):\n1. Complex multi-sentence objection\n2. Implied concern without trigger keywords\n3. Positive sentiment + high engagement (should suggest advancement tools)\n4. Negative sentiment + declining trend (should suggest reactive tools)\n5. Mixed signals requiring contextual analysis\n\nSuccess criteria:\n- AI returns valid tool number (1-13)\n- Selection completes in <400ms\n- Selected tool makes sense for context\n- LED 6253 fires on AI selection\n- No JSON parsing errors\n- 85%+ accuracy (tool makes sense for scenario)\n\nVerification:\n- Create 15 complex test scenarios\n- Include sentiment, stage, engagement context\n- Run through AI selection\n- Measure: accuracy, avg time, error rate\n- Review tool selections (should be contextually appropriate)\n- Document any prompt improvements needed",
+        "testStrategy": "1. Create 15 complex test scenarios with full context\n2. Run each through selectToolViaAI()\n3. Measure: avg time (<400ms), accuracy (>85%)\n4. Manual review: does tool make sense for context?\n5. Check LED 6253 fires correctly\n6. Verify no crashes or JSON errors\n7. If accuracy <85%, improve AI prompt\n8. Re-test until accuracy target met\n9. Document edge cases for future improvement",
+        "status": "done",
+        "dependencies": [
+          5,
+          6,
+          7
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Phase 9: Integration Testing - Template Filling",
+        "description": "Verify templates fill correctly with variables and produce high-quality prompts",
+        "details": "Test template variable substitution and output quality:\n\nTest cases (all 13 tools):\n1. Mirroring: {{LAST_WORDS}} extracted and filled correctly\n2. Empathy Response: {{EMOTION}} and {{SITUATION}} filled appropriately\n3. Labeling: {{EMOTION}} and {{TOPIC}} filled from context\n4. Take Away: {{OBJECTION}} and {{CONCERN}} filled from transcript\n5. Calibrated Questions: {{TOPIC}} filled relevantly\n... (test all 13)\n\nSuccess criteria:\n- All {{VARIABLE}} placeholders replaced\n- No placeholder text left in output\n- Variables contextually appropriate\n- Template fills in <5ms\n- Output reads naturally (not robotic)\n- LED 6553 fires on successful fill\n\nVerification:\n- Test each tool template with sample data\n- Verify variables extracted correctly\n- Check filled template quality\n- Ensure no {{}} remain in output\n- Time template filling operation\n- Review 20+ filled prompts for quality",
+        "testStrategy": "1. Create test data for all 13 tools\n2. Test extractSimpleVariables() for each tool\n3. Test fillTemplate() with extracted variables\n4. Verify no {{VARIABLE}} remains in output\n5. Manual review: do filled prompts read naturally?\n6. Measure template fill time (<5ms required)\n7. Check LED 6552 and 6553 fire correctly\n8. Test edge cases: empty variables, special characters\n9. Document any template improvements needed\n10. Refine templates until quality is excellent",
+        "status": "done",
+        "dependencies": [
+          5,
+          6
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Phase 10: End-to-End Testing - Live Call Simulation",
+        "description": "Test complete flow from transcript to prompt display in real app environment",
+        "details": "Full integration test simulating real sales call:\n\nTest scenario:\n1. Start app, load RAG document\n2. Begin recording/transcription\n3. Simulate prospect speech (various objections, questions, responses)\n4. Verify prompts appear in UI\n5. Track timing for each prompt\n6. Monitor LED breadcrumbs throughout\n7. Test across multiple stages (1-9)\n8. Test with different sentiment patterns\n\nSuccess criteria:\n- App runs without crashes\n- Prompts appear in UI within 400ms average\n- Pattern matches show <50ms\n- AI selections show <400ms\n- No JSON parsing errors\n- No console errors\n- LEDs show clean flow (6251→6252 or 6253→6553)\n- Prompts are contextually appropriate\n- User can see and use prompts effectively\n\nVerification:\n- Full simulated call (10+ exchanges)\n- Monitor performance throughout\n- Check all LED ranges (6200-6699)\n- Verify UI responsiveness\n- Test edge cases (rapid speech, silence, interruptions)",
+        "testStrategy": "1. Launch app in development mode\n2. Open browser console for LED monitoring\n3. Start transcription service\n4. Simulate 10-15 prospect statements\n5. Record timing for each prompt appearance\n6. Check LED breadcrumbs: window.debug.breadcrumbs.getRange(6200, 6699)\n7. Verify no failures: window.debug.breadcrumbs.getFailures()\n8. Calculate avg prompt time (target: <200ms)\n9. Review prompt quality and relevance\n10. Test with different RAG documents\n11. Document any issues or improvements needed",
+        "status": "pending",
+        "dependencies": [
+          7,
+          8,
+          9
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 11,
+        "title": "Phase 11: Performance Validation",
+        "description": "Verify performance targets met: 70%+ pattern matches, <200ms avg, 0% errors",
+        "details": "Quantitative performance validation across 50+ test cases:\n\nMetrics to measure:\n1. Pattern match rate (target: 70%+)\n2. Average prompt time (target: <200ms)\n3. Pattern match time (target: <50ms)\n4. AI selection time (target: <400ms)\n5. JSON parsing error rate (target: 0%)\n6. Hallucination rate (target: 0%)\n7. Tool selection accuracy (target: 85%+)\n\nData collection:\n- Run 50 diverse test transcripts\n- Log all timing data\n- Track success/failure rates\n- Measure against old system benchmarks\n- Document performance improvements\n\nSuccess criteria:\n- Meet or exceed all performance targets\n- 3-5x faster than old system (was 1200ms avg)\n- Zero JSON parsing failures\n- Zero hallucinations\n- LED quality score >95%\n\nIf targets not met:\n- Identify bottlenecks via LED analysis\n- Optimize slow components\n- Improve pattern library\n- Refine AI prompts\n- Re-test until targets achieved",
+        "testStrategy": "1. Create 50 diverse test transcripts\n2. Run each through complete system\n3. Log: method (pattern/AI), time, tool selected, success\n4. Calculate metrics: pattern rate, avg time, accuracy\n5. Compare to targets: 70% pattern, <200ms avg, 85% accuracy\n6. Check LED quality: window.debug.breadcrumbs.getQualityScore()\n7. If metrics fail, use LEDs to identify bottlenecks\n8. Optimize and re-test\n9. Document final performance numbers\n10. Create performance report for comparison vs old system",
+        "status": "pending",
+        "dependencies": [
+          10
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 12,
+        "title": "Phase 12: Code Quality & Documentation",
+        "description": "Verify clean codebase: no dead code, proper LED coverage, code comments, type safety",
+        "details": "Code quality checklist:\n\n1. Dead Code Removal:\n   - Search for any old AI generation imports\n   - Remove commented-out code\n   - Delete unused helper functions\n   - Verify no orphaned files\n\n2. LED Breadcrumb Coverage:\n   - All new files use BreadcrumbTrail\n   - All critical operations have LEDs\n   - LED ranges documented (6550-6699)\n   - Success and failure paths covered\n\n3. TypeScript Compliance:\n   - No 'any' types (use proper interfaces)\n   - All public methods have return types\n   - All interfaces exported properly\n   - Zero TypeScript errors\n\n4. Code Comments:\n   - Each class has JSDoc header\n   - Complex logic has inline comments\n   - LED numbers documented\n   - Public methods documented\n\n5. File Organization:\n   - All new files in correct directories\n   - Imports organized and minimal\n   - No circular dependencies\n\nVerification:\n- Compile with strict mode\n- Run linter\n- Review all new files\n- Check import statements\n- Verify LED documentation",
+        "testStrategy": "1. Run: grep -r \"OllamaPrompt\" src/ (expect: 0 results)\n2. Run: grep -r \"any\" src/services/coaching/*.ts (minimize results)\n3. Check: tsc --noEmit (expect: 0 errors)\n4. Verify: Each new file has BreadcrumbTrail\n5. Check: LED ranges 6550-6699 documented in code\n6. Review: All public methods have JSDoc\n7. Verify: No circular dependencies\n8. Check: Import statements clean and minimal\n9. Run: npm run lint (if available)\n10. Manual code review for quality and clarity",
+        "status": "pending",
+        "dependencies": [
+          11
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 13,
+        "title": "Phase 13: Final Deployment Decision",
+        "description": "Review all test results, verify success criteria met, deploy or rollback to backup",
+        "details": "Final go/no-go decision checklist:\n\nSuccess Criteria Review:\n✅ All 11 previous tasks completed\n✅ Performance targets met (70% pattern, <200ms avg)\n✅ Zero JSON parsing errors in testing\n✅ Zero hallucinations detected\n✅ Tool selection accuracy >85%\n✅ LED breadcrumbs show clean flow\n✅ No TypeScript errors\n✅ No console errors during testing\n✅ Code quality standards met\n✅ Documentation complete\n\nDecision:\n- If ALL criteria met → DEPLOY (commit to main, update docs)\n- If ANY criteria failed → ROLLBACK (restore backup, analyze issues)\n\nDeployment steps (if approved):\n1. Create comprehensive git commit\n2. Update LED-monitor.md with new ranges\n3. Update docs/AI-Pivot-01-Simple.md with results\n4. Tag release: v2.0-ai-pivot\n5. Archive old system code in git history\n6. Document performance improvements\n\nRollback steps (if needed):\n1. Restore from backup\n2. Document what failed and why\n3. Create issue list for retry\n4. Analyze LED failures\n5. Plan improvements",
+        "testStrategy": "1. Review TaskMaster: all tasks 1-12 marked 'done'\n2. Review performance report from Task 11\n3. Check: Zero failures in final tests\n4. Verify: All success criteria ✅\n5. If approved: git commit -am \"AI Pivot Phase 1: Template system deployment\"\n6. If approved: git tag v2.0-ai-pivot\n7. If approved: Update documentation\n8. If rejected: Restore backup immediately\n9. If rejected: Create detailed failure analysis\n10. Document decision and rationale",
+        "status": "pending",
+        "dependencies": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "priority": "high",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-09-30T23:31:35.818Z",
+      "updated": "2025-10-01T06:46:57.936Z",
+      "description": "AI Pivot Phase 1: Replace AI text generation with AI tool selection + templates"
+    }
+  }
+}

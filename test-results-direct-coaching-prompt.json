@@ -1,0 +1,228 @@
+{
+  "results": [
+    {
+      "scenario_id": 1,
+      "scenario_name": "Deep skepticism from past failures",
+      "transcript": "I've been thinking about this extensively. We've had bad experiences with similar solutions in the past. The implementation was a nightmare and took months longer than promised. I'm just not convinced this time will be different.",
+      "expected_tool": 13,
+      "expected_tool_name": "Take Away",
+      "actual_tool_name": "Empathy Response",
+      "actual_say_this": "I understand your concern, dealing with delays and complications can be very frustrating.",
+      "tool_correct": false,
+      "prompt_quality": "good",
+      "response_time_ms": 1148,
+      "ollama_response": {
+        "tool": "Empathy Response",
+        "say_this": "I understand your concern, dealing with delays and complications can be very frustrating.",
+        "why": "Acknowledges their past negative experiences and validates their current skepticism.",
+        "confidence": "high"
+      }
+    },
+    {
+      "scenario_id": 2,
+      "scenario_name": "Team discussion stall tactic",
+      "transcript": "That's an interesting perspective on how to handle the situation. We'll need to discuss this with the broader team before making any decisions.",
+      "expected_tool": 2,
+      "expected_tool_name": "Empathy Response",
+      "actual_tool_name": "Buy-In",
+      "actual_say_this": "Would it be helpful if I provided some additional insights to facilitate your team's discussion?",
+      "tool_correct": false,
+      "prompt_quality": "excellent",
+      "response_time_ms": 1047,
+      "ollama_response": {
+        "tool": "Buy-In",
+        "say_this": "Would it be helpful if I provided some additional insights to facilitate your team's discussion?",
+        "why": "Asking for permission to provide more information can make the prospect feel in control and open them up to new ideas.",
+        "confidence": "high"
+      }
+    },
+    {
+      "scenario_id": 3,
+      "scenario_name": "Emotional exhaustion from repeated failures",
+      "transcript": "Every solution we've tried has fallen short. The team is tired of false promises. I don't have the energy to go through another failed implementation.",
+      "expected_tool": 5,
+      "expected_tool_name": "Labeling",
+      "actual_tool_name": "Empathy Response",
+      "actual_say_this": "I understand it's been exhausting dealing with these failed implementations. It’s completely understandable to feel that way.",
+      "tool_correct": false,
+      "prompt_quality": "excellent",
+      "response_time_ms": 1009,
+      "ollama_response": {
+        "tool": "Empathy Response",
+        "say_this": "I understand it's been exhausting dealing with these failed implementations. It’s completely understandable to feel that way.",
+        "why": "Acknowledges their frustration and validates their feelings, building rapport and trust.",
+        "confidence": "high"
+      }
+    },
+    {
+      "scenario_id": 4,
+      "scenario_name": "Buying signal with implementation concern",
+      "transcript": "On one hand, I see the potential value. On the other hand, we're already stretched thin with current projects. I want to move forward but the timing feels off.",
+      "expected_tool": 1,
+      "expected_tool_name": "Mirroring",
+      "actual_tool_name": "Negative Assumption",
+      "actual_say_this": "I understand that with your current workload, finding time for a new project can be challenging. How do you see us addressing this?",
+      "tool_correct": false,
+      "prompt_quality": "excellent",
+      "response_time_ms": 1088,
+      "ollama_response": {
+        "tool": "Negative Assumption",
+        "say_this": "I understand that with your current workload, finding time for a new project can be challenging. How do you see us addressing this?",
+        "why": "Addressing the concern about resource constraints and timing upfront to disarm potential objections.",
+        "confidence": "high"
+      }
+    },
+    {
+      "scenario_id": 5,
+      "scenario_name": "Executive buy-in with middle management concern",
+      "transcript": "The executive team has been pushing for innovation, but there's resistance from middle management who are comfortable with the status quo. Navigating that dynamic is tricky.",
+      "expected_tool": 1,
+      "expected_tool_name": "Mirroring",
+      "actual_tool_name": "Empathy Questions",
+      "actual_say_this": "Can you tell me more about what challenges middle management is facing with this change?",
+      "tool_correct": false,
+      "prompt_quality": "excellent",
+      "response_time_ms": 952,
+      "ollama_response": {
+        "tool": "Empathy Questions",
+        "say_this": "Can you tell me more about what challenges middle management is facing with this change?",
+        "why": "To understand their perspective and open up dialogue on how to address the internal resistance.",
+        "confidence": "high"
+      }
+    },
+    {
+      "scenario_id": 6,
+      "scenario_name": "Stuck progress - going in circles",
+      "transcript": "This is the third time we've had this conversation and I feel like we're going in circles. I'm starting to question if we're even aligned on what success looks like here.",
+      "expected_tool": 7,
+      "expected_tool_name": "Negative Assumption",
+      "actual_tool_name": "Summarizing",
+      "actual_say_this": "So, it seems we might have different views on what success means for this project. Can you help clarify your perspective?",
+      "tool_correct": false,
+      "prompt_quality": "excellent",
+      "response_time_ms": 1124,
+      "ollama_response": {
+        "tool": "Summarizing",
+        "say_this": "So, it seems we might have different views on what success means for this project. Can you help clarify your perspective?",
+        "why": "Prospect feels uncertain about alignment and progress, summarizing their concern can lead to a clearer understanding.",
+        "confidence": "high"
+      }
+    },
+    {
+      "scenario_id": 7,
+      "scenario_name": "Vague risk concern without specifics",
+      "transcript": "We're in a critical growth phase right now. Any disruption to our current operations could have significant downstream effects on our customer commitments.",
+      "expected_tool": 1,
+      "expected_tool_name": "Mirroring",
+      "actual_tool_name": "Empathy Response",
+      "actual_say_this": "I understand that maintaining stability during this growth phase is crucial for meeting your customer commitments.",
+      "tool_correct": false,
+      "prompt_quality": "excellent",
+      "response_time_ms": 962,
+      "ollama_response": {
+        "tool": "Empathy Response",
+        "say_this": "I understand that maintaining stability during this growth phase is crucial for meeting your customer commitments.",
+        "why": "Acknowledging their concern helps build rapport and shows understanding of the risks involved.",
+        "confidence": "high"
+      }
+    },
+    {
+      "scenario_id": 8,
+      "scenario_name": "Enthusiasm with budget approval concern",
+      "transcript": "This is exactly what we've been looking for. The features align perfectly with our needs. My only concern is whether we can get executive approval given budget constraints this quarter.",
+      "expected_tool": 1,
+      "expected_tool_name": "Mirroring",
+      "actual_tool_name": "Negative Assumption",
+      "actual_say_this": "I understand that getting executive approval can be challenging with budget constraints. Let's discuss how we might present this in a way that highlights its value and aligns with your strategic goals.",
+      "tool_correct": false,
+      "prompt_quality": "excellent",
+      "response_time_ms": 1247,
+      "ollama_response": {
+        "tool": "Negative Assumption",
+        "say_this": "I understand that getting executive approval can be challenging with budget constraints. Let's discuss how we might present this in a way that highlights its value and aligns with your strategic goals.",
+        "why": "Addressing the concern upfront helps to disarm it and opens up a dialogue on solutions.",
+        "confidence": "high"
+      }
+    },
+    {
+      "scenario_id": 9,
+      "scenario_name": "Soft rejection at late stage",
+      "transcript": "Let me take this back to the team and see what they think. We'll circle back once we've had a chance to digest everything and discuss internally.",
+      "expected_tool": 5,
+      "expected_tool_name": "Labeling",
+      "actual_tool_name": "Black Swan",
+      "actual_say_this": "Before we finalize, are there any other factors or concerns that might impact your decision?",
+      "tool_correct": false,
+      "prompt_quality": "good",
+      "response_time_ms": 904,
+      "ollama_response": {
+        "tool": "Black Swan",
+        "say_this": "Before we finalize, are there any other factors or concerns that might impact your decision?",
+        "why": "To uncover hidden issues or objections they may not have mentioned yet.",
+        "confidence": "medium"
+      }
+    },
+    {
+      "scenario_id": 10,
+      "scenario_name": "Casual rapport building - golf interest",
+      "transcript": "Yeah, I got a new putter about a year ago and I think it's a good one. I'm probably just not very good yet. I struggle with my short game.",
+      "expected_tool": 1,
+      "expected_tool_name": "Mirroring",
+      "actual_tool_name": "Empathy Questions",
+      "actual_say_this": "What specific challenges are you facing with your short game?",
+      "tool_correct": false,
+      "prompt_quality": "excellent",
+      "response_time_ms": 890,
+      "ollama_response": {
+        "tool": "Empathy Questions",
+        "say_this": "What specific challenges are you facing with your short game?",
+        "why": "Encourages them to elaborate on their struggles and opens up for solutions discussion.",
+        "confidence": "high"
+      }
+    },
+    {
+      "scenario_id": 11,
+      "scenario_name": "Early discovery - problem exploration",
+      "transcript": "We've been looking at different coaching options. Not sure exactly what would work best for our team yet.",
+      "expected_tool": 3,
+      "expected_tool_name": "Empathy Questions",
+      "actual_tool_name": "Calibrated Questions",
+      "actual_say_this": "What specific aspects of coaching are you currently evaluating?",
+      "tool_correct": false,
+      "prompt_quality": "excellent",
+      "response_time_ms": 824,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "say_this": "What specific aspects of coaching are you currently evaluating?",
+        "why": "To understand their needs and guide them towards a better solution.",
+        "confidence": "high"
+      }
+    },
+    {
+      "scenario_id": 12,
+      "scenario_name": "Positive progress - solution interest",
+      "transcript": "That makes sense. I like how you explained that. Tell me more about how that would work in our specific situation.",
+      "expected_tool": 10,
+      "expected_tool_name": "Buy-In",
+      "actual_tool_name": "Calibrated Questions",
+      "actual_say_this": "What specific aspects of our solution would you like to explore further?",
+      "tool_correct": false,
+      "prompt_quality": "excellent",
+      "response_time_ms": 981,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "say_this": "What specific aspects of our solution would you like to explore further?",
+        "why": "Encourages them to be more active in discussing their needs and clarifies areas they are interested in.",
+        "confidence": "high"
+      }
+    }
+  ],
+  "summary": {
+    "total": 12,
+    "correct": 0,
+    "excellent": 10,
+    "good": 2,
+    "generic": 0,
+    "poor": 0
+  }
+}

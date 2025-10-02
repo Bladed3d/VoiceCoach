@@ -1,0 +1,26 @@
+
+DeepSeek 3.1
+
+GLM 4.5
+
+Grok 4
+
+Claude Sonnet 4
+
+
+When using the app to create a prompt, this file contains my answers to the guided process
+   and the tests I conducted in choosing an AI model to create the prompt. Which prompt followed
+   instructions and gave the prompt most closely aligned with my request based on my answers to
+   the questions? Which prompt is best and why? How can this be improved? file:
+   "D:\Projects\Ai\VoiceCoach-v2\docs\MyUI\SalesTrackPrompt.md"
+   
+   
+   
+   Sales pitch
+   
+   Make sure client is qualified:
+   Emotionally
+   Logically
+   Financially
+   technically
+   

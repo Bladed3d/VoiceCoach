@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VoiceCoach V2 - Pattern Matching Monitor</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      padding: 20px;
+      margin: 0;
+    }
+    h1 {
+      color: #00d9ff;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #888;
+      margin-bottom: 30px;
+    }
+    .led-list {
+      background: #16213e;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .led-item {
+      padding: 8px;
+      margin: 5px 0;
+      border-left: 3px solid #444;
+    }
+    .monitor-section {
+      background: #0f3460;
+      padding: 20px;
+      border-radius: 8px;
+      min-height: 400px;
+    }
+    .log-entry {
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 4px;
+      border-left: 4px solid #00d9ff;
+      background: #16213e;
+      animation: slideIn 0.3s ease;
+    }
+    .log-entry.success {
+      border-left-color: #00ff88;
+    }
+    .log-entry.warning {
+      border-left-color: #ffaa00;
+    }
+    .log-entry.error {
+      border-left-color: #ff4444;
+    }
+    .timestamp {
+      color: #888;
+      font-size: 0.9em;
+    }
+    .led-number {
+      color: #00d9ff;
+      font-weight: bold;
+    }
+    .tool-name {
+      color: #00ff88;
+      font-weight: bold;
+    }
+    .score {
+      color: #ffaa00;
+      font-weight: bold;
+    }
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    .status {
+      padding: 10px;
+      background: #16213e;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #ff4444;
+      animation: pulse 2s infinite;
+    }
+    .status-indicator.active {
+      background: #00ff88;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .instructions {
+      background: #16213e;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border-left: 4px solid #ffaa00;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎯 VoiceCoach V2 - Pattern Matching Monitor</h1>
+  <p class="subtitle">Real-time LED breadcrumb tracking for pattern matching system</p>
+
+  <div class="instructions">
+    <strong>📋 Instructions:</strong>
+    <ol style="margin: 10px 0;">
+      <li>Open the VoiceCoach V2 app in another window</li>
+      <li>Open browser DevTools (F12) and keep the Console tab visible</li>
+      <li>This page will automatically detect and display pattern matching activity</li>
+      <li>Test different phrases to see pattern matching in action</li>
+    </ol>
+  </div>
+
+  <div class="led-list">
+    <h3>🔍 Monitored LED Breadcrumbs:</h3>
+    <div class="led-item"><span class="led-number">LED 6601:</span> Pattern matching start</div>
+    <div class="led-item"><span class="led-number">LED 6610:</span> Keyword match found</div>
+    <div class="led-item"><span class="led-number">LED 6611:</span> Tool scored</div>
+    <div class="led-item"><span class="led-number">LED 6612:</span> All tools evaluated</div>
+    <div class="led-item"><span class="led-number">LED 6602:</span> Pattern match found (success with score)</div>
+    <div class="led-item"><span class="led-number">LED 6604:</span> No pattern match (AI fallback)</div>
+    <div class="led-item"><span class="led-number">LED 6252:</span> Pattern match success in live coaching</div>
+  </div>
+
+  <div class="status">
+    <span>Monitoring Status:</span>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span id="status-text">Waiting for activity...</span>
+      <div class="status-indicator" id="status-indicator"></div>
+    </div>
+  </div>
+
+  <div class="monitor-section">
+    <h3>📊 Live Pattern Matching Activity:</h3>
+    <div id="log-container">
+      <p style="color: #888; font-style: italic;">No pattern matching activity detected yet. Start a coaching session in the VoiceCoach app.</p>
+    </div>
+  </div>
+
+  <script>
+    const logContainer = document.getElementById('log-container');
+    const statusText = document.getElementById('status-text');
+    const statusIndicator = document.getElementById('status-indicator');
+
+    const PATTERN_MATCHING_LEDS = {
+      6601: 'Pattern matching start',
+      6610: 'Keyword match found',
+      6611: 'Tool scored',
+      6612: 'All tools evaluated',
+      6602: 'Pattern match found (success with score)',
+      6604: 'No pattern match (AI fallback)',
+      6252: 'Pattern match success in live coaching'
+    };
+
+    let activityDetected = false;
+
+    function addLogEntry(message, type = 'info') {
+      if (!activityDetected) {
+        logContainer.innerHTML = '';
+        activityDetected = true;
+        statusText.textContent = 'Active - monitoring in progress';
+        statusIndicator.classList.add('active');
+      }
+
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+
+      const timestamp = new Date().toLocaleTimeString();
+      entry.innerHTML = `
+        <div class="timestamp">${timestamp}</div>
+        <div>${message}</div>
+      `;
+
+      logContainer.insertBefore(entry, logContainer.firstChild);
+
+      // Keep only last 50 entries
+      while (logContainer.children.length > 50) {
+        logContainer.removeChild(logContainer.lastChild);
+      }
+    }
+
+    // Override console.log to intercept LED breadcrumbs
+    const originalLog = console.log;
+    console.log = function(...args) {
+      originalLog.apply(console, args);
+
+      const message = args.join(' ');
+
+      // Check for LED breadcrumbs
+      const ledMatch = message.match(/LED\s+(\d+)/);
+      if (ledMatch) {
+        const ledNum = ledMatch[1];
+
+        if (PATTERN_MATCHING_LEDS[ledNum]) {
+          addLogEntry(
+            `🔵 <span class="led-number">LED ${ledNum}:</span> ${PATTERN_MATCHING_LEDS[ledNum]}<br><small>${message}</small>`,
+            'info'
+          );
+        }
+      }
+
+      // Catch tool scoring information
+      if (message.toLowerCase().includes('tool scored') ||
+          message.toLowerCase().includes('pattern match')) {
+        if (message.includes('score:')) {
+          const scoreMatch = message.match(/score:\s*(\d+)/i);
+          const toolMatch = message.match(/tool:\s*([^\s,]+)/i);
+
+          if (scoreMatch) {
+            const score = parseInt(scoreMatch[1]);
+            const tool = toolMatch ? toolMatch[1] : 'unknown';
+            const type = score >= 50 ? 'success' : 'warning';
+
+            addLogEntry(
+              `🎯 Tool scored: <span class="tool-name">${tool}</span> - Score: <span class="score">${score}</span>`,
+              type
+            );
+          }
+        }
+      }
+
+      // Catch AI fallback
+      if (message.toLowerCase().includes('fallback') ||
+          message.toLowerCase().includes('no pattern match')) {
+        addLogEntry('⚠️ No pattern match - falling back to AI analysis', 'warning');
+      }
+
+      // Catch pattern match success
+      if (message.toLowerCase().includes('pattern match success')) {
+        addLogEntry('✅ Pattern match successful - instant coaching delivered', 'success');
+      }
+    };
+
+    // Monitor localStorage for shared state (if apps use this)
+    window.addEventListener('storage', (e) => {
+      if (e.key && e.key.includes('breadcrumb')) {
+        addLogEntry(`📡 Storage event: ${e.key} = ${e.newValue}`, 'info');
+      }
+    });
+
+    console.log('🎯 Pattern Matching Monitor initialized');
+    console.log('📊 Waiting for VoiceCoach V2 activity...');
+  </script>
+</body>
+</html>

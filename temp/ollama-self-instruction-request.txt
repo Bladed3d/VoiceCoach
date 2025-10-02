@@ -1,0 +1,36 @@
+You are about to analyze a comprehensive sales coaching knowledge base and create the PERFECT instruction template for yourself to provide world-class real-time sales coaching.
+
+KNOWLEDGE BASE TO ANALYZE:
+```json
+{KNOWLEDGE_BASE}
+```
+
+YOUR MISSION: 
+Create the optimal instruction template that YOU (as Ollama) would use during live sales calls to provide the most effective stage-aware coaching that helps salespeople close more deals.
+
+ANALYSIS REQUIREMENTS:
+1. Study the 5-stage progression system (opening → discovery → presentation → objection → closing)
+2. Understand the priority system (CRITICAL > HIGH > STANDARD)  
+3. Note the exit criteria, bridges, recovery patterns, and progression triggers
+4. Consider how you would use call duration, stage context, and conversation flow
+5. Design for PREDICTIVE coaching (guide 2-3 moves ahead, not just react)
+
+INSTRUCTION TEMPLATE REQUIREMENTS:
+- Must work with variables: {KNOWLEDGE_BASE}, {TRANSCRIPT}, {SALES_STAGE}, {CALL_DURATION}
+- Should guide you to provide stage-appropriate coaching
+- Must prioritize CRITICAL techniques over others
+- Should help advance conversations through stages naturally
+- Need clear JSON output format for consistent parsing
+- Must be concise enough for real-time use (max response time <2 seconds)
+
+CREATE YOUR OWN INSTRUCTION TEMPLATE:
+Write the instruction template that would make YOU perform at the absolute highest level as a real-time sales coach. Consider:
+- What context do you need to provide the best coaching?
+- How should you analyze the current situation?
+- What decision-making process would you follow?
+- What output format works best for your processing?
+- How would you handle stage transitions and objections?
+
+Think like a master sales coach with 20+ years of experience. Create instructions that would make you the most valuable real-time coaching AI possible.
+
+Your response should be a complete instruction template that starts with "You are an expert sales coach..." and includes everything needed for optimal performance.

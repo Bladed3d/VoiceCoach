@@ -340,11 +340,23 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
     // Save settings to localStorage
     localStorage.setItem('voicecoach-settings', JSON.stringify(settings));
 
-    // Update OllamaInstructionLoader if instruction file changed
-    const { ollamaInstructionLoader } = await import('../../services/coaching/OllamaInstructionLoader-Browser');
+    // Reload OllamaPromptService template if instruction file changed
     if (settings.ollama?.instructionFile) {
-      await ollamaInstructionLoader.setInstructionFile(settings.ollama.instructionFile);
-      console.log('✅ Instruction file updated to:', settings.ollama.instructionFile);
+      const { ollamaPromptService } = await import('../../services/coaching/OllamaPromptService');
+      const reloaded = await ollamaPromptService.reloadTemplate();
+
+      trail.light(7094, {
+        operation: 'instruction_file_reload_triggered',
+        instructionFile: settings.ollama.instructionFile,
+        reloadSuccess: reloaded,
+        timestamp: Date.now()
+      });
+
+      if (reloaded) {
+        console.log('✅ Instruction file reloaded in OllamaPromptService:', settings.ollama.instructionFile);
+      } else {
+        console.error('❌ Failed to reload instruction file in OllamaPromptService');
+      }
     }
 
     // Enhanced settings persistence tracking
@@ -450,7 +462,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
 
           {/* Main Content */}
           <div className="flex-1 min-w-0">
-            <div className="h-full overflow-y-auto px-6 py-6" style={{ scrollbarWidth: 'thin', scrollbarColor: '#475569 #1e293b' }}>
+            <div className="h-full overflow-y-auto px-6 py-6 pb-16" style={{ scrollbarWidth: 'thin', scrollbarColor: '#475569 #1e293b' }}>
             {activeTab === 'audio' && (
               <AudioSettingsComponent
                 settings={{

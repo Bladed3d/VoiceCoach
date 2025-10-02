@@ -1,0 +1,245 @@
+You are about to analyze a comprehensive sales coaching knowledge base and create the PERFECT instruction template for yourself to provide world-class real-time sales coaching.
+
+KNOWLEDGE BASE TO ANALYZE:
+```json
+{
+  "stages": {
+    "opening": {
+      "name": "Opening & Rapport",
+      "keywords": ["hello", "introduction", "meet", "rapport", "trust", "similar", "mirroring", "tone", "voice"],
+      "goal": "Establish emotional safety, build trust, and create rapport through calculated empathy and tactical mirroring",
+      "duration": "2-5 minutes",
+      "exitCriteria": [
+        "Prospect shows signs of relaxation",
+        "Voice tone becomes more welcoming",
+        "Mirroring responses observed",
+        "Initial empathy established"
+      ],
+      "bridges": [
+        {
+          "text": "I appreciate you taking the time to speak with me today - I know how valuable your time is.",
+          "priority": "STANDARD"
+        },
+        {
+          "text": "Before we begin, I want you to know that my goal is to understand your situation and see if there's a way we can help.",
+          "priority": "HIGH"
+        },
+        {
+          "text": "I'm going to ask you some questions, and please feel free to tell me if I'm off base at any point.",
+          "priority": "CRITICAL"
+        }
+      ],
+      "recovery": [
+        "It sounds like you might be skeptical about taking this call - that's completely understandable.",
+        "I'm sensing some hesitation - what would make this conversation more valuable for you?",
+        "It seems like you're busy - how much time would be reasonable for us to talk?"
+      ]
+    },
+    "discovery": {
+      "name": "Discovery & Pain Points", 
+      "keywords": ["problem", "challenge", "issue", "frustrated", "difficult", "situation", "need", "want"],
+      "goal": "Uncover real needs, desires, and fears using calibrated questions and tactical empathy to gather crucial information",
+      "duration": "8-15 minutes",
+      "exitCriteria": [
+        "Core pain points identified",
+        "Emotional drivers understood",
+        "Hidden motivations revealed",
+        "Black swan information discovered"
+      ],
+      "bridges": [
+        {
+          "text": "Help me understand - what's the biggest challenge you're facing in [specific area] right now?",
+          "priority": "CRITICAL"
+        },
+        {
+          "text": "It sounds like [problem] is really frustrating for you - what impact is that having on your business?",
+          "priority": "CRITICAL" 
+        },
+        {
+          "text": "What would need to happen for you to feel confident that this problem is solved?",
+          "priority": "CRITICAL"
+        },
+        {
+          "text": "How are you handling this situation currently?",
+          "priority": "HIGH"
+        },
+        {
+          "text": "What other approaches have you tried, and what happened?",
+          "priority": "HIGH"
+        }
+      ],
+      "recovery": [
+        "It seems like I'm asking too many questions - what would be most helpful for you to share?",
+        "I'm getting the sense that this isn't your biggest priority right now - what is?",
+        "It sounds like you've been burned by vendors before - is that what's happening here?"
+      ]
+    },
+    "presentation": {
+      "name": "Solution Presentation",
+      "keywords": ["solution", "approach", "method", "results", "benefits", "value", "ROI", "outcome"],
+      "goal": "Frame solution to satisfy their hidden emotional needs while demonstrating value through stories and proof",
+      "duration": "5-10 minutes", 
+      "exitCriteria": [
+        "Solution connects to emotional drivers",
+        "Value proposition understood",
+        "Credibility established through stories",
+        "Next steps interest expressed"
+      ],
+      "bridges": [
+        {
+          "text": "Based on what you've told me about [specific problem], here's how we've helped similar companies...",
+          "priority": "HIGH"
+        },
+        {
+          "text": "Let me share a story about [client] who faced the exact same challenge you described...",
+          "priority": "CRITICAL"
+        },
+        {
+          "text": "What I'm hearing is that [paraphrase their needs] - does that sound right?",
+          "priority": "CRITICAL"
+        },
+        {
+          "text": "The most important thing for you seems to be [their key driver] - is that accurate?",
+          "priority": "HIGH"
+        }
+      ],
+      "recovery": [
+        "It seems like this approach doesn't quite fit what you had in mind - what am I missing?",
+        "I'm getting the sense that you're not seeing the value here - what would need to be different?",
+        "It sounds like you've heard this before - how is your situation different?"
+      ]
+    },
+    "objection": {
+      "name": "Objection Handling",
+      "keywords": ["but", "however", "concern", "worried", "expensive", "budget", "time", "think about it"],
+      "goal": "Use 'no' as the beginning of negotiation, label emotions, and address real concerns behind surface objections",
+      "duration": "3-8 minutes",
+      "exitCriteria": [
+        "Real objection identified",
+        "Emotional concerns addressed",
+        "Trust maintained or rebuilt",
+        "Path forward established"
+      ],
+      "bridges": [
+        {
+          "text": "It sounds like price is a real concern for you - what specific aspect of the investment worries you most?",
+          "priority": "CRITICAL"
+        },
+        {
+          "text": "When you say you need to think about it, help me understand what specific part you'd like to think through.",
+          "priority": "CRITICAL"
+        },
+        {
+          "text": "I'm sensing some hesitation - it seems like something doesn't feel right to you.",
+          "priority": "CRITICAL"
+        },
+        {
+          "text": "It sounds like you've been disappointed by solutions like this before - is that what's happening?",
+          "priority": "HIGH"
+        },
+        {
+          "text": "You probably think I'm going to give you a hard sell now - that's not what I'm going to do.",
+          "priority": "HIGH"
+        }
+      ],
+      "recovery": [
+        "I'm afraid there are no circumstances that would make what you're proposing work for me.",
+        "It seems like we might not have enough common ground to reach an agreement.",
+        "What about this doesn't work for you?",
+        "What would you need to make this work?"
+      ]
+    },
+    "closing": {
+      "name": "Closing & Next Steps",
+      "keywords": ["next", "move forward", "start", "implement", "timeline", "decision", "commitment"],
+      "goal": "Secure genuine commitment using implementation-focused questions and ensure real follow-through",
+      "duration": "2-5 minutes",
+      "exitCriteria": [
+        "Genuine 'yes' obtained (not false yes)",
+        "Implementation plan agreed",
+        "Decision makers identified",
+        "Timeline established"
+      ],
+      "bridges": [
+        {
+          "text": "How do we move forward from here?",
+          "priority": "CRITICAL"
+        },
+        {
+          "text": "What do you see as the main hurdles that could stop us from moving ahead with this?",
+          "priority": "CRITICAL"
+        },
+        {
+          "text": "How does your boss feel about moving forward with something like this?",
+          "priority": "HIGH"
+        },
+        {
+          "text": "What would need to happen on your end to implement this successfully?",
+          "priority": "HIGH"
+        },
+        {
+          "text": "How can we ensure that we follow through on what we've agreed to today?",
+          "priority": "CRITICAL"
+        }
+      ],
+      "recovery": [
+        "It seems like you're not fully committed to moving forward - what's holding you back?",
+        "I'm getting the sense that there might be some obstacles I don't know about - what are they?",
+        "It sounds like this decision isn't entirely yours to make - who else is involved?"
+      ]
+    }
+  },
+  "progressions": {
+    "opening->discovery": {
+      "triggers": ["prospect seems relaxed", "mirroring observed", "welcoming tone", "rapport established"],
+      "minDuration": 120,
+      "requiredCriteria": 2
+    },
+    "discovery->presentation": {
+      "triggers": ["pain points identified", "emotional drivers clear", "information gathered", "that's right received"],
+      "minDuration": 300,
+      "requiredCriteria": 3
+    },
+    "presentation->closing": {
+      "triggers": ["interest confirmed", "value understood", "agreement signals", "next steps interest"],
+      "minDuration": 240,
+      "requiredCriteria": 3
+    },
+    "objection->closing": {
+      "triggers": ["real concern addressed", "trust rebuilt", "path forward clear", "genuine interest restored"],
+      "minDuration": 120,
+      "requiredCriteria": 2
+    }
+  }
+}
+```
+
+YOUR MISSION: 
+Create the optimal instruction template that YOU (as Ollama) would use during live sales calls to provide the most effective stage-aware coaching that helps salespeople close more deals.
+
+ANALYSIS REQUIREMENTS:
+1. Study the 5-stage progression system (opening → discovery → presentation → objection → closing)
+2. Understand the priority system (CRITICAL > HIGH > STANDARD)  
+3. Note the exit criteria, bridges, recovery patterns, and progression triggers
+4. Consider how you would use call duration, stage context, and conversation flow
+5. Design for PREDICTIVE coaching (guide 2-3 moves ahead, not just react)
+
+INSTRUCTION TEMPLATE REQUIREMENTS:
+- Must work with variables: {KNOWLEDGE_BASE}, {TRANSCRIPT}, {SALES_STAGE}, {CALL_DURATION}
+- Should guide you to provide stage-appropriate coaching
+- Must prioritize CRITICAL techniques over others
+- Should help advance conversations through stages naturally
+- Need clear JSON output format for consistent parsing
+- Must be concise enough for real-time use (max response time <2 seconds)
+
+CREATE YOUR OWN INSTRUCTION TEMPLATE:
+Write the instruction template that would make YOU perform at the absolute highest level as a real-time sales coach. Consider:
+- What context do you need to provide the best coaching?
+- How should you analyze the current situation?
+- What decision-making process would you follow?
+- What output format works best for your processing?
+- How would you handle stage transitions and objections?
+
+Think like a master sales coach with 20+ years of experience. Create instructions that would make you the most valuable real-time coaching AI possible.
+
+Your response should be a complete instruction template that starts with "You are an expert sales coach..." and includes everything needed for optimal performance.

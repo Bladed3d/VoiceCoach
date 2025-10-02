@@ -63,19 +63,6 @@ Build a clean, modern desktop sales coaching application that provides real-time
 ✅ Check preload.js for available methods
 ✅ Keep Node.js imports in main process only
 
-## Core Workflow
-1. User uploads sales document
-2. User answers 5 contextual questions
-3. 3-phase RAG processing extracts actionable insights
-4. Knowledge available for real-time coaching during calls
-
-## Memory Keeper MCP
-This project uses Memory Keeper MCP for session continuity. See `.claude/memory-keeper-instructions.md` for complete configuration. Key behaviors:
-- Automatically save technical decisions, bugs/solutions, and architectural choices
-- Use memory categories: `voicecoach-v2-architecture`, `voicecoach-v2-rag-system`, `voicecoach-v2-ui-design`, etc.
-- End important responses with: `[Saved to memory: topic]`
-- Proactively check memories to maintain consistency across sessions
-
 ## Available Agents
 - **rag-analyst**: Processes documents using 3-phase approach
 - **"RAG Document Analyst2"**: Advanced document analyst extracting actionable sales techniques and frameworks
@@ -143,11 +130,57 @@ src/
 - **Create monolithic files**
 - **Hard-code fake/mock data directly into application code**
 
-## LED Breadcrumb Ranges
+## LED Breadcrumb System - Debugging Protocol
+
+### 🚨 CRITICAL: LED Breadcrumbs Are Claude's Responsibility
+
+**The LED breadcrumb system exists specifically to enable Claude to debug problems autonomously.**
+
+❌ **NEVER tell the user to:**
+- "Monitor the console output"
+- "Watch the LED breadcrumbs"
+- "Check the terminal for breadcrumb numbers"
+- "Look at the console to see what's happening"
+
+✅ **Claude MUST:**
+- **Read the console output yourself** using Playwright or browser tools
+- **Grep log files** for specific breadcrumb ranges when debugging
+- **Analyze breadcrumb sequences** to identify where processes fail
+- **Use breadcrumb numbers** to pinpoint exact failure locations
+- **Present findings to user** with specific breadcrumb evidence
+
+### Why This Matters:
+The console output contains too much data for humans to monitor effectively. LED breadcrumbs (numbered 1000-9099) are designed to be machine-readable so Claude can:
+1. Quickly filter logs for relevant operations
+2. Identify exactly which step in a process failed
+3. Trace execution flow through complex operations
+4. Provide precise debugging information to the user
+
+### Debugging Workflow:
+When investigating an issue:
+1. **Use Playwright/browser tools** to capture console output
+2. **Grep for breadcrumb ranges** relevant to the problem area
+3. **Analyze the sequence** to find where execution stopped or errored
+4. **Report findings** to user with specific breadcrumb numbers and what they mean
+5. **Propose fixes** based on breadcrumb evidence
+
+**Example:**
+```
+User: "The document upload isn't working"
+
+Claude: [Uses browser tools to check console]
+Claude: "I found the issue. LED breadcrumb 2045 fired successfully
+        (document validation complete), but breadcrumb 2050 (starting
+        RAG processing) never appeared. This indicates the problem is
+        in the transition between validation and RAG processing.
+        Let me check the validation completion handler..."
+```
+
+### LED Breadcrumb Ranges
 - 1000-1099: Application startup and initialization
 - 2000-2099: Document upload and validation
 - 3000-3099: RAG Phase 1A (pure analysis)
-- 4000-4099: RAG Phase 1B (contextual analysis)  
+- 4000-4099: RAG Phase 1B (contextual analysis)
 - 5000-5099: RAG Phase 1C (synthesis)
 - 6000-6099: Live coaching integration
 - 7000-7099: UI interactions and state management

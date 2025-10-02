@@ -41,6 +41,13 @@ export const useCoachingSession = () => {
 
   const startSession = async (captureMode: 'microphone' | 'full-conversation' = 'microphone', selectedDocuments: string[] = []): Promise<boolean> => {
     if (!sessionManager.current) return false;
+
+    // Clear all panels for fresh start
+    console.log('🧹 Clearing all panels before starting new session...');
+    clearConversationHistory();
+    clearTranscriptions();
+    clearCoachingPrompts();
+
     return await sessionManager.current.startSession(captureMode, selectedDocuments);
   };
 
@@ -65,6 +72,14 @@ export const useCoachingSession = () => {
     }
   };
 
+  const clearConversationHistory = () => {
+    if (sessionManager.current) {
+      sessionManager.current.clearConversationHistory();
+      setConversationHistory([]);
+      console.log('✅ Conversation history cleared');
+    }
+  };
+
   const getSessionManager = () => {
     return sessionManager.current;
   };
@@ -86,6 +101,7 @@ export const useCoachingSession = () => {
     getWebSocketClient,
     clearTranscriptions,
     clearCoachingPrompts,
+    clearConversationHistory,
     getSessionManager,
     getConversationHistory,
     getRecentConversation

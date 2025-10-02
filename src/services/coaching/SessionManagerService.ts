@@ -603,7 +603,7 @@ export class SessionManagerService {
       salesStage: analysis.salesStage,
       sentiment: analysis.momentum, // Using momentum as sentiment proxy
       objections: analysis.objections.map(o => o.type),
-      topics: undefined, // Could be enhanced later
+      topics: this.detectTopics(transcriptionText), // Enhanced topic detection
       callDuration: this.callStartTime ?
         Math.round((Date.now() - this.callStartTime.getTime()) / 1000 / 60) : 0
     };
@@ -972,6 +972,46 @@ export class SessionManagerService {
   }
 
   /**
+   * Add manual sentiment input from user
+   * LED: 7100 - Manual sentiment input
+   */
+  addManualSentiment(score: -50 | -25 | 0 | 25 | 50, emoji: string): void {
+    this.trail.light(7100, {
+      operation: 'manual_sentiment_input',
+      score,
+      emoji,
+      transcriptIndex: this.sessionState.transcriptions.length,
+      timestamp: Date.now()
+    });
+
+    const manualSentiment: import('../types/coaching').ManualSentiment = {
+      timestamp: Date.now(),
+      score,
+      transcriptIndex: this.sessionState.transcriptions.length,
+      emoji
+    };
+
+    // Add to history and update current
+    this.updateSessionState({
+      manualSentiments: [...(this.sessionState.manualSentiments || []), manualSentiment],
+      currentManualSentiment: score
+    });
+
+    console.log(`📊 Manual sentiment recorded: ${emoji} (${score > 0 ? '+' : ''}${score})`);
+  }
+
+  /**
+   * Get blended sentiment (manual overrides automated)
+   */
+  getBlendedSentiment(): number {
+    const automated = this.currentSentiment?.score || 0;
+    const manual = this.sessionState.currentManualSentiment;
+
+    // Manual input is ground truth - full override
+    return manual !== undefined ? manual : automated;
+  }
+
+  /**
    * Get conversation history for script progress tracking
    * LED Range: 7500-7509
    */
@@ -1049,6 +1089,26 @@ export class SessionManagerService {
   }
 
   /**
+   * Clear conversation history (for Script Progress panel reset)
+   */
+  clearConversationHistory(): void {
+    // LED 6308: Manual conversation history clear
+    this.trail.light(6308, {
+      operation: 'manual_conversation_history_clear',
+      entriesCleared: this.conversationHistory.length,
+      timestamp: Date.now()
+    });
+
+    this.conversationHistory = [];
+
+    // Reset sentiment analyzer (clears sentiment history/graph)
+    this.sentimentAnalyzer.reset();
+    this.currentSentiment = null;
+
+    console.log('✅ Conversation history and sentiment cleared in SessionManagerService');
+  }
+
+  /**
    * Subscribe to state changes
    */
   onStateChange(callback: (state: SessionState) => void): void {
@@ -1082,6 +1142,8 @@ export class SessionManagerService {
       transcriptions: [],
       liveTranscript: '',
       liveTranscriptSpeaker: 'user', // Initialize with user as default
+      manualSentiments: [], // Manual sentiment inputs from user
+      currentManualSentiment: undefined, // Most recent manual sentiment
       volumeState: {
         level: 0,
         isMonitoring: false,
@@ -1144,30 +1206,29 @@ export class SessionManagerService {
           liveTranscript: ''
         });
 
-        // Analyze sentiment for prospect speech
-        if (currentSpeaker === 'prospect') {
-          this.currentSentiment = this.sentimentAnalyzer.analyzeResponse(transcript.text, currentSpeaker);
+        // Analyze sentiment for BOTH speakers (prospect + user handling)
+        this.currentSentiment = this.sentimentAnalyzer.analyzeResponse(transcript.text, currentSpeaker);
 
-          this.trail.light(6312, {
-            operation: 'sentiment_analyzed',
+        this.trail.light(6312, {
+          operation: 'sentiment_analyzed',
+          speaker: currentSpeaker,
+          score: this.currentSentiment.score,
+          direction: this.currentSentiment.direction,
+          engagement: this.currentSentiment.engagement,
+          trend: this.currentSentiment.trend
+        });
+
+        // Update session state with sentiment data
+        this.updateSessionState({
+          currentSentiment: {
             score: this.currentSentiment.score,
             direction: this.currentSentiment.direction,
+            confidence: this.currentSentiment.confidence,
             engagement: this.currentSentiment.engagement,
-            trend: this.currentSentiment.trend
-          });
-
-          // Update session state with sentiment data
-          this.updateSessionState({
-            currentSentiment: {
-              score: this.currentSentiment.score,
-              direction: this.currentSentiment.direction,
-              confidence: this.currentSentiment.confidence,
-              engagement: this.currentSentiment.engagement,
-              trend: this.currentSentiment.trend,
-              timestamp: Date.now()
-            }
-          });
-        }
+            trend: this.currentSentiment.trend,
+            timestamp: Date.now()
+          }
+        });
 
         // Generate Ollama coaching ONLY for prospect speech with simple debouncing
         if (transcript.text.length > 50 && currentSpeaker === 'prospect') {
@@ -1381,6 +1442,65 @@ export class SessionManagerService {
       wsStatus: 'Error during disconnect',
       liveTranscript: ''
     });
+  }
+
+  /**
+   * Private: Detect conversation topics from transcript text
+   * Matches keywords to identify discussion themes
+   */
+  private detectTopics(text: string): string[] {
+    const topics: string[] = [];
+    const lower = text.toLowerCase();
+
+    // Pricing/cost topics
+    if (lower.includes('price') || lower.includes('cost') || lower.includes('budget') ||
+        lower.includes('expensive') || lower.includes('afford')) {
+      topics.push('pricing');
+    }
+
+    // Feature/capability topics
+    if (lower.includes('feature') || lower.includes('capability') || lower.includes('function') ||
+        lower.includes('can it') || lower.includes('does it')) {
+      topics.push('features');
+    }
+
+    // Support/help topics
+    if (lower.includes('support') || lower.includes('help') || lower.includes('training') ||
+        lower.includes('onboarding') || lower.includes('documentation')) {
+      topics.push('support');
+    }
+
+    // Implementation/setup topics
+    if (lower.includes('implement') || lower.includes('setup') || lower.includes('install') ||
+        lower.includes('configure') || lower.includes('deploy')) {
+      topics.push('implementation');
+    }
+
+    // Timeline/schedule topics
+    if (lower.includes('timeline') || lower.includes('when') || lower.includes('schedule') ||
+        lower.includes('how long') || lower.includes('duration')) {
+      topics.push('timeline');
+    }
+
+    // Integration topics
+    if (lower.includes('integrate') || lower.includes('connect') || lower.includes('api') ||
+        lower.includes('sync') || lower.includes('import')) {
+      topics.push('integration');
+    }
+
+    // Security/compliance topics
+    if (lower.includes('security') || lower.includes('compliance') || lower.includes('gdpr') ||
+        lower.includes('hipaa') || lower.includes('encrypt')) {
+      topics.push('security');
+    }
+
+    // ROI/value topics
+    if (lower.includes('roi') || lower.includes('return') || lower.includes('value') ||
+        lower.includes('benefit') || lower.includes('save')) {
+      topics.push('roi');
+    }
+
+    return topics;
   }
 
   public setCurrentStage(stageNumber: number): void {

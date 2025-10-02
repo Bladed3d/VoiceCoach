@@ -1,0 +1,186 @@
+{
+  "metadata": {
+    "created": "2025-10-01",
+    "purpose": "Multi-turn conversations for vector context testing",
+    "total_conversations": 8,
+    "turns_per_conversation": 5
+  },
+  "conversations": [
+    {
+      "id": 1,
+      "name": "Budget-Conscious Prospect",
+      "turns": [
+        {
+          "turn": 1,
+          "speaker": "prospect",
+          "statement": "We've been having some challenges with our current system. It's just not keeping up with our growth.",
+          "context_to_store": "pain_point: system_not_scaling, emotion: neutral, stage: discovery",
+          "expected_tool": 1,
+          "expected_tool_name": "Mirroring"
+        },
+        {
+          "turn": 2,
+          "speaker": "coach",
+          "statement": "Not keeping up with your growth?",
+          "context_to_store": "tool_used: mirroring, engagement: prospect_elaborated"
+        },
+        {
+          "turn": 3,
+          "speaker": "prospect",
+          "statement": "I'm frustrated with how long it takes to get reports. By the time we have data, the opportunity is gone.",
+          "context_to_store": "emotion: frustrated, pain_point: reporting_delays, urgency: high",
+          "expected_tool": 2,
+          "expected_tool_name": "Empathy Response",
+          "vector_context_available": "pain: system_not_scaling, emotion: building frustration"
+        },
+        {
+          "turn": 4,
+          "speaker": "coach",
+          "statement": "It sounds like the delay is really affecting your ability to act on opportunities.",
+          "context_to_store": "tool_used: empathy_response, engagement: prospect_opens_up"
+        },
+        {
+          "turn": 5,
+          "speaker": "prospect",
+          "statement": "This is more expensive than I expected. I don't know if we can justify this to the CFO right now.",
+          "context_to_store": "objection: price, stakeholder: CFO, emotion: hesitant",
+          "expected_tool": 13,
+          "expected_tool_name": "Take Away",
+          "vector_context_available": "pain: urgent_reporting + frustrated + now price_concern, pattern: building_value_then_price_objection"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Defensive Status Quo",
+      "turns": [
+        {
+          "turn": 1,
+          "speaker": "prospect",
+          "statement": "We currently use spreadsheets for tracking. It's manual but we know how it works.",
+          "context_to_store": "defensive: current_solution, status_quo_bias: high, pain_acknowledged: low",
+          "expected_tool": 3,
+          "expected_tool_name": "Empathy Questions"
+        },
+        {
+          "turn": 2,
+          "speaker": "coach",
+          "statement": "Spreadsheets sound reliable. If you could wave a magic wand and improve one thing, what would it be?",
+          "context_to_store": "tool_used: empathy_questions, approach: magic_wand"
+        },
+        {
+          "turn": 3,
+          "speaker": "prospect",
+          "statement": "Our weekly meetings help us stay aligned. The team is used to this rhythm.",
+          "context_to_store": "defensive: process_comfort, resistance_level: moderate",
+          "expected_tool": 3,
+          "expected_tool_name": "Empathy Questions",
+          "vector_context_available": "pattern: repeated_defensive_justification, needs: uncover_hidden_pain"
+        },
+        {
+          "turn": 4,
+          "speaker": "coach",
+          "statement": "Weekly meetings sound solid. What would make your alignment process even better?",
+          "context_to_store": "tool_used: empathy_questions, engagement: slight_opening"
+        },
+        {
+          "turn": 5,
+          "speaker": "prospect",
+          "statement": "I want to move forward but the timing feels off. We're stretched thin.",
+          "context_to_store": "buying_signal: wants_forward, objection: timing, concern: capacity",
+          "expected_tool": 6,
+          "expected_tool_name": "Calibrated Questions",
+          "vector_context_available": "pattern: defensive_then_buying_signal, context: resource_concern_not_value_concern"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Burned by Past Vendors",
+      "turns": [
+        {
+          "turn": 1,
+          "speaker": "prospect",
+          "statement": "Every solution we've tried has fallen short. The team is tired of false promises.",
+          "context_to_store": "emotion: exhausted, trust_level: low, past_failures: multiple",
+          "expected_tool": 5,
+          "expected_tool_name": "Labeling"
+        },
+        {
+          "turn": 2,
+          "speaker": "coach",
+          "statement": "It seems like you've been let down before and the team is exhausted from trying new things.",
+          "context_to_store": "tool_used: labeling, engagement: validated"
+        },
+        {
+          "turn": 3,
+          "speaker": "prospect",
+          "statement": "I'm hesitant because we got burned last time. The vendor overpromised and underdelivered.",
+          "context_to_store": "emotion: hesitant, trigger: past_burn, trust_issue: vendor_credibility",
+          "expected_tool": 5,
+          "expected_tool_name": "Labeling",
+          "vector_context_available": "pattern: trust_rebuilding_needed, emotion_intensity: high"
+        },
+        {
+          "turn": 4,
+          "speaker": "coach",
+          "statement": "It sounds like that experience created real hesitation about trusting another vendor.",
+          "context_to_store": "tool_used: labeling, engagement: trust_building"
+        },
+        {
+          "turn": 5,
+          "speaker": "prospect",
+          "statement": "Let me take this back to the team and see what they think. We'll circle back once we've had a chance to digest.",
+          "context_to_store": "stall: team_review, stage: late, concern: hidden_objection",
+          "expected_tool": 5,
+          "expected_tool_name": "Labeling",
+          "vector_context_available": "pattern: trust_issue_causing_stall, context: not_ready_to_commit_needs_validation"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Active Engagement to Close",
+      "turns": [
+        {
+          "turn": 1,
+          "speaker": "prospect",
+          "statement": "I really like what I'm hearing. The ROI calculations make sense.",
+          "context_to_store": "sentiment: positive, value_recognized: yes, engagement: high",
+          "expected_tool": 8,
+          "expected_tool_name": "Dynamic Silence"
+        },
+        {
+          "turn": 2,
+          "speaker": "coach",
+          "statement": "[Silence - letting prospect continue]",
+          "context_to_store": "tool_used: dynamic_silence, engagement: prospect_continues"
+        },
+        {
+          "turn": 3,
+          "speaker": "prospect",
+          "statement": "I like what I'm hearing. Can you tell me more about the integration process?",
+          "context_to_store": "sentiment: positive, request: specific_info, engagement_type: active_question",
+          "expected_tool": 10,
+          "expected_tool_name": "Buy-In",
+          "vector_context_available": "pattern: positive_plus_active_request, readiness: high"
+        },
+        {
+          "turn": 4,
+          "speaker": "coach",
+          "statement": "Before we dive into integration details, what's most important for you to understand about the process?",
+          "context_to_store": "tool_used: buy_in, engagement: guiding_to_commitment"
+        },
+        {
+          "turn": 5,
+          "speaker": "prospect",
+          "statement": "I need to think about this and talk to my team. Maybe we should revisit this in a few months.",
+          "context_to_store": "stall: think_it_over, timeline: delay_months, concern: commitment_fear",
+          "expected_tool": 13,
+          "expected_tool_name": "Take Away",
+          "vector_context_available": "pattern: high_interest_then_sudden_stall, context: fear_based_not_value_based"
+        }
+      ]
+    }
+  ]
+}

@@ -113,12 +113,20 @@ export class ToolTemplateEngine {
         configPath
       });
 
-      // Use Electron IPC for file access (this is a desktop-only app)
-      if (!window.electronAPI) {
-        throw new Error('ToolTemplateEngine requires Electron environment (window.electronAPI not available)');
-      }
+      // Check if running in Node.js (test environment) or Electron (production)
+      const isNodeEnvironment = typeof window === 'undefined' || !window.electronAPI;
 
-      const fileResponse = await window.electronAPI.readFile(configPath);
+      let fileResponse: any;
+
+      if (isNodeEnvironment) {
+        // Node.js environment (testing) - use fs directly
+        const fs = await import('fs/promises');
+        const fileContent = await fs.readFile(configPath, 'utf-8');
+        fileResponse = fileContent;
+      } else {
+        // Electron environment (production) - use IPC
+        fileResponse = await window.electronAPI.readFile(configPath);
+      }
 
       this.trail.light(6553, {
         operation: 'file_response_received',

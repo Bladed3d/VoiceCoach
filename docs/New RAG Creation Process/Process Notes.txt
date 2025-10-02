@@ -1,0 +1,4 @@
+The contents of OllamaInstruct13tools.md is pasted into chat terminal of Ollama/qwen2.5:14b for it to create the jason doc (RAG) to be used in VoiceCoach app.
+
+This resulted in 13ToolsRAG-01.json but in bad format so I used Claude to fix json formatting.
+

@@ -344,7 +344,7 @@ export const VoskSettingsModal: React.FC<VoskSettingsModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[320px]">
+        <div className="p-6 pb-12 overflow-y-auto max-h-[320px]">
           {/* Silence Detection Tab */}
           {activeTab === 'silence' && (
             <div className="space-y-6">

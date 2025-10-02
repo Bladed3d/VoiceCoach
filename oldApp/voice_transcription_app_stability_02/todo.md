@@ -1,0 +1,31 @@
+# Real-time Voice Transcription App - Distil-Whisper Enhanced
+
+## Tasks
+- [x] Create project directory
+- [x] Select appropriate technologies for the app
+- [x] Install required dependencies
+- [x] Install Python development headers
+- [x] Set up local speech-to-text model
+- [x] Develop microphone audio capture functionality
+- [x] Implement real-time transcription pipeline
+- [x] Design and build simple UI (800x1200, 16pt font)
+- [x] Integrate transcription with UI
+- [x] Test app on local machine
+- [x] Package and deliver final app to user
+- [x] Add font size adjustment feature
+- [x] Implement real-time latency monitoring
+- [x] Integrate new features with existing UI and pipeline
+- [x] Fix tuple handling in UI for transcription
+- [x] Update latency display to show seconds instead of milliseconds
+- [x] Add support for large Whisper models (including large-v3)
+- [x] Implement GPU acceleration detection and usage
+- [x] Add configurable beam size parameter
+- [x] Implement post-processing to reduce repetitions
+- [x] Enhance UI for model selection and metrics display
+- [x] Install Faster-Whisper and Distil-Whisper dependencies
+- [x] Integrate Faster-Whisper backend with Distil-Whisper large-v3 model
+- [x] Update UI to support Distil-Whisper models
+- [x] Fix Distil-Whisper model loading issue by using CT2 variant
+- [x] Add robust error handling and fallback options for model loading
+- [x] Test app with fixed Distil-Whisper and Faster-Whisper
+- [x] Package and deliver fixed app to user

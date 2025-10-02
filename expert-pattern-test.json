@@ -1,0 +1,679 @@
+{
+  "instruction_file": "ollama-prompts/expert-pattern-v1.md",
+  "timestamp": "2025-10-02T18:31:42.222Z",
+  "summary": {
+    "total_scenarios": 39,
+    "correct": 5,
+    "accuracy_percent": 12.8,
+    "valid_json": 39,
+    "json_rate_percent": 100,
+    "required_fields": 39,
+    "fields_rate_percent": 100,
+    "avg_response_time_ms": 548
+  },
+  "results": [
+    {
+      "scenario_id": 1,
+      "prospect_statement": "We've been having some challenges with our current system. It's just not keeping up with our growth.",
+      "expected_tool": 1,
+      "expected_tool_name": "Mirroring",
+      "correct": true,
+      "response_time_ms": 1080,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "medium",
+        "reason": "Vague concern - need specifics before addressing"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 2,
+      "prospect_statement": "On one hand, I see the potential value. On the other hand, we're already stretched thin with current projects.",
+      "expected_tool": 1,
+      "expected_tool_name": "Mirroring",
+      "correct": true,
+      "response_time_ms": 534,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "high",
+        "reason": "Buying signal - positive intent + BUT + concern"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 3,
+      "prospect_statement": "We're in a critical growth phase right now. Any disruption could have significant downstream effects.",
+      "expected_tool": 1,
+      "expected_tool_name": "Mirroring",
+      "correct": true,
+      "response_time_ms": 503,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "medium",
+        "reason": "Vague objection - need specifics before addressing"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 4,
+      "prospect_statement": "I'm frustrated with how long it takes to get reports. By the time we have data, the opportunity is gone.",
+      "expected_tool": 2,
+      "expected_tool_name": "Empathy Response",
+      "correct": false,
+      "response_time_ms": 443,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Labeling",
+        "confidence": "high",
+        "reason": "Strong emotional frustration detected"
+      },
+      "actual_tool": 5,
+      "actual_tool_name": "Labeling"
+    },
+    {
+      "scenario_id": 5,
+      "prospect_statement": "That's an interesting perspective. We'll need to discuss this with the broader team before making any decisions.",
+      "expected_tool": 2,
+      "expected_tool_name": "Empathy Response",
+      "correct": false,
+      "response_time_ms": 510,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Labeling",
+        "confidence": "high",
+        "reason": "Stall tactic detected in neutral sentiment conversation"
+      },
+      "actual_tool": 5,
+      "actual_tool_name": "Labeling"
+    },
+    {
+      "scenario_id": 6,
+      "prospect_statement": "I'm concerned about getting buy-in from the operations team. They're already overwhelmed.",
+      "expected_tool": 2,
+      "expected_tool_name": "Empathy Response",
+      "correct": false,
+      "response_time_ms": 625,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "high",
+        "reason": "Vague concern - 'getting buy-in from the operations team' needs elaboration"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 7,
+      "prospect_statement": "We already have a system in place. It's been working okay for the past two years.",
+      "expected_tool": 3,
+      "expected_tool_name": "Empathy Questions",
+      "correct": false,
+      "response_time_ms": 505,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "medium",
+        "reason": "Vague objection - need specifics before addressing"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 8,
+      "prospect_statement": "We currently use spreadsheets for tracking. It's manual but we know how it works.",
+      "expected_tool": 3,
+      "expected_tool_name": "Empathy Questions",
+      "correct": false,
+      "response_time_ms": 500,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "medium",
+        "reason": "Vague objection - need specifics before addressing"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 9,
+      "prospect_statement": "Our weekly meetings help us stay aligned. The team is used to this rhythm.",
+      "expected_tool": 3,
+      "expected_tool_name": "Empathy Questions",
+      "correct": false,
+      "response_time_ms": 597,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "medium",
+        "reason": "Vague concern - 'team is used to this rhythm' needs elaboration"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 10,
+      "prospect_statement": "We have multiple issues - data silos, manual processes, lack of real-time visibility, and compliance concerns. It's a lot.",
+      "expected_tool": 4,
+      "expected_tool_name": "Summarizing",
+      "correct": false,
+      "response_time_ms": 500,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "medium",
+        "reason": "Vague concern - need specifics before addressing"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 11,
+      "prospect_statement": "There are several stakeholders involved - IT wants security, Finance wants cost control, Operations wants simplicity, and Sales wants speed.",
+      "expected_tool": 4,
+      "expected_tool_name": "Summarizing",
+      "correct": false,
+      "response_time_ms": 515,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "medium",
+        "reason": "Vague concern - need specifics before addressing"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 12,
+      "prospect_statement": "The main concerns are implementation time, user adoption, integration with existing tools, training requirements, and ongoing support. We need to address all of these.",
+      "expected_tool": 4,
+      "expected_tool_name": "Summarizing",
+      "correct": false,
+      "response_time_ms": 501,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "medium",
+        "reason": "Vague concern - need specifics before addressing"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 13,
+      "prospect_statement": "Every solution we've tried has fallen short. The team is tired of false promises. I don't have the energy to go through another failed implementation.",
+      "expected_tool": 5,
+      "expected_tool_name": "Labeling",
+      "correct": true,
+      "response_time_ms": 557,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Labeling",
+        "confidence": "high",
+        "reason": "Strong emotional exhaustion - 'tired of failed promises'"
+      },
+      "actual_tool": 5,
+      "actual_tool_name": "Labeling"
+    },
+    {
+      "scenario_id": 14,
+      "prospect_statement": "I'm hesitant because we got burned last time. The vendor overpromised and underdelivered, and it cost us six months of productivity.",
+      "expected_tool": 5,
+      "expected_tool_name": "Labeling",
+      "correct": false,
+      "response_time_ms": 516,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Negative Assumption",
+        "confidence": "high",
+        "reason": "Specific objection related to past negative experience"
+      },
+      "actual_tool": 7,
+      "actual_tool_name": "Negative Assumption"
+    },
+    {
+      "scenario_id": 15,
+      "prospect_statement": "Let me take this back to the team and see what they think. We'll circle back once we've had a chance to digest everything.",
+      "expected_tool": 5,
+      "expected_tool_name": "Labeling",
+      "correct": true,
+      "response_time_ms": 561,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Labeling",
+        "confidence": "high",
+        "reason": "Stall tactic detected in Stage 8 with negative sentiment"
+      },
+      "actual_tool": 5,
+      "actual_tool_name": "Labeling"
+    },
+    {
+      "scenario_id": 16,
+      "prospect_statement": "I'm not sure how this would fit into our current workflow. Our team has a very specific process.",
+      "expected_tool": 6,
+      "expected_tool_name": "Calibrated Questions",
+      "correct": false,
+      "response_time_ms": 597,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "medium",
+        "reason": "Vague concern - 'fit into current workflow' needs elaboration"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 17,
+      "prospect_statement": "I want to move forward but the timing feels off. We're stretched thin.",
+      "expected_tool": 6,
+      "expected_tool_name": "Calibrated Questions",
+      "correct": false,
+      "response_time_ms": 531,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "high",
+        "reason": "Buying signal - positive intent + BUT + concern"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 18,
+      "prospect_statement": "This looks good, but I need to get executive approval given our budget constraints this quarter.",
+      "expected_tool": 6,
+      "expected_tool_name": "Calibrated Questions",
+      "correct": false,
+      "response_time_ms": 532,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "high",
+        "reason": "Buying signal - positive intent + BUT + concern"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 19,
+      "prospect_statement": "The executive team wants innovation, but middle management is comfortable with the status quo. Navigating that is tricky.",
+      "expected_tool": 7,
+      "expected_tool_name": "Negative Assumption",
+      "correct": false,
+      "response_time_ms": 518,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "high",
+        "reason": "Buying signal - positive intent + BUT + concern"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 20,
+      "prospect_statement": "This is the third time we've discussed this and I feel like we're going in circles. I'm questioning if we're aligned.",
+      "expected_tool": 7,
+      "expected_tool_name": "Negative Assumption",
+      "correct": false,
+      "response_time_ms": 544,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Take Away",
+        "confidence": "high",
+        "reason": "Stage 7 + deep skepticism - strongest defusal needed"
+      },
+      "actual_tool": 13,
+      "actual_tool_name": "Take Away"
+    },
+    {
+      "scenario_id": 21,
+      "prospect_statement": "I'm worried this is going to be too complicated for our team. They're not the most tech-savvy.",
+      "expected_tool": 7,
+      "expected_tool_name": "Negative Assumption",
+      "correct": false,
+      "response_time_ms": 627,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "high",
+        "reason": "Vague concern - 'too complicated for our team' needs elaboration"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 22,
+      "prospect_statement": "I really like what I'm hearing. The ROI calculations make sense and the implementation timeline is reasonable.",
+      "expected_tool": 8,
+      "expected_tool_name": "Dynamic Silence",
+      "correct": false,
+      "response_time_ms": 551,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "confidence": "high",
+        "reason": "Positive sentiment and no objections detected, aim to deepen conversation"
+      },
+      "actual_tool": 6,
+      "actual_tool_name": "Calibrated Questions"
+    },
+    {
+      "scenario_id": 23,
+      "prospect_statement": "I see the value proposition. The case studies are compelling, and I understand how this addresses our pain points.",
+      "expected_tool": 8,
+      "expected_tool_name": "Dynamic Silence",
+      "correct": false,
+      "response_time_ms": 567,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "confidence": "high",
+        "reason": "Neutral sentiment and no detected objections suggest need for deeper exploration"
+      },
+      "actual_tool": 6,
+      "actual_tool_name": "Calibrated Questions"
+    },
+    {
+      "scenario_id": 24,
+      "prospect_statement": "The team would definitely benefit from this. We've been looking for exactly this kind of solution.",
+      "expected_tool": 8,
+      "expected_tool_name": "Dynamic Silence",
+      "correct": false,
+      "response_time_ms": 494,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "high",
+        "reason": "Vague concern - need specifics before addressing"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 25,
+      "prospect_statement": "Everything looks good on paper. I just need to make sure all the stakeholders are comfortable before we proceed.",
+      "expected_tool": 9,
+      "expected_tool_name": "Black Swan",
+      "correct": false,
+      "response_time_ms": 498,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "high",
+        "reason": "Vague concern - need specifics before addressing"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 26,
+      "prospect_statement": "I like the solution, but there's something holding me back that I can't quite put my finger on.",
+      "expected_tool": 9,
+      "expected_tool_name": "Black Swan",
+      "correct": false,
+      "response_time_ms": 500,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "high",
+        "reason": "Vague objection - need specifics before addressing"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 27,
+      "prospect_statement": "The technical specs look solid. It's really more about the organizational dynamics at play here.",
+      "expected_tool": 9,
+      "expected_tool_name": "Black Swan",
+      "correct": false,
+      "response_time_ms": 501,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "medium",
+        "reason": "Vague concern - need specifics before addressing"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 28,
+      "prospect_statement": "That sounds promising. I'm curious how this would work in our specific environment.",
+      "expected_tool": 10,
+      "expected_tool_name": "Buy-In",
+      "correct": false,
+      "response_time_ms": 500,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "medium",
+        "reason": "Vague concern - need specifics before addressing"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 29,
+      "prospect_statement": "I like what I'm hearing. Can you tell me more about the integration process?",
+      "expected_tool": 10,
+      "expected_tool_name": "Buy-In",
+      "correct": false,
+      "response_time_ms": 617,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "high",
+        "reason": "Prospect shows interest and asks for more details, indicating readiness to move forward"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 30,
+      "prospect_statement": "We've tried similar tools before. What makes this different?",
+      "expected_tool": 10,
+      "expected_tool_name": "Buy-In",
+      "correct": false,
+      "response_time_ms": 503,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "medium",
+        "reason": "Vague concern - need specifics before addressing"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 31,
+      "prospect_statement": "I'm feeling pressured to make a decision right now and I don't like that. This is a big investment and I need time.",
+      "expected_tool": 11,
+      "expected_tool_name": "DJ Voice",
+      "correct": false,
+      "response_time_ms": 498,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Labeling",
+        "confidence": "high",
+        "reason": "Strong emotional pressure detected in negative sentiment"
+      },
+      "actual_tool": 5,
+      "actual_tool_name": "Labeling"
+    },
+    {
+      "scenario_id": 32,
+      "prospect_statement": "Everyone is telling me to hurry up and decide but this feels rushed. I'm stressed about making the wrong choice.",
+      "expected_tool": 11,
+      "expected_tool_name": "DJ Voice",
+      "correct": false,
+      "response_time_ms": 584,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Labeling",
+        "confidence": "high",
+        "reason": "Strong emotional stress - 'stressed about making the wrong choice'"
+      },
+      "actual_tool": 5,
+      "actual_tool_name": "Labeling"
+    },
+    {
+      "scenario_id": 33,
+      "prospect_statement": "I'm anxious about what happens if this doesn't work. We can't afford another failure right now.",
+      "expected_tool": 11,
+      "expected_tool_name": "DJ Voice",
+      "correct": false,
+      "response_time_ms": 533,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Labeling",
+        "confidence": "high",
+        "reason": "Strong emotional anxiety - 'anxious about failure'"
+      },
+      "actual_tool": 5,
+      "actual_tool_name": "Labeling"
+    },
+    {
+      "scenario_id": 34,
+      "prospect_statement": "I'm not sure this is going to work for us. It seems like a big risk with uncertain outcomes.",
+      "expected_tool": 12,
+      "expected_tool_name": "Truth with No",
+      "correct": false,
+      "response_time_ms": 500,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "high",
+        "reason": "Vague concern - need specifics before addressing"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 35,
+      "prospect_statement": "I'm hesitant about the implementation timeline. Three months feels optimistic.",
+      "expected_tool": 12,
+      "expected_tool_name": "Truth with No",
+      "correct": false,
+      "response_time_ms": 505,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "high",
+        "reason": "Vague concern - need specifics before addressing"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 36,
+      "prospect_statement": "I'm uncertain if this is the right move for us right now. There are too many unknowns.",
+      "expected_tool": 12,
+      "expected_tool_name": "Truth with No",
+      "correct": false,
+      "response_time_ms": 512,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "medium",
+        "reason": "Vague concern - need specifics before addressing"
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "scenario_id": 37,
+      "prospect_statement": "I've been thinking about this extensively. We've had bad experiences with similar solutions. The implementation was a nightmare. I'm not convinced this time will be different.",
+      "expected_tool": 13,
+      "expected_tool_name": "Take Away",
+      "correct": false,
+      "response_time_ms": 607,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Labeling",
+        "confidence": "high",
+        "reason": "Strong negative emotion - 'nightmare' and deep skepticism in Stage 7"
+      },
+      "actual_tool": 5,
+      "actual_tool_name": "Labeling"
+    },
+    {
+      "scenario_id": 38,
+      "prospect_statement": "This is more expensive than I expected. I don't know if we can justify this cost to the CFO.",
+      "expected_tool": 13,
+      "expected_tool_name": "Take Away",
+      "correct": false,
+      "response_time_ms": 579,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "confidence": "high",
+        "reason": "Specific pricing concern, need to reframe as solvable issue"
+      },
+      "actual_tool": 6,
+      "actual_tool_name": "Calibrated Questions"
+    },
+    {
+      "scenario_id": 39,
+      "prospect_statement": "I need to think about this and talk to my team. Maybe we should revisit this in a few months when things settle down.",
+      "expected_tool": 13,
+      "expected_tool_name": "Take Away",
+      "correct": false,
+      "response_time_ms": 515,
+      "valid_json": true,
+      "has_required_fields": true,
+      "ollama_response": {
+        "tool": "Labeling",
+        "confidence": "high",
+        "reason": "Stall tactic in late stage with negative sentiment"
+      },
+      "actual_tool": 5,
+      "actual_tool_name": "Labeling"
+    }
+  ]
+}

@@ -42,21 +42,52 @@ export class SentimentAnalyzer {
       low: ['okay', 'fine', 'sure', 'yes', 'right', 'understand', 'see']
     },
 
-    // Negative indicators (sales context)
+    // SALES-SPECIFIC: Pain points & challenges = POSITIVE engagement when prospect is sharing
+    painPointSharing: {
+      // These words indicate prospect is opening up about challenges (GOOD in sales!)
+      words: ['problem', 'challenge', 'struggle', 'difficult', 'hard', 'frustrated', 'concerned', 'worried',
+              'issue', 'pain', 'trouble', 'complicated', 'stuck', 'overwhelmed', 'bottleneck'],
+      // Context clues that indicate they're SHARING vs OBJECTING
+      sharingContext: ['we have', 'our team', 'currently', 'right now', 'been dealing', 'facing',
+                       'experiencing', 'trying to', 'need to', 'looking for', 'hoping to']
+    },
+
+    // Negative indicators (sales context) - TRUE objections and resistance
     negative: {
-      high: ['hate', 'terrible', 'awful', 'never', 'impossible', 'ridiculous', 'stupid'],
-      medium: ['expensive', 'concerned', 'worried', 'problem', 'difficult', 'complicated', 'not sure'],
+      high: ['hate', 'terrible', 'awful', 'never', 'impossible', 'ridiculous', 'stupid', 'waste of time',
+             'not interested', 'don\'t call again'],
+      medium: ['too expensive', 'can\'t afford', 'not in budget', 'not now', 'wrong time', 'not priority'],
       low: ['but', 'however', 'maybe', 'perhaps', 'might', 'could be', 'not really']
     },
 
     // Engagement indicators
-    curiosity: ['how', 'what', 'when', 'where', 'why', 'tell me more', 'explain', 'show me'],
-    commitment: ['definitely', 'absolutely', 'for sure', 'without a doubt', 'yes'],
-    hesitation: ['um', 'uh', 'well', 'i don\'t know', 'not sure', 'maybe', 'i guess'],
+    curiosity: ['how', 'what', 'when', 'where', 'why', 'tell me more', 'explain', 'show me', 'walk me through'],
+    commitment: ['definitely', 'absolutely', 'for sure', 'without a doubt', 'yes', 'let\'s do it', 'sounds good'],
+    hesitation: ['um', 'uh', 'well', 'i don\'t know', 'maybe', 'i guess'],
 
     // Disengagement signals
     short_responses: ['ok', 'yes', 'no', 'fine', 'sure', 'whatever', 'k'],
-    exit_language: ['think about it', 'get back to you', 'discuss with', 'not ready', 'maybe later']
+    exit_language: ['think about it', 'get back to you', 'discuss with', 'not ready', 'maybe later',
+                    'call me back', 'send me info'],
+
+    // USER-SPECIFIC: How well is the user handling the conversation?
+    userHandling: {
+      // Positive handling words (validation, empathy, confidence)
+      positive: ['understand', 'hear you', 'makes sense', 'exactly', 'absolutely', 'perfect',
+                 'great question', 'love that', 'excited to', 'definitely can help'],
+
+      // Advancement language (confirming interest, moving forward)
+      advancement: ['thinking about', 'focusing on', 'interested in', 'looking at',
+                    'considering', 'ready to', 'want to', 'planning to',
+                    'with our', 'our coaches', 'our service', 'we can help'],
+
+      // Negative signals (defensive, pushy, reading negativity)
+      defensive: ['but actually', 'well technically', 'you have to', 'you need to'],
+
+      // Reading prospect negativity (user detecting negative sentiment)
+      readingNegative: ['don\'t sound', 'don\'t seem', 'seem hesitant', 'sound concerned',
+                        'not sure about', 'worried about', 'sound nervous', 'seem nervous']
+    }
   };
 
   constructor() {
@@ -77,39 +108,34 @@ export class SentimentAnalyzer {
       speaker
     });
 
-    // Only analyze prospect responses for sentiment
-    if (speaker !== 'prospect') {
-      return this.createNeutralAnalysis(text, 'User speech not analyzed for sentiment');
-    }
+    // Analyze both prospect AND user sentiment for overall call health
+    // (Different logic for each speaker type)
 
     const cleanText = text.toLowerCase().trim();
     const wordCount = cleanText.split(' ').filter(word => word.length > 0).length;
 
-    // Calculate base sentiment score
-    const sentimentScore = this.calculateSentimentScore(cleanText);
+    // Calculate sentiment score (already includes length/engagement logic)
+    const sentimentScore = this.calculateSentimentScore(cleanText, speaker);
 
-    // Calculate engagement level
+    // Calculate engagement level for display/indicators only
     const engagement = this.calculateEngagement(cleanText, wordCount);
 
-    // Adjust sentiment based on engagement (short responses are negative signals)
-    const adjustedScore = this.adjustScoreForEngagement(sentimentScore, engagement, wordCount);
-
     // Determine sentiment direction and confidence
-    const direction = this.getSentimentDirection(adjustedScore);
-    const confidence = this.calculateConfidence(adjustedScore, wordCount, cleanText);
+    const direction = this.getSentimentDirection(sentimentScore);
+    const confidence = this.calculateConfidence(sentimentScore, wordCount, cleanText);
 
     // Add to history and calculate trend
-    this.addToHistory(adjustedScore, text, wordCount);
+    this.addToHistory(sentimentScore, text, wordCount);
     const trend = this.calculateTrend();
 
     // Get indicators that influenced this analysis
-    const indicators = this.getIndicators(cleanText, adjustedScore, engagement);
+    const indicators = this.getIndicators(cleanText, sentimentScore, engagement);
 
     // Get suggested response strategy
-    const suggestedResponse = this.getSuggestedResponse(direction, engagement, adjustedScore);
+    const suggestedResponse = this.getSuggestedResponse(direction, engagement, sentimentScore);
 
     const analysis: SentimentAnalysis = {
-      score: adjustedScore,
+      score: sentimentScore,
       direction,
       confidence,
       engagement,
@@ -121,7 +147,7 @@ export class SentimentAnalyzer {
 
     this.trail.light(9012, {
       operation: 'sentiment_analysis_complete',
-      score: adjustedScore,
+      score: sentimentScore,
       direction,
       engagement,
       confidence
@@ -132,10 +158,49 @@ export class SentimentAnalyzer {
 
   /**
    * Calculate raw sentiment score from word analysis
+   * SALES RULE: Detailed responses = POSITIVE engagement (they're talking!)
    */
-  private calculateSentimentScore(text: string): number {
-    let score = 0;
-    const words = text.split(' ');
+  private calculateSentimentScore(text: string, speaker: 'user' | 'prospect'): number {
+    const wordCount = text.split(' ').filter(w => w.length > 0).length;
+
+    // USER sentiment uses different logic than PROSPECT sentiment
+    if (speaker === 'user') {
+      return this.calculateUserSentiment(text, wordCount);
+    }
+
+    // Rest of existing PROSPECT sentiment logic below...
+
+    // CRITICAL: In sales, length = engagement = POSITIVE
+    // Any response over 10 words is good engagement, start with positive base
+    let score = wordCount > 10 ? 30 : wordCount > 5 ? 15 : 0;
+
+    // ONLY check for TRUE DEAL-KILLERS (not soft words like "not", "wasn't", etc.)
+    const hasDealKiller = this.sentimentWords.negative.high.some(word => text.includes(word));
+    if (hasDealKiller) {
+      score -= 40; // Actual rejection language
+      console.log('⚠️ SALES ALERT: Deal-killer language detected');
+      return score; // Short-circuit - this is real negativity
+    }
+
+    // Check for exit/stalling language
+    const hasExitLanguage = this.sentimentWords.exit_language.some(phrase => text.includes(phrase));
+    if (hasExitLanguage) {
+      score -= 25;
+      console.log('⏸️ SALES ALERT: Stalling language detected');
+    }
+
+    // Medium objections (price, timing) - but NOT deal-killers
+    const hasMediumObjection = this.sentimentWords.negative.medium.some(word => text.includes(word));
+    if (hasMediumObjection) {
+      score -= 10; // Just a concern, not a deal-killer
+    }
+
+    // SALES-POSITIVE: Pain point sharing (challenges, problems, etc.)
+    const isPainPointSharing = this.detectPainPointSharing(text);
+    if (isPainPointSharing) {
+      score += 25; // This is GOLD in sales!
+      console.log('🎯 SALES INSIGHT: Prospect sharing pain points (POSITIVE engagement)');
+    }
 
     // Positive word scoring
     Object.entries(this.sentimentWords.positive).forEach(([intensity, wordList]) => {
@@ -147,38 +212,111 @@ export class SentimentAnalyzer {
       });
     });
 
-    // Negative word scoring
-    Object.entries(this.sentimentWords.negative).forEach(([intensity, wordList]) => {
-      const weight = intensity === 'high' ? -15 : intensity === 'medium' ? -8 : -3;
-      wordList.forEach(word => {
-        if (text.includes(word)) {
-          score += weight;
-        }
-      });
-    });
-
-    // Curiosity is positive (shows engagement)
-    this.sentimentWords.curiosity.forEach(word => {
-      if (text.includes(word)) {
-        score += 5;
-      }
-    });
-
-    // Hesitation is negative
-    this.sentimentWords.hesitation.forEach(word => {
-      if (text.includes(word)) {
-        score -= 5;
-      }
-    });
-
-    // Exit language is very negative
-    this.sentimentWords.exit_language.forEach(phrase => {
-      if (text.includes(phrase)) {
-        score -= 20;
-      }
-    });
+    // Curiosity = engagement = positive
+    const hasCuriosity = this.sentimentWords.curiosity.some(word => text.includes(word));
+    if (hasCuriosity) {
+      score += 10;
+    }
 
     return Math.max(-100, Math.min(100, score));
+  }
+
+  /**
+   * Calculate sentiment from USER'S words (how well they're handling the call)
+   */
+  private calculateUserSentiment(text: string, wordCount: number): number {
+    let score = 0;
+
+    // Base score: talking = engagement (but less weight than prospect)
+    score = wordCount > 10 ? 15 : wordCount > 5 ? 10 : 5;
+
+    // Positive handling words
+    this.sentimentWords.userHandling.positive.forEach(phrase => {
+      if (text.includes(phrase)) {
+        score += 15; // Strong positive for good handling
+      }
+    });
+
+    // Advancement language (confirming interest, moving forward)
+    this.sentimentWords.userHandling.advancement.forEach(phrase => {
+      if (text.includes(phrase)) {
+        score += 20; // Very positive - advancing the sale
+        console.log('✅ ADVANCEMENT: User confirming prospect interest/moving forward');
+      }
+    });
+
+    // Defensive language = negative
+    this.sentimentWords.userHandling.defensive.forEach(phrase => {
+      if (text.includes(phrase)) {
+        score -= 20; // User getting defensive = bad sign
+      }
+    });
+
+    // User reading prospect negativity = call going poorly
+    // BUT: Exclude validation phrases (mirroring prospect's concerns = GOOD)
+    const isValidationPhrase = this.isValidationMirroring(text);
+
+    if (!isValidationPhrase) {
+      this.sentimentWords.userHandling.readingNegative.forEach(phrase => {
+        if (text.includes(phrase)) {
+          score -= 25; // User sensing negativity = very bad
+          console.log('⚠️ USER DETECTED: User reading negative sentiment from prospect');
+        }
+      });
+    }
+
+    return Math.max(-100, Math.min(100, score));
+  }
+
+  /**
+   * Detect if user is VALIDATING/MIRRORING prospect concerns (GOOD empathy)
+   * vs READING negative sentiment (BAD - user detecting prospect pulling away)
+   *
+   * Key insight: "You don't seem to connect with the coach" = VALIDATION (GOOD)
+   *              "You don't seem very excited about this" = READING NEGATIVITY (BAD)
+   */
+  private isValidationMirroring(text: string): boolean {
+    // Validation indicators - user is mirroring/acknowledging prospect's stated concerns
+    const validationWords = [
+      'frustrating', 'understand', 'hear you', 'makes sense',
+      'can see', 'i get', 'that must', 'sounds like',
+      'you mentioned', 'you said', 'you\'re saying'
+    ];
+
+    // Check if the user is validating/empathizing with prospect's concern
+    const hasValidation = validationWords.some(word => text.includes(word));
+
+    // Also check if user is referencing prospect's words (mirroring)
+    const isMirroringProspectConcern =
+      (text.includes('you don\'t') || text.includes('you didn\'t')) &&
+      (text.includes('frustrating') || text.includes('understand') || text.includes('makes sense'));
+
+    return hasValidation || isMirroringProspectConcern;
+  }
+
+  /**
+   * Detect if prospect is SHARING pain points (positive) vs OBJECTING (negative)
+   * Key insight: "We have problems with X" = GOOD, "Your solution is problematic" = BAD
+   */
+  private detectPainPointSharing(text: string): boolean {
+    // Check if any pain point words are present
+    const hasPainWords = this.sentimentWords.painPointSharing.words.some(word =>
+      text.includes(word)
+    );
+
+    if (!hasPainWords) return false;
+
+    // Check for sharing context indicators
+    const hasSharingContext = this.sentimentWords.painPointSharing.sharingContext.some(phrase =>
+      text.includes(phrase)
+    );
+
+    // Also positive if response is detailed (>15 words) with pain words
+    const wordCount = text.split(' ').filter(w => w.length > 0).length;
+    const isDetailedResponse = wordCount > 15;
+
+    // Pain point sharing = pain words + (sharing context OR detailed explanation)
+    return hasPainWords && (hasSharingContext || isDetailedResponse);
   }
 
   /**
@@ -314,6 +452,12 @@ export class SentimentAnalyzer {
    */
   private getIndicators(text: string, score: number, engagement: EngagementLevel): string[] {
     const indicators: string[] = [];
+
+    // SALES-SPECIFIC: Pain point sharing detection
+    const isPainPointSharing = this.detectPainPointSharing(text);
+    if (isPainPointSharing) {
+      indicators.push('🎯 Pain Point Sharing: Prospect opening up about challenges (POSITIVE!)');
+    }
 
     // Word-based indicators
     Object.entries(this.sentimentWords.positive).forEach(([intensity, words]) => {

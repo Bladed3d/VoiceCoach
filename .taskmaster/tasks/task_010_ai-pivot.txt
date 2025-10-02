@@ -1,0 +1,49 @@
+# Task ID: 10
+# Title: Phase 10: End-to-End Testing - Live Call Simulation
+# Status: pending
+# Dependencies: 7, 8, 9
+# Priority: high
+# Description: Test complete flow from transcript to prompt display in real app environment
+# Details:
+Full integration test simulating real sales call:
+
+Test scenario:
+1. Start app, load RAG document
+2. Begin recording/transcription
+3. Simulate prospect speech (various objections, questions, responses)
+4. Verify prompts appear in UI
+5. Track timing for each prompt
+6. Monitor LED breadcrumbs throughout
+7. Test across multiple stages (1-9)
+8. Test with different sentiment patterns
+
+Success criteria:
+- App runs without crashes
+- Prompts appear in UI within 400ms average
+- Pattern matches show <50ms
+- AI selections show <400ms
+- No JSON parsing errors
+- No console errors
+- LEDs show clean flow (6251→6252 or 6253→6553)
+- Prompts are contextually appropriate
+- User can see and use prompts effectively
+
+Verification:
+- Full simulated call (10+ exchanges)
+- Monitor performance throughout
+- Check all LED ranges (6200-6699)
+- Verify UI responsiveness
+- Test edge cases (rapid speech, silence, interruptions)
+
+# Test Strategy:
+1. Launch app in development mode
+2. Open browser console for LED monitoring
+3. Start transcription service
+4. Simulate 10-15 prospect statements
+5. Record timing for each prompt appearance
+6. Check LED breadcrumbs: window.debug.breadcrumbs.getRange(6200, 6699)
+7. Verify no failures: window.debug.breadcrumbs.getFailures()
+8. Calculate avg prompt time (target: <200ms)
+9. Review prompt quality and relevance
+10. Test with different RAG documents
+11. Document any issues or improvements needed

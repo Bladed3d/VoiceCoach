@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check Instruction File Settings</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+        .container {
+            background: #334155;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            color: #60a5fa;
+            margin-bottom: 20px;
+        }
+        .section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: #475569;
+            border-radius: 8px;
+        }
+        .section h2 {
+            color: #93c5fd;
+            margin-top: 0;
+            font-size: 1.2em;
+        }
+        pre {
+            background: #1e293b;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            border-left: 4px solid #60a5fa;
+        }
+        .highlight {
+            background: #fbbf24;
+            color: #1e293b;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .error {
+            color: #ef4444;
+        }
+        .success {
+            color: #22c55e;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .info {
+            color: #94a3b8;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Instruction File Settings Checker</h1>
+
+        <div class="section">
+            <h2>Current localStorage Settings</h2>
+            <pre id="localStorage-output">Loading...</pre>
+            <button onclick="refreshLocalStorage()">Refresh LocalStorage</button>
+        </div>
+
+        <div class="section">
+            <h2>Expected vs Actual Instruction File</h2>
+            <pre id="comparison-output">Analyzing...</pre>
+        </div>
+
+        <div class="section">
+            <h2>Console LED Breadcrumbs (6440-6447)</h2>
+            <pre id="breadcrumb-output">Monitor your browser console for LED breadcrumbs...</pre>
+            <p class="info">Open DevTools Console (F12) and look for LED 6440-6447 messages when the app loads coaching instructions.</p>
+        </div>
+
+        <div class="section">
+            <h2>Instructions to Debug</h2>
+            <ol style="line-height: 1.8;">
+                <li>Open this page in the same browser as VoiceCoach V2</li>
+                <li>Check the localStorage settings above</li>
+                <li>Compare with what you selected in VoiceCoach V2 Settings</li>
+                <li>Open VoiceCoach V2 and trigger coaching to generate LED breadcrumbs</li>
+                <li>Look in DevTools Console for LED 6442 (selected file) and LED 6446 (loading file)</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function refreshLocalStorage() {
+            const settings = localStorage.getItem('voicecoach_settings');
+            const output = document.getElementById('localStorage-output');
+
+            if (settings) {
+                try {
+                    const parsed = JSON.parse(settings);
+                    output.innerHTML = JSON.stringify(parsed, null, 2);
+                    output.className = 'success';
+
+                    // Show comparison
+                    const comparisonOutput = document.getElementById('comparison-output');
+                    if (parsed.ollama && parsed.ollama.instructionFile) {
+                        comparisonOutput.innerHTML = `
+<span class="success">✅ Settings Found</span>
+
+Selected Instruction File: <span class="highlight">${parsed.ollama.instructionFile}</span>
+Ollama Base URL: ${parsed.ollama.baseUrl || 'Not set'}
+Ollama Model: ${parsed.ollama.model || 'Not set'}
+
+<span style="color: #fbbf24;">⚠️ To verify this is actually being loaded:</span>
+1. Open VoiceCoach V2 app
+2. Open DevTools Console (F12)
+3. Trigger a coaching action
+4. Search console for "LED 6442" - shows selected file
+5. Search console for "LED 6446" - shows file being loaded
+6. Search console for "LED 6440" - shows successful load
+
+If LED 6442 shows a DIFFERENT file than "${parsed.ollama.instructionFile}",
+then there's a mismatch between Settings UI and what's being loaded.
+                        `;
+                    } else {
+                        comparisonOutput.innerHTML = '<span class="error">❌ No ollama.instructionFile found in settings</span>';
+                    }
+                } catch (error) {
+                    output.innerHTML = `<span class="error">Error parsing settings: ${error.message}</span>\n\nRaw value:\n${settings}`;
+                    output.className = 'error';
+                }
+            } else {
+                output.innerHTML = '<span class="error">❌ No voicecoach_settings found in localStorage</span>';
+                output.className = 'error';
+            }
+        }
+
+        // Intercept console.log to capture LED breadcrumbs
+        const originalLog = console.log;
+        const ledMessages = [];
+
+        console.log = function(...args) {
+            const message = args.join(' ');
+
+            // Check for LED 6440-6447
+            if (message.includes('LED 644')) {
+                ledMessages.push({
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: message
+                });
+
+                // Update breadcrumb output
+                const breadcrumbOutput = document.getElementById('breadcrumb-output');
+                breadcrumbOutput.innerHTML = ledMessages.map(led =>
+                    `[${led.timestamp}] ${led.message}`
+                ).join('\n\n') || 'No LED breadcrumbs captured yet...';
+            }
+
+            originalLog.apply(console, args);
+        };
+
+        // Initial load
+        refreshLocalStorage();
+
+        // Auto-refresh every 5 seconds
+        setInterval(refreshLocalStorage, 5000);
+    </script>
+</body>
+</html>

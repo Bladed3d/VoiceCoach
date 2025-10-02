@@ -1,0 +1,136 @@
+```python
+#!/usr/bin/env python3
+
+import json
+import os
+import sys
+import asyncio
+import pathlib
+import websockets
+import concurrent.futures
+import logging
+import time
+import argparse
+from vosk import Model, SpkModel, KaldiRecognizer
+
+def process_chunk(rec, message):
+    if message == '{"eof" : 1}':
+        return rec.FinalResult(), True
+    if message == '{"reset" : 1}':
+        return rec.FinalResult(), False
+    elif rec.AcceptWaveform(message):
+        return rec.Result(), False
+    else:
+        return rec.PartialResult(), False
+
+async def recognize(websocket, path):
+    global model
+    global spk_model
+    global args
+    global pool
+
+    loop = asyncio.get_running_loop()
+    rec = None
+    phrase_list = None
+    sample_rate = args.sample_rate
+    show_words = args.show_words
+    max_alternatives = args.max_alternatives
+    set_partial_words = args.set_partial_words
+    last_message_time = time.time()
+    partial_sent = False
+
+    logging.info('Connection from %s', websocket.remote_address)
+
+    async def partial_timer():
+        nonlocal last_message_time, partial_sent
+        while True:
+            await asyncio.sleep(0.1)
+            if time.time() - last_message_time > args.partial_timeout and rec and not partial_sent:
+                response = rec.PartialResult()
+                if response and response != '{"partial": ""}':
+                    await websocket.send(response)
+                    partial_sent = True
+
+    timer_task = asyncio.create_task(partial_timer())
+
+    try:
+        while True:
+            try:
+                message = await asyncio.wait_for(websocket.recv(), timeout=args.partial_timeout)
+                last_message_time = time.time()
+                partial_sent = False
+
+                # Load configuration if provided
+                if isinstance(message, str) and 'config' in message:
+                    jobj = json.loads(message)['config']
+                    logging.info("Config %s", jobj)
+                    if 'phrase_list' in jobj:
+                        phrase_list = jobj['phrase_list']
+                    if 'sample_rate' in jobj:
+                        sample_rate = float(jobj['sample_rate'])
+                    continue
+
+                # Create the recognizer
+                if not rec:
+                    if phrase_list:
+                        rec = KaldiRecognizer(model, sample_rate, phrase_list)
+                    else:
+                        rec = KaldiRecognizer(model, sample_rate)
+                    if args.set_words:
+                        rec.SetWords(True)
+                    if set_partial_words:
+                        rec.SetPartialWords(True)
+                    if max_alternatives > 0:
+                        rec.SetMaxAlternatives(max_alternatives)
+                    if spk_model:
+                        rec.SetSpkModel(spk_model)
+
+                response, stop = await loop.run_in_executor(pool, process_chunk, rec, message)
+                await websocket.send(response)
+                if stop:
+                    break
+            except asyncio.TimeoutError:
+                if rec:
+                    response = rec.PartialResult()
+                    if response and response != '{"partial": ""}':
+                        await websocket.send(response)
+    finally:
+        timer_task.cancel()
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+
+    parser = argparse.ArgumentParser(description="Simple Vosk WebSocket Server")
+    parser.add_argument("--model", default="model", help="Path to the model")
+    parser.add_argument("--spk-model", help="Path to the speaker model")
+    parser.add_argument("--interface", default="0.0.0.0", help="Bind interface")
+    parser.add_argument("--port", type=int, default=8765, help="Server port")
+    parser.add_argument("--sample-rate", type=float, default=16000.0, help="Sampling rate")
+    parser.add_argument("--max-alternatives", type=int, default=0, help="Maximum alternatives to return")
+    parser.add_argument("--show-words", action="store_true", help="Show words in results (deprecated, use --set-words)")
+    parser.add_argument("--partial-timeout", type=float, default=1.0, help="Partial result timeout in seconds")
+    parser.add_argument("--sentence-gap-threshold", type=float, default=0.5, help="Sentence gap threshold in seconds (not implemented)")
+    parser.add_argument("--min-trailing-silence", type=float, default=0.5, help="Minimum trailing silence in seconds (not implemented)")
+    parser.add_argument("--chunk-size", type=int, default=1024, help="Chunk size (not implemented)")
+    parser.add_argument("--mode", choices=['word', 'sentence'], default='sentence', help="Recognition mode")
+    parser.add_argument("--set-words", action="store_true", help="Set words in results")
+    parser.add_argument("--set-partial-words", action="store_true", help="Set partial words")
+
+    args = parser.parse_args()
+
+    if args.show_words:
+        args.set_words = True
+
+    if args.mode == 'word':
+        args.set_partial_words = True
+
+    # Note: sentence-gap-threshold, min-trailing-silence, chunk-size are accepted but not yet implemented.
+    # To implement them, additional VAD logic would be needed.
+
+    model = Model(args.model)
+    spk_model = SpkModel(args.spk_model) if args.spk_model else None
+
+    pool = concurrent.futures.ThreadPoolExecutor((os.cpu_count() or 1))
+
+    asyncio.run(websockets.serve(recognize, args.interface, args.port))
+```

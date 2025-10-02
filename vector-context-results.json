@@ -1,0 +1,254 @@
+{
+  "test_type": "vector_context",
+  "timestamp": "2025-10-02T03:25:09.458Z",
+  "summary": {
+    "total_turns": 12,
+    "correct": 3,
+    "accuracy_percent": 25,
+    "with_context_accuracy": 12.5,
+    "without_context_accuracy": 50,
+    "avg_response_time_ms": 831
+  },
+  "results": [
+    {
+      "conversation_id": 1,
+      "conversation_name": "Budget-Conscious Prospect",
+      "turn": 1,
+      "prospect_statement": "We've been having some challenges with our current system. It's just not keeping up with our growth.",
+      "expected_tool": 1,
+      "expected_tool_name": "Mirroring",
+      "correct": true,
+      "has_vector_context": false,
+      "vector_context_used": "No prior context",
+      "response_time_ms": 1104,
+      "valid_json": true,
+      "ollama_response": {
+        "tool": "Mirroring",
+        "confidence": "high",
+        "reason": "The prospect has expressed challenges and growth issues, mirroring can help build rapport and encourage them to elaborate more on their specific pain points."
+      },
+      "actual_tool": 1,
+      "actual_tool_name": "Mirroring"
+    },
+    {
+      "conversation_id": 1,
+      "conversation_name": "Budget-Conscious Prospect",
+      "turn": 3,
+      "prospect_statement": "I'm frustrated with how long it takes to get reports. By the time we have data, the opportunity is gone.",
+      "expected_tool": 2,
+      "expected_tool_name": "Empathy Response",
+      "correct": true,
+      "has_vector_context": true,
+      "vector_context_used": "Emotions: neutral | Pain Points: system_not_scaling",
+      "response_time_ms": 842,
+      "valid_json": true,
+      "ollama_response": {
+        "tool": "Empathy Response",
+        "confidence": "high",
+        "reason": "The prospect is expressing frustration, indicating a need to be heard and understood. An empathy response can help build rapport and encourage them to open up further about their pain points."
+      },
+      "actual_tool": 2,
+      "actual_tool_name": "Empathy Response"
+    },
+    {
+      "conversation_id": 1,
+      "conversation_name": "Budget-Conscious Prospect",
+      "turn": 5,
+      "prospect_statement": "This is more expensive than I expected. I don't know if we can justify this to the CFO right now.",
+      "expected_tool": 13,
+      "expected_tool_name": "Take Away",
+      "correct": false,
+      "has_vector_context": true,
+      "vector_context_used": "Emotions: neutral, frustrated | Pain Points: system_not_scaling, reporting_delays",
+      "response_time_ms": 793,
+      "valid_json": true,
+      "ollama_response": {
+        "tool": "Negative Assumption",
+        "confidence": "high",
+        "reason": "The prospect has raised a concern about the cost, which is likely to be an objection. Addressing it directly can help to disarm and manage their concerns."
+      },
+      "actual_tool": 7,
+      "actual_tool_name": "Negative Assumption"
+    },
+    {
+      "conversation_id": 2,
+      "conversation_name": "Defensive Status Quo",
+      "turn": 1,
+      "prospect_statement": "We currently use spreadsheets for tracking. It's manual but we know how it works.",
+      "expected_tool": 3,
+      "expected_tool_name": "Empathy Questions",
+      "correct": true,
+      "has_vector_context": false,
+      "vector_context_used": "No prior context",
+      "response_time_ms": 814,
+      "valid_json": true,
+      "ollama_response": {
+        "tool": "Empathy Questions",
+        "confidence": "high",
+        "reason": "The prospect has justified their current solution, indicating familiarity and comfort with it. Using empathy questions can help acknowledge their efforts while gently guiding them towards considering improvements or alternatives."
+      },
+      "actual_tool": 3,
+      "actual_tool_name": "Empathy Questions"
+    },
+    {
+      "conversation_id": 2,
+      "conversation_name": "Defensive Status Quo",
+      "turn": 3,
+      "prospect_statement": "Our weekly meetings help us stay aligned. The team is used to this rhythm.",
+      "expected_tool": 3,
+      "expected_tool_name": "Empathy Questions",
+      "correct": false,
+      "has_vector_context": true,
+      "vector_context_used": "",
+      "response_time_ms": 834,
+      "valid_json": true,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "confidence": "high",
+        "reason": "The prospect has mentioned the effectiveness of their current weekly meetings. Using calibrated questions can help explore if there are any underlying issues or areas for improvement they might not have considered."
+      },
+      "actual_tool": 6,
+      "actual_tool_name": "Calibrated Questions"
+    },
+    {
+      "conversation_id": 2,
+      "conversation_name": "Defensive Status Quo",
+      "turn": 5,
+      "prospect_statement": "I want to move forward but the timing feels off. We're stretched thin.",
+      "expected_tool": 6,
+      "expected_tool_name": "Calibrated Questions",
+      "correct": false,
+      "has_vector_context": true,
+      "vector_context_used": "",
+      "response_time_ms": 834,
+      "valid_json": true,
+      "ollama_response": {
+        "tool": "Dynamic Silence",
+        "confidence": "high",
+        "reason": "The prospect is expressing hesitation due to timing and resource constraints. Using dynamic silence can encourage them to elaborate further on their concerns or provide more details about why the timing feels off."
+      },
+      "actual_tool": 8,
+      "actual_tool_name": "Dynamic Silence"
+    },
+    {
+      "conversation_id": 3,
+      "conversation_name": "Burned by Past Vendors",
+      "turn": 1,
+      "prospect_statement": "Every solution we've tried has fallen short. The team is tired of false promises.",
+      "expected_tool": 5,
+      "expected_tool_name": "Labeling",
+      "correct": false,
+      "has_vector_context": false,
+      "vector_context_used": "No prior context",
+      "response_time_ms": 656,
+      "valid_json": true,
+      "ollama_response": {
+        "tool": "Empathy Response",
+        "confidence": "high",
+        "reason": "The prospect is expressing frustration and disappointment with previous solutions, indicating a need to feel understood and validated."
+      },
+      "actual_tool": 2,
+      "actual_tool_name": "Empathy Response"
+    },
+    {
+      "conversation_id": 3,
+      "conversation_name": "Burned by Past Vendors",
+      "turn": 3,
+      "prospect_statement": "I'm hesitant because we got burned last time. The vendor overpromised and underdelivered.",
+      "expected_tool": 5,
+      "expected_tool_name": "Labeling",
+      "correct": false,
+      "has_vector_context": true,
+      "vector_context_used": "Emotions: exhausted",
+      "response_time_ms": 859,
+      "valid_json": true,
+      "ollama_response": {
+        "tool": "Negative Assumption",
+        "confidence": "high",
+        "reason": "The prospect is expressing hesitation due to a past negative experience, indicating they might have concerns or objections about the current offer. Addressing these upfront can help build trust and move forward."
+      },
+      "actual_tool": 7,
+      "actual_tool_name": "Negative Assumption"
+    },
+    {
+      "conversation_id": 3,
+      "conversation_name": "Burned by Past Vendors",
+      "turn": 5,
+      "prospect_statement": "Let me take this back to the team and see what they think. We'll circle back once we've had a chance to digest.",
+      "expected_tool": 5,
+      "expected_tool_name": "Labeling",
+      "correct": false,
+      "has_vector_context": true,
+      "vector_context_used": "Emotions: exhausted, hesitant",
+      "response_time_ms": 871,
+      "valid_json": true,
+      "ollama_response": {
+        "tool": "Buy-In",
+        "confidence": "high",
+        "reason": "The prospect seems hesitant and exhausted, indicating a need for permission to proceed with further discussion. Asking for their buy-in can help them feel more open to new ideas and continue the conversation."
+      },
+      "actual_tool": 10,
+      "actual_tool_name": "Buy-In"
+    },
+    {
+      "conversation_id": 4,
+      "conversation_name": "Active Engagement to Close",
+      "turn": 1,
+      "prospect_statement": "I really like what I'm hearing. The ROI calculations make sense.",
+      "expected_tool": 8,
+      "expected_tool_name": "Dynamic Silence",
+      "correct": false,
+      "has_vector_context": false,
+      "vector_context_used": "No prior context",
+      "response_time_ms": 662,
+      "valid_json": true,
+      "ollama_response": {
+        "tool": "Buy-In",
+        "confidence": "high",
+        "reason": "The prospect is showing interest and agreement, making them more open to further discussion about the benefits or next steps."
+      },
+      "actual_tool": 10,
+      "actual_tool_name": "Buy-In"
+    },
+    {
+      "conversation_id": 4,
+      "conversation_name": "Active Engagement to Close",
+      "turn": 3,
+      "prospect_statement": "I like what I'm hearing. Can you tell me more about the integration process?",
+      "expected_tool": 10,
+      "expected_tool_name": "Buy-In",
+      "correct": false,
+      "has_vector_context": true,
+      "vector_context_used": "",
+      "response_time_ms": 837,
+      "valid_json": true,
+      "ollama_response": {
+        "tool": "Calibrated Questions",
+        "confidence": "high",
+        "reason": "The prospect is showing interest and asking for more information, which is a good opportunity to engage them further with open-ended questions about their needs or expectations regarding the integration process."
+      },
+      "actual_tool": 6,
+      "actual_tool_name": "Calibrated Questions"
+    },
+    {
+      "conversation_id": 4,
+      "conversation_name": "Active Engagement to Close",
+      "turn": 5,
+      "prospect_statement": "I need to think about this and talk to my team. Maybe we should revisit this in a few months.",
+      "expected_tool": 13,
+      "expected_tool_name": "Take Away",
+      "correct": false,
+      "has_vector_context": true,
+      "vector_context_used": "",
+      "response_time_ms": 871,
+      "valid_json": true,
+      "ollama_response": {
+        "tool": "Buy-In",
+        "confidence": "high",
+        "reason": "The prospect is hesitant and wants to think about the proposal further. Asking for their permission to proceed with a plan or next steps can help them feel more involved and open to future discussions."
+      },
+      "actual_tool": 10,
+      "actual_tool_name": "Buy-In"
+    }
+  ]
+}

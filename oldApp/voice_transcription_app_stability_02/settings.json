@@ -1,0 +1,10 @@
+{
+    "model": "distil-large-v3",
+    "language": "en",
+    "beam_size": 7,
+    "vad_threshold": 0.7,
+    "confidence_threshold": 0.7,
+    "remove_repetitions": true,
+    "use_gpu": true,
+    "font_size": 19
+}

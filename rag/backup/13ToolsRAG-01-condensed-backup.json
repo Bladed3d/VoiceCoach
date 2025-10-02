@@ -1,0 +1,15 @@
+[
+  {"id": 1, "name": "Mirroring", "description": "Repeat the last 1-3 words to build rapport and encourage elaboration", "when_use": "Early to establish rapport and dig deeper into pain points"},
+  {"id": 2, "name": "Empathy Response", "description": "Understand and articulate emotions to make them feel heard", "when_use": "When you want emotional bonding or to soften resistance"},
+  {"id": 3, "name": "Empathy Questions", "description": "Acknowledge past efforts while opening discussion to improvements", "when_use": "When prospect justifies current solution and you want to guide them to better solution"},
+  {"id": 4, "name": "Summarizing", "description": "Rephrase what they said in your own words", "when_use": "When you're not sure if you understand their viewpoint"},
+  {"id": 5, "name": "Labeling", "description": "Name the emotions you observe to diffuse tension", "when_use": "When you feel tension building or negative emotions"},
+  {"id": 6, "name": "Calibrated Questions", "description": "Ask open-ended 'how' or 'what' questions to shift control", "when_use": "When you want prospect to be more active in collaborating"},
+  {"id": 7, "name": "Negative Assumption", "description": "Address potential objections upfront to disarm them", "when_use": "As soon as you suspect they have a concern or objection"},
+  {"id": 8, "name": "Dynamic Silence", "description": "Use pauses to encourage them to fill silence with information", "when_use": "In later stages when you want prospect to tell more"},
+  {"id": 9, "name": "Black Swan", "description": "Uncover hidden issues, problems, and desires", "when_use": "When progress stalls or they seem reluctant"},
+  {"id": 10, "name": "Buy-In", "description": "Ask permission before engaging to make them teachable", "when_use": "When you want their focus or them to be open to new ideas"},
+  {"id": 11, "name": "DJ Voice", "description": "Use deep, calm, slower voice when emotions rise", "when_use": "When emotions rise and fears are building"},
+  {"id": 12, "name": "Truth with No", "description": "Ask questions answered with 'no' but meaning agreement", "when_use": "To discover truth or uncover real concerns"},
+  {"id": 13, "name": "Take Away", "description": "Agree with objection and amplify it to remove pressure", "when_use": "When objections arise or emotions seem extraordinary"}
+]

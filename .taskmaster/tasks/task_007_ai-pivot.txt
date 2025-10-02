@@ -1,0 +1,40 @@
+# Task ID: 7
+# Title: Phase 7: Integration Testing - Pattern Matching
+# Status: pending
+# Dependencies: 5, 6
+# Priority: high
+# Description: Verify pattern matching works correctly for common triggers and achieves 60-70% hit rate
+# Details:
+Test pattern matching accuracy and performance:
+
+Test cases (minimum):
+1. "That's too expensive" → Tool 13, <50ms
+2. "I'm concerned about the cost" → Tool 5 or 13, <50ms
+3. "I'm not sure about this" → Tool 13, <50ms
+4. "That's frustrating" → Tool 2, <50ms
+5. "What makes you different?" → Tool 6 or AI fallback
+
+Success criteria:
+- 70%+ of common objections match via pattern (no AI needed)
+- Pattern matches complete in <50ms
+- LED 6602 or 6603 fires for successful matches
+- LED 6604 fires for fallback to AI
+- Correct tool selected for each test case
+- No false positives (wrong tool selected)
+
+Verification:
+- Create test transcript list (20+ common phrases)
+- Run each through system
+- Record: match rate, avg time, accuracy
+- Verify LEDs fire correctly
+- Document any patterns that should be added
+
+# Test Strategy:
+1. Create 20 test transcripts covering all tool types
+2. Run each through PatternMatchingLibrary
+3. Measure: hit rate (should be >60%), avg time (should be <50ms)
+4. Verify correct tools selected (manual review)
+5. Check LED breadcrumbs for each test
+6. Document failures → improve patterns
+7. Re-test after pattern improvements
+8. Target: 70%+ pattern match rate before proceeding

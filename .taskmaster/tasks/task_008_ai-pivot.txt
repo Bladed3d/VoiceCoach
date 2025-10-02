@@ -1,0 +1,42 @@
+# Task ID: 8
+# Title: Phase 8: Integration Testing - AI Tool Selection
+# Status: pending
+# Dependencies: 5, 6, 7
+# Priority: high
+# Description: Verify AI classification works correctly for complex scenarios requiring contextual analysis
+# Details:
+Test AI tool selection for cases where pattern matching doesn't apply:
+
+Test cases (minimum):
+1. Complex multi-sentence objection
+2. Implied concern without trigger keywords
+3. Positive sentiment + high engagement (should suggest advancement tools)
+4. Negative sentiment + declining trend (should suggest reactive tools)
+5. Mixed signals requiring contextual analysis
+
+Success criteria:
+- AI returns valid tool number (1-13)
+- Selection completes in <400ms
+- Selected tool makes sense for context
+- LED 6253 fires on AI selection
+- No JSON parsing errors
+- 85%+ accuracy (tool makes sense for scenario)
+
+Verification:
+- Create 15 complex test scenarios
+- Include sentiment, stage, engagement context
+- Run through AI selection
+- Measure: accuracy, avg time, error rate
+- Review tool selections (should be contextually appropriate)
+- Document any prompt improvements needed
+
+# Test Strategy:
+1. Create 15 complex test scenarios with full context
+2. Run each through selectToolViaAI()
+3. Measure: avg time (<400ms), accuracy (>85%)
+4. Manual review: does tool make sense for context?
+5. Check LED 6253 fires correctly
+6. Verify no crashes or JSON errors
+7. If accuracy <85%, improve AI prompt
+8. Re-test until accuracy target met
+9. Document edge cases for future improvement

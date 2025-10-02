@@ -67,6 +67,13 @@ export interface SentimentData {
   timestamp: number;
 }
 
+export interface ManualSentiment {
+  timestamp: number;
+  score: -50 | -25 | 0 | 25 | 50;
+  transcriptIndex: number;    // Link to specific transcript
+  emoji: string;              // Visual representation
+}
+
 export interface SessionState {
   isRecording: boolean;
   wsStatus: string;
@@ -81,4 +88,6 @@ export interface SessionState {
   tabVolumeState?: VolumeState; // Tab/headphone volume
   captureMode?: 'microphone' | 'full-conversation'; // Audio capture mode
   currentSentiment?: SentimentData; // Current prospect sentiment
+  manualSentiments?: ManualSentiment[]; // User's manual sentiment inputs
+  currentManualSentiment?: number; // Most recent manual sentiment score
 }

@@ -1,0 +1,161 @@
+{
+  "summary": "### Project Summary\n\n1. **Project Type and Technology Stack**\n   - This project is a Python-based web application utilizing Streamlit, designed for querying multiple AI models simultaneously. It leverages asynchronous programming with `asyncio` and `aiohttp` for efficient API interactions. The project includes TypeScript (.ts, .tsx) files, indicating possible frontend components or configurations.\n\n2. **Main Components and Structure**\n   - The project comprises 22 files organized mainly into Python scripts, JSON configurations, and Markdown documentation. The key components include a launcher script, the main application logic, configuration files for models, and documentation.\n\n3. **Key Files and Their Purposes**\n   - **`launch_myui.py`**: A script to prepare the environment for the Streamlit app by checking and cleaning up ports and processes.\n   - **`myui-app.py`**: The main application file where the Streamlit interface is defined, handling user interactions and AI model queries.\n   - **`manual_export.py`**: A utility for exporting results from the Streamlit session state.\n   - **`myui_config.json`**: Configuration file containing API keys and model settings.\n   - **`myui_models.json` and `myui_models - bk.json`**: JSON files that define various AI models, their characteristics, and capabilities.\n   - **`README.md`**: Documentation providing an overview of the project, setup instructions, and features.\n   - **`requirements.txt`**: Lists the Python dependencies required for the project.\n\n4. **Overall Architecture Pattern**\n   - The application follows a client-server architecture, with a Streamlit frontend interfacing with backend AI model APIs. The use of asynchronous methods in the application allows for non-blocking operations, enhancing user experience by enabling parallel queries to multiple models. Configuration files support flexibility in model management and settings. The documentation ensures clarity on usage and features.",
+  "files": [
+    {
+      "path": "launch_myui.py",
+      "size": 5424,
+      "lines": 156,
+      "extension": ".py",
+      "preview": "#!/usr/bin/env python3\n\"\"\"\nMyUI ParaThinker App Launcher\nCleans up ports and processes before launching Streamlit app\n\"\"\"\n\nimport subprocess\nimport socket\nimport time\nimport sys\nimport os\n\nDEFAULT_PORT = 8501\nAPP_FILE = \"myui-app.py\"\n\ndef check_port_in_use(port):\n    \"\"\"Check if port is currently in use\"\"\"\n    try:\n        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:\n            sock.settimeout(1)\n            result = sock.connect_ex(('localhost', port))\n            return res..."
+    },
+    {
+      "path": "manual_export.py",
+      "size": 1544,
+      "lines": 46,
+      "extension": ".py",
+      "preview": "import streamlit as st\nimport json\nfrom datetime import datetime\nimport os\n\ndef manual_export():\n    \"\"\"Manually export ParaThinker results if they exist in session state\"\"\"\n    \n    # Try to access session state (this will only work if run in the same Streamlit context)\n    if hasattr(st, 'session_state') and hasattr(st.session_state, 'parathinker_result'):\n        result = st.session_state.parathinker_result\n        \n        if result:\n            # Create the export manually\n            times..."
+    },
+    {
+      "path": "myui-app.py",
+      "size": 97384,
+      "lines": 2085,
+      "extension": ".py",
+      "preview": "import streamlit as st\nimport asyncio\nimport aiohttp\nimport json\nimport os\nimport time\nimport random\nfrom datetime import datetime\n\n# Configure Streamlit page\nst.set_page_config(\n    page_title=\"MyUI - ParaThinker Multi-AI Interface\", \n    layout=\"wide\",\n    initial_sidebar_state=\"expanded\"\n)\n\n# Global variables for model configurations (loaded dynamically)\nMODELS = {}\nPREMIUM_SYNTHESIS_MODELS = []\n\nOPENROUTER_API = \"https://openrouter.ai/api/v1/chat/completions\"\nCONTEXT_FILE = \"project_context...."
+    },
+    {
+      "path": "myui_config.json",
+      "size": 361,
+      "lines": 12,
+      "extension": ".json",
+      "preview": "{\n  \"api_key\": \"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\",\n  \"default_models\": [\n    \"deepseek/deepseek-chat\",\n    \"anthropic/claude-3-5-sonnet-20241022\",\n    \"openai/gpt-4o-mini\",\n    \"xai/grok-beta\"\n  ],\n  \"internal_paths\": 4,\n  \"synthesis_model\": \"anthropic/claude-sonnet-4\",\n  \"prompt_gen_model\": \"z-ai/glm-4.5\"\n}"
+    },
+    {
+      "path": "myui_models - bk.json",
+      "size": 1715,
+      "lines": 68,
+      "extension": ".json",
+      "preview": "{\n  \"models\": {\n    \"deepseek/deepseek-chat-v3.1\": {\n      \"name\": \"DeepSeek V3.1\",\n      \"cost\": 0.30,\n      \"provider\": \"DeepSeek\",\n      \"token_limit\": 163840,\n      \"stage1_enabled\": true,\n      \"stage2_enabled\": true\n    },\n    \"x-ai/grok-code-fast-1\": {\n      \"name\": \"Grok Code Fast 1\",\n      \"cost\": 0.28,\n      \"provider\": \"xAI\",\n      \"token_limit\": 256000,\n      \"stage1_enabled\": true,\n      \"stage2_enabled\": false\n    },\n    \"zhipuai/glm-4.5\": {\n      \"name\": \"GLM 4.5\",\n      \"cost\": 0..."
+    },
+    {
+      "path": "myui_models.json",
+      "size": 1960,
+      "lines": 76,
+      "extension": ".json",
+      "preview": "{\n  \"models\": {\n    \"deepseek/deepseek-chat-v3.1\": {\n      \"name\": \"DeepSeek V3.1\",\n      \"cost\": 0.30,\n      \"provider\": \"DeepSeek\",\n      \"token_limit\": 163840,\n      \"stage1_enabled\": true,\n      \"stage2_enabled\": true,\n      \"vision_support\": false\n    },\n    \"x-ai/grok-code-fast-1\": {\n      \"name\": \"Grok Code Fast 1\",\n      \"cost\": 0.28,\n      \"provider\": \"xAI\",\n      \"token_limit\": 256000,\n      \"stage1_enabled\": true,\n      \"stage2_enabled\": false,\n      \"vision_support\": false\n    },\n   ..."
+    },
+    {
+      "path": "README.md",
+      "size": 6539,
+      "lines": 198,
+      "extension": ".md",
+      "preview": "# MyUI - Multi-AI Coding Interface\n\nA Python Streamlit application that allows you to query multiple AI models simultaneously and compare their responses. Built to escape VS Code's layout limitations and give you parallel access to different AI perspectives.\n\n## \ud83d\ude80 Quick Start\n\n```bash\n# Install dependencies\npip install -r requirements.txt\n\n# Run the app\nstreamlit run myui-app.py\n```\n\nThe app will open at `http://localhost:8501`\n\n## \u2728 Features\n\n### Core Functionality\n- **Parallel AI Queries** - S..."
+    },
+    {
+      "path": "requirements.txt",
+      "size": 42,
+      "lines": 3,
+      "extension": ".txt",
+      "preview": "streamlit>=1.28.0\naiohttp>=3.8.0\nasyncio"
+    },
+    {
+      "path": "SalesTrackPrompt.md",
+      "size": 11851,
+      "lines": 244,
+      "extension": ".md",
+      "preview": "1\nI want to add sales script tracking on the Splitview page above the Ai prompt and transcript windows. Horizontal graphic of steps derived from the sales script analysis.\n\n2\nVisually guide the user (salesman) toward a sale while providing predictive abilities to Ollama enabling it to give prompts that guide the discussion toward the next step by tracking the process\n\n3\nCurrent step info should be given to Ollama with the prompt instructions so Ollama can provide sales stage based prompts.\n\n4\nCr..."
+    },
+    {
+      "path": "test.txt",
+      "size": 56,
+      "lines": 9,
+      "extension": ".txt",
+      "preview": "\nDeepSeek 3.1\n\nGLM 4.5\n\nGrok 4\n\nClaude Sonnet 4\n"
+    },
+    {
+      "path": "test_exports.md",
+      "size": 2201,
+      "lines": 50,
+      "extension": ".md",
+      "preview": "# MyUI ParaThinker Enhancement Test\n\n## Changes Made\n\n### \u2705 Stage 3: Final Decision & Implementation\n- Added Stage 3 to ParaThinker prompt template\n- Modified synthesis parsing to extract Stage 3 content separately\n- Added Stage 3 display section in UI with prominent expandable panel\n\n### \u2705 Two Export Functions Created\n\n#### 1. `export_stage3_only()` - Ultimate Answer Only\n- **File**: `myui_stage3_ultimate_answer_YYYYMMDD_HHMMSS.md`\n- **Content**: Original question + Stage 3 final decision only\n..."
+    },
+    {
+      "path": "backup\\myui-app-bk03.py",
+      "size": 52878,
+      "lines": 1170,
+      "extension": ".py",
+      "preview": "import streamlit as st\nimport asyncio\nimport aiohttp\nimport json\nimport os\nimport time\nimport random\nfrom datetime import datetime\n\n# Configure Streamlit page\nst.set_page_config(\n    page_title=\"MyUI - ParaThinker Multi-AI Interface\", \n    layout=\"wide\",\n    initial_sidebar_state=\"expanded\"\n)\n\n# Global variables for model configurations (loaded dynamically)\nMODELS = {}\nPREMIUM_SYNTHESIS_MODELS = []\n\nOPENROUTER_API = \"https://openrouter.ai/api/v1/chat/completions\"\nCONTEXT_FILE = \"project_context...."
+    },
+    {
+      "path": "Bad\\EXAMPLES.md",
+      "size": 8280,
+      "lines": 318,
+      "extension": ".md",
+      "preview": "# MyUI Usage Examples\n\nReal-world examples of how to use MyUI for different coding scenarios.\n\n## \ud83c\udfaf Example Prompts & Workflows\n\n### 1. Code Review & Optimization\n\n**Prompt:**\n```\nReview this React component for performance issues and suggest optimizations:\n\n[Include your component code here]\n\nPlease analyze:\n1. Re-rendering issues\n2. Memory leaks\n3. Bundle size impact\n4. Accessibility concerns\n5. Best practices violations\n\nProvide specific code examples for improvements.\n```\n\n**Recommended Mode..."
+    },
+    {
+      "path": "Bad\\index.ts",
+      "size": 656,
+      "lines": 28,
+      "extension": ".ts",
+      "preview": "/**\n * MyUI - Multi-AI Interface Module\n * Export all components, hooks, services, and types\n */\n\n// Components\nexport { default as MyUI } from './components/MyUI';\nexport { default as MyUISettings } from './components/MyUISettings';\n\n// Hooks\nexport { useMultiAI } from './hooks/useMultiAI';\n\n// Services\nexport { MultiAIService } from './services/MultiAIService';\nexport { ProjectIndexService } from './services/ProjectIndexService';\n\n// Types\nexport type {\n  AIModel,\n  AIModelResponse,\n  PromptQu..."
+    },
+    {
+      "path": "Bad\\INTEGRATION.md",
+      "size": 7157,
+      "lines": 279,
+      "extension": ".md",
+      "preview": "# MyUI Integration Guide\n\nThis guide shows how to integrate MyUI into the main VoiceCoach V2 application.\n\n## \ud83d\udd27 Integration Steps\n\n### 1. Add MyUI Route to Main App\n\nEdit `src/App.tsx`:\n\n```tsx\nimport React, { useState } from 'react';\nimport { MyUI } from '../docs/MyUI';\n// ... other imports\n\nfunction App() {\n  const [currentView, setCurrentView] = useState<'coaching' | 'myui' | 'settings'>('coaching');\n\n  return (\n    <div className=\"app\">\n      {/* Navigation */}\n      <nav className=\"app-nav\"..."
+    },
+    {
+      "path": "Bad\\README.md",
+      "size": 7661,
+      "lines": 206,
+      "extension": ".md",
+      "preview": "# MyUI - Multi-AI Coding Interface\n\nA custom coding interface that allows you to send prompts to multiple AI models simultaneously and compare their responses in real-time. Built as a modular component for the VoiceCoach V2 desktop application.\n\n## \ud83c\udf1f Features\n\n### Core Functionality\n- **Parallel AI Querying**: Send one prompt to 4-6 different AI models simultaneously\n- **Real-time Comparison**: View responses side-by-side in dedicated panels\n- **Intelligent Synthesis**: Automatic analysis and co..."
+    },
+    {
+      "path": "Bad\\components\\MyUI.tsx",
+      "size": 11390,
+      "lines": 311,
+      "extension": ".tsx",
+      "preview": "/**\n * MyUI - Multi-AI Interface Component\n * Custom coding interface for parallel AI model querying\n */\n\nimport React, { useState, useCallback } from 'react';\nimport { useMultiAI } from '../hooks/useMultiAI';\nimport { AIModelResponse } from '../types/myui.types';\nimport { breadcrumb } from '../../../src/lib/breadcrumbs';\nimport './MyUI.css';\n\nconst MyUI: React.FC = () => {\n  const {\n    models,\n    currentQuery,\n    isQuerying,\n    isSynthesizing,\n    projectContext,\n    config,\n    error,\n    ..."
+    },
+    {
+      "path": "Bad\\components\\MyUISettings.tsx",
+      "size": 10121,
+      "lines": 299,
+      "extension": ".tsx",
+      "preview": "/**\n * MyUISettings - Configuration Component\n * Manages API keys and MyUI interface settings\n */\n\nimport React, { useState, useCallback } from 'react';\nimport { MyUIConfig, AIModel } from '../types/myui.types';\nimport { breadcrumb } from '../../../src/lib/breadcrumbs';\nimport './MyUISettings.css';\n\ninterface MyUISettingsProps {\n  config: MyUIConfig;\n  models: AIModel[];\n  onConfigUpdate: (config: Partial<MyUIConfig>) => void;\n  onSaveApiKeys: (keys: Record<string, string>) => Promise<void>;\n  o..."
+    },
+    {
+      "path": "Bad\\hooks\\useMultiAI.ts",
+      "size": 7374,
+      "lines": 267,
+      "extension": ".ts",
+      "preview": "/**\n * useMultiAI Hook - Multi-AI Interface State Management\n * Manages parallel AI queries, responses, and synthesis\n */\n\nimport { useState, useCallback, useRef, useEffect } from 'react';\nimport {\n  AIModel,\n  AIModelResponse,\n  PromptQuery,\n  ProjectContext,\n  MyUIConfig,\n  SynthesisRequest\n} from '../types/myui.types';\nimport { MultiAIService } from '../services/MultiAIService';\nimport { ProjectIndexService } from '../services/ProjectIndexService';\nimport { breadcrumb } from '../../../src/lib..."
+    },
+    {
+      "path": "Bad\\services\\MultiAIService.ts",
+      "size": 9676,
+      "lines": 333,
+      "extension": ".ts",
+      "preview": "/**\n * MultiAI Service - Parallel AI Model Querying\n * Handles simultaneous requests to multiple AI providers\n */\n\nimport { \n  AIModel, \n  AIModelResponse, \n  PromptQuery, \n  ProjectContext, \n  SynthesisRequest \n} from '../types/myui.types';\nimport { breadcrumb } from '../../../src/lib/breadcrumbs';\n\nexport class MultiAIService {\n  private models: AIModel[] = [\n    {\n      id: 'deepseek-chat',\n      name: 'DeepSeek Chat',\n      provider: 'deepseek',\n      apiEndpoint: 'https://api.deepseek.com/v..."
+    },
+    {
+      "path": "Bad\\services\\ProjectIndexService.ts",
+      "size": 8931,
+      "lines": 270,
+      "extension": ".ts",
+      "preview": "/**\n * Project Index Service - Codebase Analysis & Summarization\n * Scans project files and creates context for AI queries\n */\n\nimport { ProjectContext, CodebaseIndex, FileEntry } from '../types/myui.types';\nimport { breadcrumb } from '../../../src/lib/breadcrumbs';\n\nexport class ProjectIndexService {\n  private context: ProjectContext | null = null;\n  private readonly CONTEXT_FILE = 'myui_project_context.json';\n\n  constructor() {\n    breadcrumb(7080, 'ProjectIndexService initialized');\n    this...."
+    },
+    {
+      "path": "Bad\\types\\myui.types.ts",
+      "size": 1479,
+      "lines": 74,
+      "extension": ".ts",
+      "preview": "/**\n * MyUI - Multi-AI Interface Types\n * Custom coding interface for parallel AI model querying\n */\n\nexport interface AIModel {\n  id: string;\n  name: string;\n  provider: string;\n  apiEndpoint: string;\n  cost: 'cheap' | 'medium' | 'premium';\n  enabled: boolean;\n}\n\nexport interface AIModelResponse {\n  modelId: string;\n  modelName: string;\n  response: string;\n  error?: string;\n  timestamp: number;\n  latency: number;\n}\n\nexport interface PromptQuery {\n  id: string;\n  prompt: string;\n  context?: stri..."
+    }
+  ],
+  "last_updated": "2025-09-13T17:35:55.661581",
+  "file_count": 22
+}

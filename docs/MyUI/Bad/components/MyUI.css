@@ -1,0 +1,631 @@
+/**
+ * MyUI - Multi-AI Interface Styles
+ * Custom coding interface for parallel AI model querying
+ */
+
+.myui-container {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #1a1a1a;
+  color: #e0e0e0;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+  overflow: hidden;
+}
+
+/* Header */
+.myui-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background: #2a2a2a;
+  border-bottom: 1px solid #333;
+  flex-shrink: 0;
+}
+
+.myui-header h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #00d4ff;
+}
+
+.myui-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-indicator {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.status-indicator.querying {
+  background: #ff6b00;
+  color: white;
+}
+
+.status-indicator.synthesizing {
+  background: #9c27b0;
+  color: white;
+}
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #d32f2f;
+  color: white;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.error-close {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* Main Layout */
+.myui-main-layout {
+  display: flex;
+  flex: 1;
+  height: calc(100vh - 60px);
+  overflow: hidden;
+}
+
+/* Left Content Area */
+.myui-content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  overflow: hidden;
+  max-width: calc(100% - 400px);
+}
+
+/* Control Bar */
+.myui-controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 16px;
+  background: #2a2a2a;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.control-group label {
+  color: #b0b0b0;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.control-group select {
+  background: #333;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: #e0e0e0;
+  font-size: 12px;
+}
+
+.context-update-btn,
+.clear-btn {
+  background: #444;
+  border: 1px solid #555;
+  border-radius: 6px;
+  color: #e0e0e0;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.context-update-btn:hover,
+.clear-btn:hover {
+  background: #555;
+  border-color: #666;
+}
+
+/* AI Response Panels Grid */
+.myui-panels-grid {
+  display: grid;
+  gap: 12px;
+  flex: 1;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.myui-panels-grid.panels-4 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.myui-panels-grid.panels-6 {
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.ai-response-panel {
+  background: #2a2a2a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.ai-response-panel.empty {
+  border: 2px dashed #444;
+  background: #222;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #333;
+  border-bottom: 1px solid #444;
+  flex-shrink: 0;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-number {
+  background: #00d4ff;
+  color: #1a1a1a;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.model-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #e0e0e0;
+}
+
+.panel-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #666;
+}
+
+.latency {
+  font-size: 11px;
+  color: #999;
+  font-family: monospace;
+}
+
+.panel-content {
+  flex: 1;
+  padding: 16px;
+  overflow: auto;
+  min-height: 0;
+}
+
+.response-text {
+  margin: 0;
+  font-family: 'SF Mono', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: #e0e0e0;
+}
+
+.empty-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-style: italic;
+  text-align: center;
+}
+
+.empty-message {
+  font-size: 13px;
+  max-width: 200px;
+}
+
+.error-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #ff6666;
+  text-align: center;
+}
+
+.error-icon {
+  font-size: 24px;
+}
+
+.error-message {
+  font-size: 12px;
+  color: #ff9999;
+}
+
+/* Synthesis Section */
+.myui-synthesis-section {
+  background: #2a2a2a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  height: 250px;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.synthesis-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #333;
+  border-bottom: 1px solid #444;
+  flex-shrink: 0;
+}
+
+.synthesis-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #00d4ff;
+}
+
+.synthesize-btn {
+  background: #9c27b0;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.synthesize-btn:hover:not(:disabled) {
+  background: #7b1fa2;
+}
+
+.synthesize-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.synthesis-content {
+  flex: 1;
+  padding: 16px;
+  overflow: auto;
+  min-height: 0;
+}
+
+.synthesis-text {
+  margin: 0;
+  font-family: 'SF Mono', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: #e0e0e0;
+}
+
+.synthesis-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 100%;
+  color: #999;
+}
+
+.synthesis-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #666;
+  font-style: italic;
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #333;
+  border-top: 2px solid #9c27b0;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Right Sidebar - Prompt Input */
+.myui-prompt-sidebar {
+  width: 400px;
+  background: #222;
+  border-left: 1px solid #333;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.prompt-section {
+  padding: 16px;
+  flex-shrink: 0;
+}
+
+.prompt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.prompt-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #00d4ff;
+}
+
+.context-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 10px;
+}
+
+.context-indicator {
+  color: #4caf50;
+  margin-bottom: 2px;
+}
+
+.context-date {
+  color: #999;
+}
+
+.prompt-input {
+  width: 100%;
+  height: 300px;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 16px;
+  color: #e0e0e0;
+  font-family: 'SF Mono', monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  resize: none;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+}
+
+.prompt-input::placeholder {
+  color: #666;
+  line-height: 1.4;
+}
+
+.prompt-input:focus {
+  outline: none;
+  border-color: #00d4ff;
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.1);
+}
+
+.query-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #00d4ff, #0099cc);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  padding: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.query-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0099cc, #007399);
+  transform: translateY(-1px);
+}
+
+.query-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.query-info {
+  padding: 12px;
+  background: #2a2a2a;
+  border-radius: 6px;
+  font-size: 11px;
+  border: 1px solid #333;
+}
+
+.query-timestamp {
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.query-preview {
+  color: #ccc;
+  font-style: italic;
+}
+
+/* Context & Models Sections */
+.context-section,
+.models-section {
+  padding: 16px;
+  border-top: 1px solid #333;
+  flex-shrink: 0;
+}
+
+.context-section h4,
+.models-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #00d4ff;
+}
+
+.context-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.context-item {
+  font-size: 11px;
+  color: #ccc;
+}
+
+.context-item strong {
+  color: #e0e0e0;
+  margin-right: 6px;
+}
+
+.models-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.model-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: #ccc;
+}
+
+.model-name {
+  color: #e0e0e0;
+}
+
+.model-cost {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.model-cost.cheap {
+  background: #4caf50;
+  color: white;
+}
+
+.model-cost.medium {
+  background: #ff9800;
+  color: white;
+}
+
+.model-cost.premium {
+  background: #f44336;
+  color: white;
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 1400px) {
+  .myui-prompt-sidebar {
+    width: 350px;
+  }
+  
+  .myui-content-area {
+    max-width: calc(100% - 350px);
+  }
+}
+
+@media (max-width: 1200px) {
+  .myui-panels-grid.panels-6 {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .myui-main-layout {
+    flex-direction: column;
+  }
+  
+  .myui-content-area {
+    max-width: 100%;
+  }
+  
+  .myui-prompt-sidebar {
+    width: 100%;
+    height: 300px;
+  }
+  
+  .myui-panels-grid.panels-4,
+  .myui-panels-grid.panels-6 {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(auto, 1fr);
+  }
+}

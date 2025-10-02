@@ -1,0 +1,40 @@
+# Task ID: 3
+# Title: Phase 3: Create PatternMatchingLibrary.ts
+# Status: pending
+# Dependencies: 2
+# Priority: high
+# Description: Build pattern matching system for instant tool selection without AI (60-70% hit rate)
+# Details:
+Create: src/services/coaching/PatternMatchingLibrary.ts
+
+Must include:
+- PatternMatchingLibrary class
+- matchTool() method that checks keywords, regex, sentiment bias, stage bias
+- Returns {toolId, confidence} or null
+- LED breadcrumbs 6600-6649
+
+Pattern matching logic:
+- Check tool.triggers.keywords against transcript.toLowerCase()
+- Validate sentiment bias matches context.sentiment
+- Validate stage bias includes context.stage
+- Try regex patterns if keyword match fails
+- Return null if no confident match
+
+Verification criteria:
+- File exists at correct path
+- Constructor accepts ToolTemplateEngine instance
+- matchTool() returns correct toolId for "expensive" → Tool 13
+- matchTool() returns null for non-matching transcript
+- LED 6602 fires on keyword match
+- LED 6603 fires on regex match
+- LED 6604 fires on no match
+
+# Test Strategy:
+1. Verify file created: src/services/coaching/PatternMatchingLibrary.ts
+2. Unit test: "expensive" transcript → toolId: 13, confidence: 'high'
+3. Unit test: "concerned about this" → toolId: 5 (Labeling)
+4. Unit test: "tell me more" → null (no pattern match)
+5. Verify sentiment bias filtering works (negative sentiment required for Tool 13)
+6. Verify stage bias filtering works (Tool 13 prefers stages 7-9)
+7. Check LED 6600 on initialization
+8. TypeScript compiles without errors

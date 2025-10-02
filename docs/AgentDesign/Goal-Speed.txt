@@ -1,0 +1,22 @@
+In a group of salespeople working for a company , the same acronyms the product names the same examples, the same stories are frequently repeated during a presentation . And the average salesperson deals with an average of about seven objections With some customers bringing up two or three and another customer bringing up a 3 or 4 but it results in a total of about seven objections that a salesperson has to learn to deal with . We've incorporated AI into app which provides real time prompts to guide the user towards making a sale based on constant monitoring the discussion. and that live transcription certainly takes computer power and AI Using that live transcription to produce live prompts he's helpful. but the salesman that is selling golf clubs should never have to or receive a false prompt for "Gulp Cups" instead because the transcription was inaccurate and then that data was inaccurately sent to AI which is now giving a bad prompt to the user . The point being that a salesman selling golf clubs is never going to be selling "Gulp Cups" which are sold at 7-Eleven stores. So not only can we remove errors and increase accuracy but we should also be able to increase the speed at which prompts are given to the user by incorporating intelligent data management systems such as ChromaDB, KV-cache, vector memory, json instructions, or specialty agents in Claude, and other tools.
+
+Our objective is to not only make information more intelligent but also to deliver it quickly in the context of a live conversation . Additionally sales teams are comprised of individual salespeople but also a manager wants to bring the very best techniques from individual users can share them with the whole team . So if one salesperson develops a really great response to overcoming an objection then we want to enable our app to have the ability To save that solution to quickly recall it in the future when needed and eventually to share it with other users on the same sales team . 
+
+We want to be able to not only provide live prompts to a user that represent psychological and sales strategies but we also want to be able to help the user stay on track in delivering a sales script . So our objective is to be efficient and effective and fast And how Manage and prompt the user with information .
+
+Always remember that we have a desktop application which must operate effectively on an average office laptop or computer.
+
+Thoroughly and deeply research how these tools and technologies might help us:
+chromaDB
+KV-cache
+Vector memory
+what else?
+
+Research these and other sources for information:
+https://magazine.sebastianraschka.com/p/coding-the-kv-cache-in-llms
+https://www.marktechpost.com/2025/09/02/how-to-build-an-advanced-ai-agent-with-summarized-short-term-and-vector-based-long-term-memory/
+
+
+Deeplythink and research what can help us, how can it help us, review ease or difficulty to implement in our app, reliability, cost, and all aspects of any technology or strategy we should consider to create a great user experience for our customers.
+
+original VoiceCoach-v2 PRD: "D:\Projects\Ai\VoiceCoach-v2\docs\VoiceCoach-V2-PRD.md"

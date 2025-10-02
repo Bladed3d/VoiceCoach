@@ -1,0 +1,28 @@
+This video transcript: "D:\Projects\Ai\VoiceCoach-v2\docs\AgentDesign\using-agents-wrong.md"
+and this web page: https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
+
+Lead to this report: "D:\Projects\Ai\VoiceCoach-v2\docs\AgentDesign\New-Agent-Context-Report.md"
+
+I want to develop my own system to enable context during a project using these concepts or improvements to these ideas.
+
+And I like the idea of this different way creating and using subagents which are focused on having specialty knowledge rather than task based .
+
+but these are ideas until we actually are able to use them In ways that make it easier for us to develop apps more intuitively, with more features, and with less debugging.
+
+So we will test these ideas and create processes instructions and methodologies to actually deploy them in a practical development setting . Specifically our old web app did a really great job of providing real time prompts to a user during a live phone call . It was a web app and due to limited capabilities in audio support we changed to a desktop app and in that process we gained accuracy in the live call transcription feature and now we are trying to duplicate the AI Powered intelligent prompts that guide the user as to what to say next as we aid the user making a sale as a salesperson . 
+
+The nice thing is that our old app and our new app are both using the same exact 1800 line original document: "D:\Projects\Ai\VoiceCoach-v2\docs\AgentDesign\NeverSplitSummary_2025-09-02_03_39_52_original.txt" and so it's easy for us to compare results.
+
+What the old app did so well was it considered the real time content of what was being said and then created prompts that guided the user On ways to move the conversation towards a sale . Our present is able to monitor in real time the transcription of what is being said but it responds more in the present moment rather prompting forward movement in the discussion towards a sale . So our current app is more reactive whereas the old app was predictive as it anticipated where the conversation needs to go rather than just reacting to where it presently is . And that's the magic we're trying to regain . 
+
+So my intention is to incorporate these new designs for how to create a subagent as well as how to create context So I want to create an easy process That manages the file context process and I want to create an easy process where I can define the goal or objective and then give that project manager who follows instructions for either creating the necessary subagents or using existing subagents as defined in this new, what I will call specialty agent , protocol . 
+
+Do we need to create instructions for Claude to follow in creating a new sub Agent based on the needs of a project? In this practical example I envision having two specialty subagents : one specialty agent will thoroughly research all of the code, document prep, Ollama instructions, and output to completely understand how and why our old app did so well at creating ai prompts during a live call that anticipated where the user should take the discussion to move the conversation toward a sale. Info found here: "D:\Projects\Ai\VoiceCoach-v2\oldApp" as a collection of relevant files and here: E:\Backup\VoiceCoach\081625\VoiceCoach as a backup of the whole old app folder.
+
+The 2nd specialty agent should research online and use Context7 where appropriate to research, understand, and gather information about the best strategies, tools, and techniques for RAG systems from github, reddit, x.com, youtube video transcripts, and other online sources to find example code, that relates to our goal of providing an 1800 line original document where we able to use the 8 strategies, guide the user to deeply listen, thoroughly understand the other party, overcome objections, show empathy, seek out the concerns of the other party and then resolve them, and ultimately guide the user during a live call to make more sales. Note that eventually we will also want to include a sales script tracking in our app to guide users to follow their company sales script.
+
+Then using our context file system , the information from these two specialty agents will then be used to craft our processes incorporating the ultimate RAG system in our app to achieve these objectives. 
+
+Please create a plan to implement the context management and the specialty agent deployments and call the PRD: RAG-Context.md in the D:\Projects\Ai\VoiceCoach-v2\docs\AgentDesign folder
+
+

@@ -1,0 +1,42 @@
+# Task ID: 5
+# Title: Phase 5: Refactor live-coaching-service.ts
+# Status: pending
+# Dependencies: 2, 3
+# Priority: high
+# Description: Replace AI prompt generation with template system - core integration work
+# Details:
+Modify: src/services/coaching/live-coaching-service.ts
+
+Changes required:
+1. Import new components: ToolTemplateEngine, PatternMatchingLibrary, SentimentAnalyzer
+2. Delete performEnhancedRealTimeAnalysis() method (old AI generation)
+3. Add generatePromptViaTemplates() method (new template flow)
+4. Add selectToolViaAI() method (AI returns just 1-13, not full text)
+5. Add sendPromptToUI() method
+6. Initialize new services in constructor
+7. Wire into transcript processing pipeline
+8. Add LED breadcrumbs 6251-6253
+
+Flow:
+Transcript → Full sentiment analysis → Pattern match attempt → (if no match) AI tool selection → Extract variables → Fill template → Send to UI
+
+Verification criteria:
+- New imports present and functional
+- Old methods completely removed (no dead code)
+- New methods implemented per specification
+- Template engine called, not old prompt generation
+- Sentiment analyzer integration working
+- LED 6251 fires on sentiment analysis
+- LED 6252 fires on pattern match success
+- LED 6253 fires on AI selection success
+
+# Test Strategy:
+1. Verify imports: ToolTemplateEngine, PatternMatchingLibrary, SentimentAnalyzer
+2. Verify old methods deleted: grep "performEnhancedRealTimeAnalysis" (no results)
+3. Run app, say "expensive" → verify Tool 13 selected via LED 6252
+4. Run app, say complex phrase → verify AI selection via LED 6253
+5. Check console for sentiment analysis data (LED 6251)
+6. Verify prompts appear in UI within 400ms
+7. Verify no JSON parsing errors in console
+8. TypeScript compiles without errors
+9. App runs without crashes

@@ -71,6 +71,38 @@ export class OllamaPromptService {
   }
 
   /**
+   * Reload the prompt template (e.g., when user changes instruction file in settings)
+   */
+  async reloadTemplate(): Promise<boolean> {
+    try {
+      this.trail.light(6449, {
+        operation: 'prompt_template_reload_requested',
+        reason: 'settings_changed',
+        timestamp: Date.now()
+      });
+
+      console.log('🔄 Reloading instruction file from settings...');
+
+      // Reload the prompt template from current settings
+      await this.loadPromptTemplate();
+
+      this.trail.light(6450, {
+        operation: 'prompt_template_reload_complete',
+        hasTemplate: this.promptTemplate.length > 0,
+        templateLength: this.promptTemplate.length,
+        timestamp: Date.now()
+      });
+
+      console.log('✅ Instruction file reloaded successfully, template length:', this.promptTemplate.length);
+      return this.promptTemplate.length > 0;
+    } catch (error) {
+      this.trail.fail(8450, error as Error);
+      console.error('❌ Failed to reload prompt template:', error);
+      return false;
+    }
+  }
+
+  /**
    * Generate coaching suggestion - THE SINGLE METHOD for all coaching
    */
   async generateCoaching(context: PromptContext): Promise<OllamaResponse> {
@@ -169,10 +201,26 @@ export class OllamaPromptService {
    * Build the final prompt with all variables substituted
    */
   private buildPrompt(context: PromptContext): string {
+    // Get the instruction file info for breadcrumb tracking
+    const savedSettings = localStorage.getItem('voicecoach-settings');
+    let instructionFile = 'active-instructions.md';
+    try {
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        if (settings.ollama?.instructionFile) {
+          instructionFile = settings.ollama.instructionFile;
+        }
+      }
+    } catch (e) {
+      // Silent fallback
+    }
+
     this.trail.light(6420, {
       operation: 'prompt_building_start',
       templateLength: this.promptTemplate.length,
       toolCount: this.ragTools.length,
+      instructionFileUsed: instructionFile,
+      templatePath: `ollama-prompts/${instructionFile}`,
       timestamp: Date.now()
     });
 
@@ -192,13 +240,19 @@ export class OllamaPromptService {
       operation: 'prompt_building_complete',
       finalLength: prompt.length,
       variablesReplaced: 6,
+      instructionFileUsed: instructionFile,
+      topicsDetected: context.topics,
+      objectionsDetected: context.objections,
       timestamp: Date.now()
     });
 
-    console.log('✅ CENTRALIZED PROMPT BUILT:', {
-      finalLength: prompt.length,
-      toolsEmbedded: this.ragTools.length,
-      hasTranscript: !!context.transcript
+    console.log('🔍 LED 6421: CONTEXT SENT TO OLLAMA:', {
+      instructionFile,
+      transcript: context.transcript?.substring(0, 100),
+      topics: context.topics,
+      objections: context.objections,
+      sentiment: context.sentiment,
+      stage: context.salesStage
     });
 
     return prompt;
@@ -252,30 +306,112 @@ export class OllamaPromptService {
   }
 
   /**
-   * Load the direct coaching prompt template
+   * Load the prompt template from user-selected instruction file
    */
   private async loadPromptTemplate(): Promise<void> {
     try {
-      const templatePath = 'ollama-prompts/direct-coaching-prompt.md';
+      // Get user-selected instruction file from settings
+      const savedSettings = localStorage.getItem('voicecoach-settings');
+      let instructionFile = 'active-instructions.md'; // Default fallback
+      let settingsFound = false;
+
+      this.trail.light(6441, {
+        operation: 'instruction_file_selection_start',
+        hasStoredSettings: !!savedSettings,
+        timestamp: Date.now()
+      });
+
+      if (savedSettings) {
+        try {
+          const settings = JSON.parse(savedSettings);
+          if (settings.ollama?.instructionFile) {
+            instructionFile = settings.ollama.instructionFile;
+            settingsFound = true;
+
+            this.trail.light(6442, {
+              operation: 'user_instruction_file_selected',
+              instructionFile,
+              source: 'localStorage_settings',
+              timestamp: Date.now()
+            });
+
+            console.log('📂 LED 6442: Using user-selected instruction file:', instructionFile);
+          } else {
+            this.trail.light(6443, {
+              operation: 'no_instruction_file_in_settings',
+              usingDefault: instructionFile,
+              timestamp: Date.now()
+            });
+          }
+        } catch (e) {
+          this.trail.light(6444, {
+            operation: 'settings_parse_failed',
+            usingDefault: instructionFile,
+            error: e instanceof Error ? e.message : 'Unknown error',
+            timestamp: Date.now()
+          });
+          console.warn('⚠️ LED 6444: Failed to parse settings for instruction file, using default');
+        }
+      } else {
+        this.trail.light(6445, {
+          operation: 'no_settings_found',
+          usingDefault: instructionFile,
+          timestamp: Date.now()
+        });
+      }
+
+      const templatePath = `ollama-prompts/${instructionFile}`;
+
+      this.trail.light(6446, {
+        operation: 'loading_instruction_file',
+        templatePath,
+        instructionFile,
+        isUserSelected: settingsFound,
+        timestamp: Date.now()
+      });
+
       const fileData = await (window as any).electronAPI.readFile(templatePath);
 
       if (fileData && fileData.content) {
-        this.promptTemplate = fileData.content.trim();
+        // Extract content between ```prompt markers if they exist
+        const promptMatch = fileData.content.match(/```prompt\s*([\s\S]*?)\s*```/);
+        let extractionMethod = 'full_file';
+
+        if (promptMatch) {
+          this.promptTemplate = promptMatch[1].trim();
+          extractionMethod = 'code_block';
+          console.log('✅ LED 6447: Extracted prompt from markdown code block');
+        } else {
+          // If no markers, use entire file content
+          this.promptTemplate = fileData.content.trim();
+        }
 
         this.trail.light(6440, {
-          operation: 'prompt_template_loaded',
+          operation: 'prompt_template_loaded_SUCCESS',
           templateLength: this.promptTemplate.length,
           templatePath,
+          instructionFile,
+          userSelected: settingsFound,
+          extractionMethod,
+          hasPromptMarkers: !!promptMatch,
           timestamp: Date.now()
         });
 
-        console.log('✅ Direct coaching template loaded:', this.promptTemplate.length, 'characters');
+        console.log('✅ LED 6440: User-selected coaching template loaded:', this.promptTemplate.length, 'characters from', templatePath);
       } else {
+        this.trail.fail(8441, new Error(`File read returned no content: ${templatePath}`));
         throw new Error('Failed to read prompt template file');
       }
     } catch (error) {
       this.trail.fail(8440, error as Error);
-      console.error('❌ Failed to load prompt template:', error);
+      console.error('❌ LED 8440: Failed to load prompt template:', error);
+
+      this.trail.light(6448, {
+        operation: 'using_fallback_template',
+        reason: 'file_load_failed',
+        timestamp: Date.now()
+      });
+
       // Use fallback template if file fails
       this.promptTemplate = this.getFallbackTemplate();
     }

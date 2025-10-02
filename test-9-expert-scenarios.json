@@ -1,0 +1,99 @@
+{
+  "metadata": {
+    "created": "2025-10-02",
+    "purpose": "Test expert patterns against YOUR 9 validated scenarios",
+    "total_scenarios": 9
+  },
+  "scenarios": [
+    {
+      "id": 1,
+      "name": "Multi-sentence complex objection",
+      "transcript": "I've been thinking about this extensively. We've had bad experiences with similar solutions in the past. The implementation was a nightmare and took months longer than promised. I'm just not convinced this time will be different.",
+      "sentiment": "negative",
+      "stage": 7,
+      "expected_tool": 13,
+      "expected_tool_name": "Take Away",
+      "your_reasoning": "Multiple strong negatives + late stage (7) + deep skepticism = strongest defusal tool"
+    },
+    {
+      "id": 2,
+      "name": "Implied stakeholder concern",
+      "transcript": "That's an interesting perspective on how to handle the situation. We'll need to discuss this with the broader team before making any decisions.",
+      "sentiment": "neutral",
+      "stage": 6,
+      "expected_tool": 2,
+      "expected_tool_name": "Empathy Response",
+      "your_reasoning": "Soft objection disguised as process. Validate first, then explore with Empathy Questions"
+    },
+    {
+      "id": 3,
+      "name": "Deep frustration with past failures",
+      "transcript": "Every solution we've tried has fallen short. The team is tired of false promises. I don't have the energy to go through another failed implementation.",
+      "sentiment": "negative",
+      "stage": 4,
+      "expected_tool": 5,
+      "expected_tool_name": "Labeling",
+      "your_reasoning": "Stage 4 + strong emotional exhaustion = Labeling (NOT Take Away - too early)"
+    },
+    {
+      "id": 4,
+      "name": "Mixed signals with timing concerns",
+      "transcript": "On one hand, I see the potential value. On the other hand, we're already stretched thin with current projects. I want to move forward but the timing feels off.",
+      "sentiment": "neutral",
+      "stage": 7,
+      "expected_tool": 1,
+      "expected_tool_name": "Mirroring",
+      "your_reasoning": "BUYING SIGNAL - 'I see value' + 'want to move forward' BUT timing concern = Mirror to explore"
+    },
+    {
+      "id": 5,
+      "name": "Stakeholder politics",
+      "transcript": "The executive team has been pushing for innovation, but there's resistance from middle management who are comfortable with the status quo. Navigating that dynamic is tricky.",
+      "sentiment": "neutral",
+      "stage": 7,
+      "expected_tool": 1,
+      "expected_tool_name": "Mirroring",
+      "your_reasoning": "STRONGEST BUYING SIGNAL - Execs want it, just needs help with middle mgmt. Mirror 'status quo' to explore"
+    },
+    {
+      "id": 6,
+      "name": "Emotional escalation",
+      "transcript": "This is the third time we've had this conversation and I feel like we're going in circles. I'm starting to question if we're even aligned on what success looks like here.",
+      "sentiment": "negative",
+      "stage": 6,
+      "expected_tool": 7,
+      "expected_tool_name": "Negative Assumption",
+      "your_reasoning": "Frustration with stuck progress (NOT hostility). Use Negative Assumption to reset conversation"
+    },
+    {
+      "id": 7,
+      "name": "Risk aversion without explicit objection",
+      "transcript": "We're in a critical growth phase right now. Any disruption to our current operations could have significant downstream effects on our customer commitments.",
+      "sentiment": "negative",
+      "stage": 6,
+      "expected_tool": 1,
+      "expected_tool_name": "Mirroring",
+      "your_reasoning": "Vague/generic concern. Need specifics. Mirror 'critical growth' or use Empathy Questions"
+    },
+    {
+      "id": 8,
+      "name": "Enthusiasm with hesitation",
+      "transcript": "This is exactly what we've been looking for. The features align perfectly with our needs. My only concern is whether we can get executive approval given budget constraints this quarter.",
+      "sentiment": "positive",
+      "stage": 8,
+      "expected_tool": 1,
+      "expected_tool_name": "Mirroring",
+      "your_reasoning": "BUYING SIGNAL - High enthusiasm + approval concern. Mirror 'budget constraints' to explore OR use Calibrated Questions"
+    },
+    {
+      "id": 9,
+      "name": "Indirect rejection",
+      "transcript": "Let me take this back to the team and see what they think. We'll circle back once we've had a chance to digest everything and discuss internally.",
+      "sentiment": "neutral",
+      "stage": 8,
+      "expected_tool": 5,
+      "expected_tool_name": "Labeling",
+      "your_reasoning": "Late stage stall tactic. Use Labeling to call out Black Swan OR Take Away to end it"
+    }
+  ]
+}

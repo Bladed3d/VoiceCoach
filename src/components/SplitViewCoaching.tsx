@@ -910,6 +910,13 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
                 onClearUsed={clearUsedItems}
                 onCollapse={toggleScriptPanel}
                 onStageSelected={handleStageSelected}
+                onManualSentiment={(score, emoji) => {
+                  const sessionManager = getSessionManager();
+                  if (sessionManager) {
+                    sessionManager.addManualSentiment(score, emoji);
+                  }
+                }}
+                manualSentiments={sessionState?.manualSentiments || []}
               />
             </div>
           )

@@ -1,0 +1,60 @@
+You are an expert sales coach instruction designer. I'm testing tool selection instructions for an AI sales coaching system with 13 tools.
+
+## CURRENT APPROACH
+Using phrase-priority matching + trajectory formula:
+- Exact phrase matching (Priority 1)
+- Compound keywords needing both terms (Priority 2)
+- Single keywords (Priority 3)
+- Trajectory score: (tool_weight × -0.5) + (length_delta / avg_length) + question_delta
+
+## PROBLEM
+Current accuracy: 59% (23/39 scenarios)
+Same 12-16 scenarios consistently fail across all instruction variations.
+
+## CONSISTENT FAILURES
+
+**Pattern 1: Empathy Questions (#3) vs Mirroring (#1)**
+Scenario 8: "We currently use spreadsheets. It's manual but we know how it works."
+- Should be: Empathy Questions (magic wand to reveal pain)
+- Gets: Mirroring (default)
+
+Scenario 9: "Our weekly meetings help us stay aligned. Team is used to this."
+- Should be: Empathy Questions (explore hidden desires)
+- Gets: Mirroring (default)
+
+**Pattern 2: Labeling (#5) vs Take Away (#13) or Mirroring**
+Scenario 13: "Every solution has fallen short. Team is tired of false promises. No energy for another failed implementation."
+- Should be: Labeling (validate strong emotions)
+- Gets: Take Away (sees "failed" keyword)
+
+Scenario 14: "Hesitant because we got burned last time. Vendor overpromised."
+- Should be: Labeling (diffuse tension from past failure)
+- Gets: Take Away (sees "burned" as strong negative)
+
+**Pattern 3: Calibrated Questions (#6) vs Mirroring**
+Scenario 17: "I want to move forward but timing feels off. We're stretched thin."
+- Should be: Calibrated Questions (reframe workload concern)
+- Gets: Mirroring
+
+**Pattern 4: Buy-In (#10) vs Dynamic Silence (#8)**
+Scenario 29: "I like what I'm hearing. Can you tell me more about the integration?"
+- Should be: Buy-In (prospect actively requesting info)
+- Gets: Dynamic Silence (sees "I like what I'm hearing")
+
+## QUESTION
+**WITHOUT using specific keywords or phrase lists, how should instructions identify when to use these tools?**
+
+What are the PATTERNS that distinguish:
+1. Defending status quo (Empathy Questions) vs simple exploration (Mirroring)?
+2. Strong emotions needing validation (Labeling) vs objections needing amplification (Take Away)?
+3. Buying signal + concern (Calibrated Questions) vs just concern (Mirroring)?
+4. Active engagement request (Buy-In) vs passive agreement (Dynamic Silence)?
+
+How can trajectory/engagement metrics help identify these patterns reliably?
+
+Please provide:
+1. Pattern recognition rules that work across different wordings
+2. How trajectory score should influence tool selection
+3. Specific instruction language that Ollama would follow
+
+Return your analysis as structured guidance for creating better instructions.

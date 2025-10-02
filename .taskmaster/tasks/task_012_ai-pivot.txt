@@ -1,0 +1,56 @@
+# Task ID: 12
+# Title: Phase 12: Code Quality & Documentation
+# Status: pending
+# Dependencies: 11
+# Priority: medium
+# Description: Verify clean codebase: no dead code, proper LED coverage, code comments, type safety
+# Details:
+Code quality checklist:
+
+1. Dead Code Removal:
+   - Search for any old AI generation imports
+   - Remove commented-out code
+   - Delete unused helper functions
+   - Verify no orphaned files
+
+2. LED Breadcrumb Coverage:
+   - All new files use BreadcrumbTrail
+   - All critical operations have LEDs
+   - LED ranges documented (6550-6699)
+   - Success and failure paths covered
+
+3. TypeScript Compliance:
+   - No 'any' types (use proper interfaces)
+   - All public methods have return types
+   - All interfaces exported properly
+   - Zero TypeScript errors
+
+4. Code Comments:
+   - Each class has JSDoc header
+   - Complex logic has inline comments
+   - LED numbers documented
+   - Public methods documented
+
+5. File Organization:
+   - All new files in correct directories
+   - Imports organized and minimal
+   - No circular dependencies
+
+Verification:
+- Compile with strict mode
+- Run linter
+- Review all new files
+- Check import statements
+- Verify LED documentation
+
+# Test Strategy:
+1. Run: grep -r "OllamaPrompt" src/ (expect: 0 results)
+2. Run: grep -r "any" src/services/coaching/*.ts (minimize results)
+3. Check: tsc --noEmit (expect: 0 errors)
+4. Verify: Each new file has BreadcrumbTrail
+5. Check: LED ranges 6550-6699 documented in code
+6. Review: All public methods have JSDoc
+7. Verify: No circular dependencies
+8. Check: Import statements clean and minimal
+9. Run: npm run lint (if available)
+10. Manual code review for quality and clarity

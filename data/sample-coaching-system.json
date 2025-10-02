@@ -1,0 +1,209 @@
+{
+  "stages": {
+    "opening": {
+      "name": "Opening & Rapport",
+      "keywords": ["hello", "hi", "thanks", "appreciate", "time", "calling about", "reaching out"],
+      "duration": "1-2 minutes",
+      "goal": "Build rapport and set agenda",
+      "exitCriteria": [
+        "rapport established",
+        "agenda confirmed",
+        "permission to explore granted"
+      ],
+      "bridges": [
+        {
+          "text": "Before we dive in, can you help me understand your current situation?",
+          "priority": "HIGH"
+        },
+        {
+          "text": "What brought you to explore solutions at this time?",
+          "priority": "CRITICAL"
+        },
+        {
+          "text": "I appreciate your time today. What's the biggest priority for you right now?",
+          "priority": "HIGH"
+        }
+      ],
+      "recovery": [
+        "How can I best use our time together today?",
+        "What would make this conversation valuable for you?"
+      ]
+    },
+    "discovery": {
+      "name": "Discovery & Pain Points",
+      "keywords": ["challenge", "problem", "struggling", "difficult", "issue", "concern", "frustrated", "pain point"],
+      "duration": "5-8 minutes",
+      "goal": "Uncover pain points and quantify impact",
+      "exitCriteria": [
+        "primary pain identified",
+        "impact quantified",
+        "urgency established"
+      ],
+      "bridges": [
+        {
+          "text": "How long has this been affecting your team?",
+          "priority": "CRITICAL"
+        },
+        {
+          "text": "What happens if this doesn't get resolved in the next 3 months?",
+          "priority": "HIGH"
+        },
+        {
+          "text": "On a scale of 1-10, how critical is solving this right now?",
+          "priority": "STANDARD"
+        },
+        {
+          "text": "What's the impact on your revenue/operations?",
+          "priority": "HIGH"
+        },
+        {
+          "text": "Have you budgeted for solving this problem?",
+          "priority": "STANDARD"
+        }
+      ],
+      "recovery": [
+        "What's your biggest priority right now?",
+        "If you could wave a magic wand and fix one thing, what would it be?"
+      ]
+    },
+    "presentation": {
+      "name": "Solution Presentation",
+      "keywords": ["show me", "how does", "demo", "see it", "solution", "features", "capabilities", "pricing"],
+      "duration": "8-12 minutes",
+      "goal": "Present solution connected to their pain",
+      "exitCriteria": [
+        "solution presented",
+        "value understood",
+        "fit confirmed"
+      ],
+      "bridges": [
+        {
+          "text": "Let me show you exactly how we solve the challenge you mentioned",
+          "priority": "CRITICAL"
+        },
+        {
+          "text": "This directly addresses your concern about [specific issue]",
+          "priority": "HIGH"
+        },
+        {
+          "text": "Based on what you've told me, this feature would save you approximately [time/money]",
+          "priority": "HIGH"
+        },
+        {
+          "text": "How do you see this fitting into your current process?",
+          "priority": "STANDARD"
+        }
+      ],
+      "recovery": [
+        "What part would be most valuable for your team?",
+        "Which aspect addresses your biggest concern?"
+      ]
+    },
+    "objection": {
+      "name": "Objection Handling",
+      "keywords": ["concerned", "worried", "expensive", "not sure", "problem with", "but", "however", "budget", "timing"],
+      "duration": "3-5 minutes per objection",
+      "goal": "Address concerns and rebuild value",
+      "exitCriteria": [
+        "objection acknowledged",
+        "concern addressed",
+        "value reestablished"
+      ],
+      "bridges": [
+        {
+          "text": "I understand your concern. What specifically worries you about this?",
+          "priority": "CRITICAL"
+        },
+        {
+          "text": "Let's look at the ROI. You said the problem costs you [amount] monthly...",
+          "priority": "HIGH"
+        },
+        {
+          "text": "What would need to be true for this to work for you?",
+          "priority": "HIGH"
+        },
+        {
+          "text": "If we could address [specific concern], would you be ready to proceed?",
+          "priority": "STANDARD"
+        }
+      ],
+      "recovery": [
+        "What's your biggest concern about moving forward?",
+        "Help me understand what's holding you back?"
+      ]
+    },
+    "closing": {
+      "name": "Closing & Next Steps",
+      "keywords": ["ready", "move forward", "next steps", "agreement", "start", "begin", "implement", "decision"],
+      "duration": "2-3 minutes",
+      "goal": "Secure commitment and define next steps",
+      "exitCriteria": [
+        "commitment secured",
+        "next steps defined",
+        "timeline agreed"
+      ],
+      "bridges": [
+        {
+          "text": "Based on everything we've discussed, are you ready to move forward?",
+          "priority": "CRITICAL"
+        },
+        {
+          "text": "What questions do you have before we get started?",
+          "priority": "HIGH"
+        },
+        {
+          "text": "Should we schedule implementation for next week?",
+          "priority": "HIGH"
+        },
+        {
+          "text": "I'll send over the agreement right after this call. Which email should I use?",
+          "priority": "STANDARD"
+        }
+      ],
+      "recovery": [
+        "What would need to happen for you to move forward today?",
+        "Is there anything preventing us from getting started?"
+      ]
+    }
+  },
+  "progressions": {
+    "opening->discovery": {
+      "triggers": ["understand", "situation", "help me", "tell me about"],
+      "minDuration": 60,
+      "requiredCriteria": 1
+    },
+    "discovery->presentation": {
+      "triggers": ["show me", "how do you", "what does", "solution"],
+      "minDuration": 180,
+      "requiredCriteria": 2
+    },
+    "presentation->objection": {
+      "triggers": ["concern", "but", "however", "worried", "expensive"],
+      "minDuration": 300,
+      "requiredCriteria": 2
+    },
+    "presentation->closing": {
+      "triggers": ["ready", "let's do it", "sounds good", "move forward"],
+      "minDuration": 300,
+      "requiredCriteria": 3
+    },
+    "objection->closing": {
+      "triggers": ["makes sense", "okay", "I see", "that works"],
+      "minDuration": 60,
+      "requiredCriteria": 2
+    }
+  },
+  "universal": {
+    "stall_recovery": [
+      "What's your biggest priority right now?",
+      "If we could solve one problem today, what would it be?",
+      "What brought you to explore this solution in the first place?"
+    ]
+  },
+  "metadata": {
+    "source_document": "sales_playbook.pdf",
+    "processing_date": "2024-01-06T12:00:00Z",
+    "total_techniques": 25,
+    "version": "1.0"
+  }
+}

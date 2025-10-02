@@ -3,9 +3,23 @@
     "allow": [
       "Read(C:\\Users\\Administrator\\.claude/**)",
       "Bash(netstat -ano | findstr:*)",
-      "mcp__memory-keeper__context_save"
+      "mcp__memory-keeper__context_save",
+      "mcp__task-master-ai__get_tasks",
+      "mcp__task-master-ai__add_task",
+      "mcp__task-master-ai__list_tags",
+      "mcp__task-master-ai__add_tag",
+      "mcp__task-master-ai__use_tag",
+      "mcp__task-master-ai__update_task",
+      "mcp__task-master-ai__generate"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "memory-keeper",
+    "task-master-ai",
+    "context7"
+  ],
+  "outputStyle": "concise"
 }

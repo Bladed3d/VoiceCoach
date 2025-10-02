@@ -1,0 +1,185 @@
+[
+    {
+        "id": 1,
+        "name": "Mirroring",
+        "type": "proactive",
+        "description": "Repeat the last 1-3 words of what the other person said to build rapport and encourage them to elaborate.",
+        "examples": [
+            {"scenario": "customer service call", "prospect": "This product isn't working as expected.", "response": "Working as expected?"},
+            {"scenario": "discover pain points", "prospect": "Our sales have remained flat for six months.", "response": "flat for six months?"}
+        ],
+        "why_use": "Enables you to learn more about them and dig deeper into their views.",
+        "when_use": "Early to establish rapport and to dig deeper into any pain point, concern, or objection.",
+        "triggers": ["elaborate"],
+        "uniqueness": ""
+    },
+    {
+        "id": 2,
+        "name": "Empathy Response",
+        "type": "reactive",
+        "description": "Understand and articulate the other person's emotions to influence outcomes and make them feel heard.",
+        "examples": [
+            {"scenario": "vendor negotiation", "prospect": "", "response": "It must be challenging dealing with rising supply costs right now."},
+            {"scenario": "team conflict", "prospect": "", "response": "I understand how this change might feel overwhelming."}
+        ],
+        "why_use": "Enables prospect to feel validated and understood.",
+        "when_use": "When you want to create emotional bonding. Or when emotions begin to rise and you want to guide them to be constructive. Or when you anticipate resistance or fear, this will soften emotions and let them feel heard.",
+        "triggers": ["emotional bonding", "rising emotions", "resistance"],
+        "uniqueness": "Use this when you 'know' their point of view. Use Summarizing when you are not sure or what to verify that you understand their view."
+    },
+    {
+        "id": 3,
+        "name": "Empathy Questions",
+        "type": "reactive",
+        "description": "A Question that acknowledges their past efforts or success, yet opens the discussion to improvements.",
+        "examples": [
+            {"scenario": "", "prospect": "", "response": "You brought a lot of great components together to create your website and it looks great. How would you envision your website gaining more sales conversions?"},
+            {"scenario": "", "prospect": "", "response": "You have done a great job of growing your sales. How do you think the new technologies we have discusses will accelerate your success even further?"}
+        ],
+        "why_use": "So the prospect doesn't remain complacent with their current progress.",
+        "when_use": "When prospect leans toward justifying their current solution and you want to guide them to your better solution.",
+        "triggers": ["emotional bonding", "rising emotions"],
+        "uniqueness": "Use this when you 'know' their point of view. Use Summarizing when you are not sure or what to verify that you understand their view."
+    },
+    {
+        "id": 4,
+        "name": "Summarizing",
+        "type": "reactive",
+        "description": "Rephrase what they said in your own words.",
+        "examples": [
+            {"scenario": "", "prospect": "I spend more time wrestling with training and managing sales people. It is frustrating that they often just don't understand the emotional benefits of selling and always want to talk about technology and features. Some days I am tempted to just sell again.", "response": "Sometimes it is tempting to go back to just selling yourself rather than wrestling with trying to train others who struggle to really understand the sales process."},
+            {"scenario": "", "prospect": "We spend more time in meetings talking about what we will do than we do actually doing it.", "response": "Meetings about scheduling meetings... when do you get work done?"}
+        ],
+        "why_use": "This verifies that you understood them. It confirms to them that they were heard. It creates alignment.",
+        "when_use": "When you are not sure if you really understand their view point or concern.",
+        "triggers": ["alignment"],
+        "uniqueness": ""
+    },
+    {
+        "id": 5,
+        "name": "Labeling",
+        "type": "reactive",
+        "description": "Name the emotions you observe to diffuse tension and validate feelings.",
+        "examples": [
+            {"scenario": "proposal discussion", "prospect": "", "response": "It seems like you're concerned about the risks involved."},
+            {"scenario": "parenting situation", "prospect": "", "response": "It looks like you're really upset about having to clean your room"}
+        ],
+        "why_use": "It quickly calms angry, skeptical, or frustated emotions.",
+        "when_use": "You feel tension building, conflict arising, or negative emotions from the prospect.",
+        "triggers": ["diffuse tension"],
+        "uniqueness": ""
+    },
+    {
+        "id": 6,
+        "name": "Calibrated Questions - What or How",
+        "type": "proactive",
+        "description": "Ask open-ended questions starting with 'how' or 'what' to shift control and get the other party to solve your problems.",
+        "examples": [
+            {"scenario": "real estate deal", "prospect": "", "response": "What would make this property worth that amount to me?"},
+            {"scenario": "job interview salary talk", "prospect": "", "response": "How does the company determine fair compensation for this role?"}
+        ],
+        "why_use": "It invites the prospect to help solve the issues being discussed.",
+        "when_use": "When you want to get the prospect to be more active in collaborating or deciding.",
+        "triggers": ["shift control"],
+        "uniqueness": ""
+    },
+    {
+        "id": 7,
+        "name": "Negative Assumption",
+        "type": "proactive",
+        "description": "Address potential objections upfront by listing negative perceptions to disarm them and build trust.",
+        "examples": [
+            {"scenario": "deadline extension", "prospect": "", "response": "You probably think I'm disorganized or not committed."},
+            {"scenario": "sales pitch", "prospect": "", "response": "I know you might see this as too expensive or unnecessary."}
+        ],
+        "why_use": "Enables you to take control of an objection or concern before they bring it up",
+        "when_use": "As soon as you suspect they have a concern, fear, or objection.",
+        "triggers": ["disarm objections"],
+        "uniqueness": ""
+    },
+    {
+        "id": 8,
+        "name": "Dynamic Silence = Extended Silence",
+        "type": "reactive",
+        "description": "Use pauses after speaking to encourage the other person to fill the silence with more information.",
+        "examples": [
+            {"scenario": "business deal", "prospect": "", "response": ""},
+            {"scenario": "therapy session or deep conversation", "prospect": "", "response": ""}
+        ],
+        "why_use": "Invites the prospect to fill the uncomfortable silence with their ideas",
+        "when_use": "In later stages of a presentation when you want the prospect to tell more.",
+        "triggers": ["encourage information"],
+        "uniqueness": ""
+    },
+    {
+        "id": 9,
+        "name": "Black Swan = Hidden Fears, Concerns & Needs",
+        "type": "proactive",
+        "description": "Uncover hidden issues, problems, and desires to reveal their true motivations or barriers. Odd or unexpected behavior can be a clue that a Black Swan exists.",
+        "examples": [
+            {"scenario": "discussion", "prospect": "", "response": "What haven't we addressed that would help you more?"},
+            {"scenario": "car purchase", "prospect": "", "response": ""}
+        ],
+        "why_use": "Find out the deeper issues and problems that can impact their view.",
+        "when_use": "When progress stalls, they seem reluctant, or decision is a struggle.",
+        "triggers": ["hidden issues"],
+        "uniqueness": ""
+    },
+    {
+        "id": 10,
+        "name": "Buy-In",
+        "type": "reactive",
+        "description": "Ask permission before engaging, when you want to guide them to be teachable.",
+        "examples": [
+            {"scenario": "", "prospect": "", "response": "Is it OK if I outline the 3 most popular ways customers use our app?"},
+            {"scenario": "product issue", "prospect": "I can't get this product to work right!", "response": "Is it OK if I walk you through 3 ways to get it to work better?"}
+        ],
+        "why_use": "When they mentally agree to listen, they listen more deeply.",
+        "when_use": "When you want their focus, when you want them to be open to new ideas, or to shift their emotions to positive.",
+        "triggers": ["focus", "new ideas"],
+        "uniqueness": ""
+    },
+    {
+        "id": 11,
+        "name": "DJ Voice = Deep Calm & Slow",
+        "type": "reactive",
+        "description": "When emotions rise, concerns escalate, or their volume increases, counter with a deep, calm & slower voice.",
+        "examples": [
+            {"scenario": "", "prospect": "", "response": ""},
+            {"scenario": "", "prospect": "", "response": ""}
+        ],
+        "why_use": "It reverses negative emotions back toward neutral.",
+        "when_use": "When emotions rise and fears are building. De-escalate tension, reduce emotions, and bring calm to any situation.",
+        "triggers": ["rising emotions", "fears"],
+        "uniqueness": ""
+    },
+    {
+        "id": 12,
+        "name": "Truth is Found When 'No' Means Yes",
+        "type": "proactive",
+        "description": "By asking questions that are answered with a 'no', but it means they are in agreement.",
+        "examples": [
+            {"scenario": "calling a prospect", "prospect": "", "response": "Did I catch you at a bad time?"},
+            {"scenario": "", "prospect": "", "response": "Would you be upset if you realized a 400% ROI from this plan?"}
+        ],
+        "why_use": "Setting the stage for the prospect to say 'no' makes them feel empowered, yet they trust you.",
+        "when_use": "Use to discover the truth or uncover real concerns and fears.",
+        "triggers": ["seek agreement"],
+        "uniqueness": ""
+    },
+    {
+        "id": 13,
+        "name": "Take Away",
+        "type": "reactive",
+        "description": "By agreeing with a prospect's objection, amplifying it to an extreme, and positioning yourself as an ally, you remove any pressure and make the prospect feel in control. The prospect often turns around to buy after the curtain to their charade is lifted.",
+        "examples": [
+            {"scenario": "distracted prospect", "prospect": "(noticably upset or emotional)", "response": "You look like you're having one of those days. Shall we find another time to accelerate your sales?"},
+            {"scenario": "objection", "prospect": "I'm not sure if this is the right fit for our team.", "response": "I completely agree—if it doesn't perfectly align with your team's needs and goals, we shouldn't move forward at all."}
+
+        ],
+        "why_use": "People want what they can't have. The take away builds FOMO (fear of missing out).",
+        "when_use": "When objections arise or emotions seem extraordinatry.",
+        "triggers": ["objections"],
+        "uniqueness": ""
+    }
+]

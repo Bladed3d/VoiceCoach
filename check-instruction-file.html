@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VoiceCoach V2 - Instruction File Checker</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+        h1 {
+            color: #4CAF50;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .section {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .section h2 {
+            color: #64B5F6;
+            margin-top: 0;
+        }
+        pre {
+            background: #1a1a1a;
+            border: 1px solid #555;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .led-success {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        .led-error {
+            color: #f44336;
+            font-weight: bold;
+        }
+        .led-warning {
+            color: #FFC107;
+            font-weight: bold;
+        }
+        .button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #45a049;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            border: 1px solid #555;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background: #333;
+            color: #64B5F6;
+        }
+        tr:nth-child(even) {
+            background: #252525;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎵 VoiceCoach V2 - Instruction File Verification</h1>
+
+    <div class="section">
+        <h2>📂 Current Instruction File Configuration</h2>
+        <div id="config-info">Checking...</div>
+    </div>
+
+    <div class="section">
+        <h2>🔍 LED Breadcrumbs - Instruction File Selection (6441-6448)</h2>
+        <button class="button" onclick="checkInstructionLEDs()">Refresh LEDs</button>
+        <div id="instruction-leds">Click refresh to check...</div>
+    </div>
+
+    <div class="section">
+        <h2>⚡ LED Breadcrumbs - Prompt Building (6420-6425)</h2>
+        <button class="button" onclick="checkPromptLEDs()">Refresh LEDs</button>
+        <div id="prompt-leds">Click refresh to check...</div>
+    </div>
+
+    <div class="section">
+        <h2>✅ LED Breadcrumbs - Template Loading (6440-6450)</h2>
+        <button class="button" onclick="checkTemplateLEDs()">Refresh LEDs</button>
+        <div id="template-leds">Click refresh to check...</div>
+    </div>
+
+    <div class="section">
+        <h2>❌ Error LEDs (8440-8450)</h2>
+        <button class="button" onclick="checkErrorLEDs()">Check Errors</button>
+        <div id="error-leds">Click refresh to check...</div>
+    </div>
+
+    <div class="section">
+        <h2>📊 All Instruction-Related LEDs</h2>
+        <button class="button" onclick="checkAllInstructionLEDs()">Get All</button>
+        <div id="all-leds">Click to load...</div>
+    </div>
+
+    <script>
+        // Check configuration from localStorage
+        function checkConfig() {
+            const savedSettings = localStorage.getItem('voicecoach-settings');
+            const configDiv = document.getElementById('config-info');
+
+            if (!savedSettings) {
+                configDiv.innerHTML = '<span class="led-warning">⚠️ No settings found in localStorage</span>';
+                return;
+            }
+
+            try {
+                const settings = JSON.parse(savedSettings);
+                const instructionFile = settings.ollama?.instructionFile || 'NOT SET';
+
+                let html = '<table>';
+                html += '<tr><th>Setting</th><th>Value</th></tr>';
+                html += `<tr><td><strong>Instruction File</strong></td><td class="led-success">${instructionFile}</td></tr>`;
+                html += `<tr><td>Ollama Model</td><td>${settings.ollama?.model || 'NOT SET'}</td></tr>`;
+                html += `<tr><td>Ollama Temperature</td><td>${settings.ollama?.temperature || 'NOT SET'}</td></tr>`;
+                html += '</table>';
+
+                html += '<h3>Raw Settings JSON:</h3>';
+                html += '<pre>' + JSON.stringify(settings, null, 2) + '</pre>';
+
+                configDiv.innerHTML = html;
+            } catch (e) {
+                configDiv.innerHTML = `<span class="led-error">❌ Failed to parse settings: ${e.message}</span>`;
+            }
+        }
+
+        // Check instruction file selection LEDs
+        function checkInstructionLEDs() {
+            const div = document.getElementById('instruction-leds');
+
+            if (!window.parent.debug?.breadcrumbs) {
+                div.innerHTML = '<span class="led-error">❌ Breadcrumb system not available. Run this in the Electron app context.</span>';
+                return;
+            }
+
+            try {
+                const leds = window.parent.debug.breadcrumbs.getRange(6441, 6448);
+                displayLEDs(leds, div, 'Instruction File Selection');
+            } catch (e) {
+                div.innerHTML = `<span class="led-error">❌ Error: ${e.message}</span>`;
+            }
+        }
+
+        // Check prompt building LEDs
+        function checkPromptLEDs() {
+            const div = document.getElementById('prompt-leds');
+
+            if (!window.parent.debug?.breadcrumbs) {
+                div.innerHTML = '<span class="led-error">❌ Breadcrumb system not available</span>';
+                return;
+            }
+
+            try {
+                const leds = window.parent.debug.breadcrumbs.getRange(6420, 6425);
+                displayLEDs(leds, div, 'Prompt Building');
+            } catch (e) {
+                div.innerHTML = `<span class="led-error">❌ Error: ${e.message}</span>`;
+            }
+        }
+
+        // Check template loading LEDs
+        function checkTemplateLEDs() {
+            const div = document.getElementById('template-leds');
+
+            if (!window.parent.debug?.breadcrumbs) {
+                div.innerHTML = '<span class="led-error">❌ Breadcrumb system not available</span>';
+                return;
+            }
+
+            try {
+                const leds = window.parent.debug.breadcrumbs.getRange(6440, 6450);
+                displayLEDs(leds, div, 'Template Loading');
+            } catch (e) {
+                div.innerHTML = `<span class="led-error">❌ Error: ${e.message}</span>`;
+            }
+        }
+
+        // Check error LEDs
+        function checkErrorLEDs() {
+            const div = document.getElementById('error-leds');
+
+            if (!window.parent.debug?.breadcrumbs) {
+                div.innerHTML = '<span class="led-error">❌ Breadcrumb system not available</span>';
+                return;
+            }
+
+            try {
+                const failures = window.parent.debug.breadcrumbs.getFailures();
+                const relevantFailures = failures.filter(f => f.number >= 8440 && f.number <= 8450);
+
+                if (relevantFailures.length === 0) {
+                    div.innerHTML = '<span class="led-success">✅ No errors in range 8440-8450</span>';
+                } else {
+                    displayLEDs(relevantFailures, div, 'Errors');
+                }
+            } catch (e) {
+                div.innerHTML = `<span class="led-error">❌ Error: ${e.message}</span>`;
+            }
+        }
+
+        // Check all instruction-related LEDs
+        function checkAllInstructionLEDs() {
+            const div = document.getElementById('all-leds');
+
+            if (!window.parent.debug?.breadcrumbs) {
+                div.innerHTML = '<span class="led-error">❌ Breadcrumb system not available</span>';
+                return;
+            }
+
+            try {
+                const leds = window.parent.debug.breadcrumbs.getRange(6400, 6499);
+                const instructionLEDs = leds.filter(led =>
+                    led.operation && (
+                        led.operation.includes('instruction') ||
+                        led.operation.includes('template') ||
+                        led.operation.includes('prompt')
+                    )
+                );
+
+                displayLEDs(instructionLEDs, div, 'All Instruction-Related');
+            } catch (e) {
+                div.innerHTML = `<span class="led-error">❌ Error: ${e.message}</span>`;
+            }
+        }
+
+        // Display LEDs in a table
+        function displayLEDs(leds, container, title) {
+            if (!leds || leds.length === 0) {
+                container.innerHTML = `<span class="led-warning">⚠️ No ${title} LEDs found</span>`;
+                return;
+            }
+
+            let html = `<p class="led-success">Found ${leds.length} LED(s)</p>`;
+            html += '<table>';
+            html += '<tr><th>LED</th><th>Operation</th><th>Status</th><th>Details</th></tr>';
+
+            leds.forEach(led => {
+                const status = led.success ? '<span class="led-success">✅ Success</span>' : '<span class="led-error">❌ Failed</span>';
+                const details = JSON.stringify(led.data || {}, null, 2);
+
+                html += '<tr>';
+                html += `<td><strong>${led.number}</strong></td>`;
+                html += `<td>${led.operation || 'N/A'}</td>`;
+                html += `<td>${status}</td>`;
+                html += `<td><pre>${details}</pre></td>`;
+                html += '</tr>';
+            });
+
+            html += '</table>';
+            container.innerHTML = html;
+        }
+
+        // Auto-check on load
+        window.addEventListener('load', () => {
+            checkConfig();
+
+            // If running inside Electron app
+            if (window.parent.debug?.breadcrumbs) {
+                console.log('✅ Breadcrumb system detected - you can use the buttons to check LEDs');
+            } else {
+                console.log('⚠️ Breadcrumb system not detected. This page should be opened from the Electron app.');
+            }
+        });
+    </script>
+</body>
+</html>

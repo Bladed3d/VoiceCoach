@@ -1,0 +1,56 @@
+
+Scenario 2:
+Prospect: "On one hand, I see the potential value. On the other hand, we're already stretched thin with current projects."
+Expected Tool: Mirroring (#1)
+Ollama Selected: Dynamic Silence (#8)
+Why It Should Be Mirroring: Mixed signals = buying signal in disguise - mirror 'stretched thin' to explore real concern
+
+
+Scenario 4:
+Prospect: "I'm frustrated with how long it takes to get reports. By the time we have data, the opportunity is gone."
+Expected Tool: Empathy Response (#2)
+Ollama Selected: Labeling (#5)
+Why It Should Be Empathy Response: Moderate emotion (frustrated) + situation (reporting delays) = empathy response
+
+
+Scenario 8:
+Prospect: "We currently use spreadsheets for tracking. It's manual but we know how it works."
+Expected Tool: Empathy Questions (#3)
+Ollama Selected: Mirroring (#1)
+Why It Should Be Empathy Questions: Justifying current inefficient solution - magic wand question to reveal pain
+
+
+Scenario 9:
+Prospect: "Our weekly meetings help us stay aligned. The team is used to this rhythm."
+Expected Tool: Empathy Questions (#3)
+Ollama Selected: Mirroring (#1)
+Why It Should Be Empathy Questions: Comfortable with current approach - empathy question explores hidden desires
+
+
+Scenario 13:
+Prospect: "Every solution we've tried has fallen short. The team is tired of false promises. I don't have the energy to go through another failed implementation."
+Expected Tool: Labeling (#5)
+Ollama Selected: Take Away (#13)
+Why It Should Be Labeling: STRONG emotions (tired, exhausted, no energy) + mid-stage = labeling to validate strong feelings
+
+
+Scenario 14:
+Prospect: "I'm hesitant because we got burned last time. The vendor overpromised and underdelivered, and it cost us six months of productivity."
+Expected Tool: Labeling (#5)
+Ollama Selected: Take Away (#13)
+Why It Should Be Labeling: Strong emotion (hesitant, burned) from past failure - label to diffuse tension
+
+
+Scenario 15:
+Prospect: "Let me take this back to the team and see what they think. We'll circle back once we've had a chance to digest everything."
+Expected Tool: Labeling (#5)
+Ollama Selected: Mirroring (#1)
+Why It Should Be Labeling: Late stage stall = hidden objection - contrarian labeling to call it out
+
+
+Scenario 17:
+Prospect: "I want to move forward but the timing feels off. We're stretched thin."
+Expected Tool: Calibrated Questions (#6)
+Ollama Selected: Mirroring (#1)
+Why It Should Be Calibrated Questions: Buying signal with concern - calibrated question to reframe workload
+

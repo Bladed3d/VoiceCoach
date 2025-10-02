@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Model Selection Debug Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #444;
+            border-radius: 5px;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            background: #2a2a2a;
+            border-radius: 3px;
+        }
+        .error {
+            color: #ff6b6b;
+        }
+        .success {
+            color: #51cf66;
+        }
+        button {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        input, select {
+            padding: 8px;
+            margin: 5px;
+            background: #2a2a2a;
+            color: white;
+            border: 1px solid #444;
+            border-radius: 3px;
+        }
+        pre {
+            background: #0d0d0d;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>VoiceCoach V2 - Model Selection Debug</h1>
+
+    <div class="test-section">
+        <h2>1. Check LocalStorage</h2>
+        <button onclick="checkLocalStorage()">Check Storage</button>
+        <div id="storage-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Set Test Values</h2>
+        <div>
+            <label>Model Name:</label>
+            <select id="model-select">
+                <option value="qwen2.5:14b-instruct-q4_K_M">qwen2.5:14b-instruct-q4_K_M (Expected)</option>
+                <option value="llama3.1:8b-instruct-q4_K_M">llama3.1:8b-instruct-q4_K_M (Bug)</option>
+                <option value="qwen2.5:14b">qwen2.5:14b (Simple)</option>
+                <option value="">Empty String</option>
+            </select>
+        </div>
+        <button onclick="setInSettings()">Set in Settings</button>
+        <button onclick="setInSelectedModel()">Set in Selected Model</button>
+        <button onclick="clearAll()">Clear All</button>
+        <div id="set-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Test Model Utils</h2>
+        <button onclick="testModelUtils()">Test getSelectedModel()</button>
+        <div id="utils-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Test Ollama API Call</h2>
+        <button onclick="testOllamaCall()">Send Test Request</button>
+        <div id="ollama-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. Console Output</h2>
+        <pre id="console-output"></pre>
+    </div>
+
+    <script type="module">
+        // Import the model utils if in Electron environment
+        let getSelectedModel = null;
+
+        // Override console.log to capture output
+        const originalLog = console.log;
+        const originalError = console.error;
+        const consoleOutput = document.getElementById('console-output');
+
+        const logToPage = (msg, isError = false) => {
+            const timestamp = new Date().toLocaleTimeString();
+            const color = isError ? '#ff6b6b' : '#51cf66';
+            consoleOutput.innerHTML += `<span style="color: ${color}">[${timestamp}] ${msg}</span>\n`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        };
+
+        console.log = (...args) => {
+            originalLog(...args);
+            logToPage(args.join(' '));
+        };
+
+        console.error = (...args) => {
+            originalError(...args);
+            logToPage(args.join(' '), true);
+        };
+
+        // Make functions global for onclick handlers
+        window.checkLocalStorage = function() {
+            const result = document.getElementById('storage-result');
+
+            const settings = localStorage.getItem('voicecoach-settings');
+            const selectedModel = localStorage.getItem('voicecoach-selected-model');
+
+            let html = '<h3>LocalStorage Contents:</h3>';
+
+            if (settings) {
+                try {
+                    const parsed = JSON.parse(settings);
+                    html += `<p><strong>voicecoach-settings:</strong></p>`;
+                    html += `<pre>${JSON.stringify(parsed, null, 2)}</pre>`;
+                    html += `<p class="success">Model in settings: ${parsed.ollama?.model || 'NOT SET'}</p>`;
+                } catch (e) {
+                    html += `<p class="error">Failed to parse settings: ${e.message}</p>`;
+                }
+            } else {
+                html += `<p>voicecoach-settings: <span class="error">NOT FOUND</span></p>`;
+            }
+
+            html += `<p><strong>voicecoach-selected-model:</strong> ${selectedModel || '<span class="error">NOT SET</span>'}</p>`;
+
+            result.innerHTML = html;
+            console.log('LocalStorage checked');
+        };
+
+        window.setInSettings = function() {
+            const model = document.getElementById('model-select').value;
+            const result = document.getElementById('set-result');
+
+            let settings = {};
+            const existing = localStorage.getItem('voicecoach-settings');
+            if (existing) {
+                try {
+                    settings = JSON.parse(existing);
+                } catch (e) {
+                    console.error('Failed to parse existing settings');
+                }
+            }
+
+            if (!settings.ollama) settings.ollama = {};
+            settings.ollama.model = model;
+
+            localStorage.setItem('voicecoach-settings', JSON.stringify(settings));
+            result.innerHTML = `<p class="success">Set model in settings: ${model}</p>`;
+            console.log(`Set model in settings: ${model}`);
+        };
+
+        window.setInSelectedModel = function() {
+            const model = document.getElementById('model-select').value;
+            const result = document.getElementById('set-result');
+
+            localStorage.setItem('voicecoach-selected-model', model);
+            result.innerHTML = `<p class="success">Set model in selected-model: ${model}</p>`;
+            console.log(`Set model in selected-model: ${model}`);
+        };
+
+        window.clearAll = function() {
+            localStorage.removeItem('voicecoach-settings');
+            localStorage.removeItem('voicecoach-selected-model');
+
+            const result = document.getElementById('set-result');
+            result.innerHTML = `<p class="success">Cleared all model settings</p>`;
+            console.log('Cleared all model settings');
+        };
+
+        window.testModelUtils = async function() {
+            const result = document.getElementById('utils-result');
+
+            // Simulate the getSelectedModel function
+            const getSelectedModelLocal = () => {
+                console.log('🔍 getSelectedModel() called - checking both localStorage keys...');
+
+                try {
+                    // First try the main settings object
+                    const savedSettings = localStorage.getItem('voicecoach-settings');
+                    if (savedSettings) {
+                        try {
+                            const settings = JSON.parse(savedSettings);
+                            const modelFromSettings = settings.ollama?.model;
+                            if (modelFromSettings && modelFromSettings.trim().length > 0) {
+                                console.log('✅ Using model from voicecoach-settings:', modelFromSettings);
+                                return modelFromSettings;
+                            }
+                        } catch (e) {
+                            console.error('Failed to parse voicecoach-settings:', e);
+                        }
+                    }
+
+                    // Fallback to direct model key
+                    const savedModel = localStorage.getItem('voicecoach-selected-model');
+                    if (savedModel && savedModel.trim().length > 0) {
+                        console.log('✅ Using model from voicecoach-selected-model:', savedModel);
+                        return savedModel;
+                    }
+
+                    // Final fallback
+                    console.log('⚠️ No model found in localStorage, using default: qwen2.5:14b-instruct-q4_k_m');
+                    return 'qwen2.5:14b-instruct-q4_k_m';
+                } catch (error) {
+                    console.error('❌ Model selection system error:', error);
+                    return 'qwen2.5:14b-instruct-q4_k_m';
+                }
+            };
+
+            const selected = getSelectedModelLocal();
+            result.innerHTML = `
+                <h3>getSelectedModel() Result:</h3>
+                <p><strong>Selected Model:</strong> ${selected}</p>
+                <p class="${selected.includes('qwen2.5') ? 'success' : 'error'}">
+                    ${selected.includes('qwen2.5') ? '✅ Correct model selected' : '❌ Wrong model selected'}
+                </p>
+            `;
+        };
+
+        window.testOllamaCall = async function() {
+            const result = document.getElementById('ollama-result');
+            result.innerHTML = '<p>Testing Ollama API call...</p>';
+
+            try {
+                const model = document.getElementById('model-select').value || 'qwen2.5:14b-instruct-q4_K_M';
+                const prompt = 'What is 2+2? Answer in exactly one word.';
+
+                console.log('🚀 Sending test request to Ollama...');
+                console.log('Model:', model);
+
+                const response = await fetch('http://localhost:11434/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        prompt: prompt,
+                        stream: false,
+                        options: {
+                            temperature: 0.1,
+                            num_predict: 10
+                        }
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    result.innerHTML = `
+                        <h3>Ollama Response:</h3>
+                        <p><strong>Model Used:</strong> ${data.model}</p>
+                        <p><strong>Response:</strong> ${data.response}</p>
+                        <p class="${data.model === model ? 'success' : 'error'}">
+                            ${data.model === model ? '✅ Correct model used' : `❌ Model mismatch! Requested: ${model}, Got: ${data.model}`}
+                        </p>
+                    `;
+                    console.log('✅ Ollama response received:', data);
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                result.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+                console.error('❌ Ollama test failed:', error);
+            }
+        };
+
+        // Run initial check
+        window.checkLocalStorage();
+    </script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ollama Self-Instruction Generator</title>
+</head>
+<body>
+    <h1>Generating Ollama Self-Instructions...</h1>
+    <div id="status">Initializing...</div>
+    <pre id="result" style="white-space: pre-wrap; max-height: 400px; overflow-y: auto;"></pre>
+
+    <script>
+        async function generateInstructions() {
+            const statusEl = document.getElementById('status');
+            const resultEl = document.getElementById('result');
+            
+            statusEl.textContent = 'Loading prompt...';
+            
+            const prompt = `You are about to analyze a comprehensive sales coaching knowledge base and create the PERFECT instruction template for yourself to provide world-class real-time sales coaching.
+
+KNOWLEDGE BASE TO ANALYZE:
+{
+  "stages": {
+    "opening": {
+      "name": "Opening & Rapport",
+      "goal": "Establish emotional safety, build trust, and create rapport through calculated empathy and tactical mirroring",
+      "duration": "2-5 minutes",
+      "bridges": [
+        {
+          "text": "I'm going to ask you some questions, and please feel free to tell me if I'm off base at any point.",
+          "priority": "CRITICAL"
+        }
+      ]
+    },
+    "discovery": {
+      "name": "Discovery & Pain Points", 
+      "goal": "Uncover real needs, desires, and fears using calibrated questions and tactical empathy",
+      "duration": "8-15 minutes",
+      "bridges": [
+        {
+          "text": "Help me understand - what's the biggest challenge you're facing right now?",
+          "priority": "CRITICAL"
+        }
+      ]
+    },
+    "presentation": {
+      "name": "Solution Presentation",
+      "goal": "Frame solution to satisfy hidden emotional needs while demonstrating value",
+      "bridges": [
+        {
+          "text": "Let me share a story about [client] who faced the exact same challenge...",
+          "priority": "CRITICAL"
+        }
+      ]
+    },
+    "objection": {
+      "name": "Objection Handling",
+      "goal": "Use 'no' as beginning of negotiation, label emotions, address real concerns",
+      "bridges": [
+        {
+          "text": "It sounds like price is a real concern - what specific aspect worries you most?",
+          "priority": "CRITICAL"
+        }
+      ]
+    },
+    "closing": {
+      "name": "Closing & Next Steps",
+      "goal": "Secure genuine commitment using implementation-focused questions",
+      "bridges": [
+        {
+          "text": "How do we move forward from here?",
+          "priority": "CRITICAL"
+        }
+      ]
+    }
+  }
+}
+
+CREATE YOUR OWN INSTRUCTION TEMPLATE:
+Write the instruction template that would make YOU perform at the absolute highest level as a real-time sales coach.
+
+Requirements:
+- Must work with variables: {KNOWLEDGE_BASE}, {TRANSCRIPT}, {SALES_STAGE}, {CALL_DURATION}
+- Should guide stage-appropriate coaching
+- Must prioritize CRITICAL techniques
+- Should advance conversations through stages
+- Need clear JSON output format
+- Must be concise for real-time use (<2 seconds)
+
+Your response should be a complete instruction template starting with "You are an expert sales coach..." and include everything needed for optimal performance.`;
+
+            try {
+                statusEl.textContent = 'Calling Ollama... (this may take 30-60 seconds)';
+                
+                const result = await window.electronAPI.ollamaGenerate({
+                    prompt: prompt,
+                    model: 'llama3.1:8b'
+                });
+
+                if (result.success) {
+                    statusEl.textContent = 'Success! Generated ' + result.response.length + ' characters';
+                    resultEl.textContent = result.response;
+                    
+                    // Save to file
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                    const filename = \`ollama-self-instructions-\${timestamp}.md\`;
+                    
+                    // You can manually copy this content to create the file
+                    console.log('Generated instructions:', result.response);
+                    
+                } else {
+                    statusEl.textContent = 'Error: ' + result.error;
+                    resultEl.textContent = 'Error details: ' + JSON.stringify(result, null, 2);
+                }
+                
+            } catch (error) {
+                statusEl.textContent = 'Exception: ' + error.message;
+                resultEl.textContent = 'Exception details: ' + error.stack;
+            }
+        }
+        
+        // Start generation when page loads
+        window.addEventListener('load', generateInstructions);
+    </script>
+</body>
+</html>

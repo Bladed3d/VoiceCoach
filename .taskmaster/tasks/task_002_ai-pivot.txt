@@ -1,0 +1,121 @@
+# Task ID: 2
+# Title: Phase 2: Create ToolTemplateEngine.ts
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Build the core template engine that manages all 13 tool templates with variable substitution using a config-driven approach
+# Details:
+Create: src/services/coaching/ToolTemplateEngine.ts and rag/13ToolsRAG-01-templates.json
+
+Must include:
+- ToolTemplate interface definition based on JSON structure
+- Config-driven loading from JSON files (not hard-coded templates)
+- fillTemplate() method for variable substitution
+- extractSimpleVariables() method for instant extraction
+- getTool() and getAllTools() helper methods
+- LED breadcrumbs 6550-6599
+
+JSON Structure (per tool):
+```
+{
+  "id": 13,
+  "name": "Take Away",
+  "description": "...",
+  "when_use": "...",
+  "templates": [
+    {
+      "pattern": "You're right - if {{OBJECTION}} then we shouldn't move forward. What about {{CONCERN}} concerns you?",
+      "variables": ["OBJECTION", "CONCERN"],
+      "confidence": "high"
+    }
+  ],
+  "triggers": {
+    "keywords": ["expensive", "not sure", "maybe"],
+    "regex": "not sure|think about|maybe later",
+    "sentimentBias": "negative",
+    "stageBias": [7, 8, 9]
+  },
+  "variableExtraction": {
+    "OBJECTION": {
+      "method": "keyword" | "ai",
+      "prompt": "Extract objection phrase (3-5 words)",
+      "maxTokens": 10
+    }
+  }
+}
+```
+
+Constructor signature:
+```typescript
+constructor(configFile: string = '13ToolsRAG-01-templates.json')
+```
+
+Verification criteria:
+- File exists at correct path
+- JSON config file created with all 13 tools defined
+- BreadcrumbTrail imported and used (LED 6550, 6552, 6553, 8550)
+- fillTemplate() correctly replaces {{VARIABLE}} placeholders
+- extractSimpleVariables() handles Tools 1, 5, 13 at minimum
+- Config switching works without code changes
+
+# Test Strategy:
+1. Verify files created: src/services/coaching/ToolTemplateEngine.ts and rag/13ToolsRAG-01-templates.json
+2. Check tool count: tools.size === 13
+3. Unit test fillTemplate(1, {LAST_WORDS: "expensive"}) === "expensive?"
+4. Unit test fillTemplate(13, {OBJECTION: "cost", CONCERN: "budget"}) contains both words
+5. Verify LED 6550 fires on construction
+6. Verify LED 6553 fires on successful fill
+7. TypeScript compiles without errors
+8. Test with original: 13ToolsRAG-01-condensed.json (should still load basic data)
+9. Test with new: 13ToolsRAG-01-templates.json (full template system)
+10. Verify config switching works without code changes
+
+# Subtasks:
+## 1.  [pending]
+### Dependencies: None
+### Description: Create ToolTemplateEngine.ts with interface definitions and constructor
+### Details:
+
+
+## 2.  [pending]
+### Dependencies: None
+### Description: Create 13ToolsRAG-01-templates.json with all 13 tool definitions
+### Details:
+
+
+## 3.  [pending]
+### Dependencies: None
+### Description: Implement config file loading with constructor parameter
+### Details:
+
+
+## 4.  [pending]
+### Dependencies: None
+### Description: Implement fillTemplate() method for variable substitution
+### Details:
+
+
+## 5.  [pending]
+### Dependencies: None
+### Description: Implement extractSimpleVariables() method
+### Details:
+
+
+## 6.  [pending]
+### Dependencies: None
+### Description: Implement getTool() and getAllTools() helper methods
+### Details:
+
+
+## 7.  [pending]
+### Dependencies: None
+### Description: Add LED breadcrumbs for key operations
+### Details:
+
+
+## 8.  [pending]
+### Dependencies: None
+### Description: Create unit tests for config switching between different JSON files
+### Details:
+
+
