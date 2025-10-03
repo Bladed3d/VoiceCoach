@@ -2339,9 +2339,10 @@ ipcMain.handle('start-transcription', async (event, voskConfigFromRenderer) => {
         } else {
           // This is an actual error
           console.log('❌ LED 8011 FAILED [ElectronMain]: ERROR_HANDLING Python WebSocket Server error: ' + errorOutput);
+
+          // LED 8038: Error categorization (ONLY FOR ACTUAL ERRORS)
+          console.log('🎵 LED 8038: ERROR_HANDLING - Error categorization {"operation":"error_analysis","is_port_error":' + isPortError + ',"is_module_error":' + isModuleError + ',"is_permission_error":' + isPermissionError + ',"is_network_error":' + isNetworkError + ',"is_critical":' + isCritical + '} ElectronMain_8038');
         }
-        
-        console.log('🎵 LED 8038: ERROR_HANDLING - Error categorization {"operation":"error_analysis","is_port_error":' + isPortError + ',"is_module_error":' + isModuleError + ',"is_permission_error":' + isPermissionError + ',"is_network_error":' + isNetworkError + ',"is_critical":' + isCritical + '} ElectronMain_8038');
         
         // Critical errors that prevent startup
         if (isCritical) {
@@ -2478,9 +2479,20 @@ ipcMain.handle('stop-transcription', async () => {
         pythonWebSocketServer.kill('SIGTERM');
       }
       
+      // Remove all event listeners to prevent processing buffered output from dead process
+      if (pythonWebSocketServer && pythonWebSocketServer.stdout) {
+        pythonWebSocketServer.stdout.removeAllListeners();
+      }
+      if (pythonWebSocketServer && pythonWebSocketServer.stderr) {
+        pythonWebSocketServer.stderr.removeAllListeners();
+      }
+      if (pythonWebSocketServer) {
+        pythonWebSocketServer.removeAllListeners();
+      }
+
       // Wait brief moment for termination
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       pythonWebSocketServer = null;
       
       // LED 6504: Stop ChromaDB server
