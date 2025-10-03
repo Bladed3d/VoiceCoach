@@ -4,15 +4,15 @@
  * LED Range: 7300-7399 for coaching card operations
  */
 import React, { useState } from 'react';
-import { 
-  Lightbulb, 
-  AlertCircle, 
-  CheckCircle2, 
-  Clock, 
-  ArrowRight, 
-  Info, 
-  MessageCircle, 
-  Send, 
+import {
+  Lightbulb,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  ArrowRight,
+  Info,
+  MessageCircle,
+  Send,
   Loader,
   Database,
   Copy,
@@ -154,45 +154,64 @@ export const CoachingCard: React.FC<CoachingCardProps> = ({
     }
   };
 
-  // Get short actionable title from prompt (like old app)
+  // Get short actionable title from prompt (template system format: "Tool: Name\nJSON")
   const getShortTitle = (text: string): string => {
-    // Extract action-oriented title
-    if (text.toLowerCase().includes('mirror')) return 'Use Mirroring';
-    if (text.toLowerCase().includes('label')) return 'Label The Emotion';
-    if (text.toLowerCase().includes('ask')) return 'Ask Discovery Question';
-    if (text.toLowerCase().includes('empathy')) return 'Show Empathy';
-    if (text.toLowerCase().includes('budget')) return 'Address Budget Concern';
-    if (text.toLowerCase().includes('trust')) return 'Build Trust';
-    if (text.toLowerCase().includes('close')) return 'Move To Close';
-    if (text.toLowerCase().includes('pain')) return 'Explore Pain Point';
-    if (text.toLowerCase().includes('discovery')) return 'Discovery Question';
-    if (text.toLowerCase().includes('objection')) return 'Handle Objection';
-    
-    // Default: extract verb phrase if possible
+    // Handle "Tool: Name\nJSON" format from template system
+    const lines = text.split('\n');
+    if (lines[0]?.startsWith('Tool: ')) {
+      return lines[0].replace('Tool: ', '');
+    }
+
+    // Try parsing JSON directly
+    try {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.tool) return parsed.tool;
+      }
+    } catch (e) {
+      // JSON parse failed, continue
+    }
+
+    // Fallback: extract first few words
     const words = text.split(' ').slice(0, 3);
     return words.join(' ');
   };
 
-  // Format content to be concise like old app
+  // Format content to show the actual coaching text (extract from JSON)
   const formatContent = (text: string): string => {
+    // Try parsing JSON to extract say_this
+    try {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.say_this) {
+          return parsed.say_this;
+        }
+      }
+    } catch (e) {
+      // Not JSON, continue
+    }
+
+    // Fallback to original logic
     const content = prompt.content || text;
-    
+
     // For mirroring/labeling, format as concise instruction
     if (content.toLowerCase().includes('mirror')) {
       const match = content.match(/'([^']+)'/);
       if (match) return `Mirror: "${match[1]}?"`;
     }
-    
+
     if (content.toLowerCase().includes('label')) {
       const match = content.match(/["']([^"']+)["']/);
       if (match) return `Label: "It sounds like you're ${match[1]}"`;
     }
-    
+
     // For short prompts, return as-is
     if (content.length <= 80) {
       return content;
     }
-    
+
     // For longer content, extract core instruction
     const sentences = content.split(/[.!?]/);
     return sentences[0].trim() + '.';
@@ -201,14 +220,14 @@ export const CoachingCard: React.FC<CoachingCardProps> = ({
   // Handle More Info button
   const handleMoreInfo = async () => {
     trail.light(7310, { operation: 'more_info_clicked', promptId: String(prompt.id) });
-    
+
     const coreConceptMatch = prompt.text.match(/\b(open-ended questions?|calibrated questions?|mirroring|rapport building|discovery questions?|pain points?|objection handling|closing techniques?)/i);
     const coreConcept = coreConceptMatch ? coreConceptMatch[0] : prompt.text.split(' ').slice(0, 3).join(' ');
     const cacheKey = generateCacheKey(coreConcept);
-    
+
     // Try cache first
     const cachedKnowledge = loadFromCache(cacheKey);
-    
+
     if (cachedKnowledge) {
       trail.light(7311, { operation: 'loaded_from_cache', cacheKey });
       const formattedContent = `## 📖 Definition
@@ -216,22 +235,22 @@ ${cachedKnowledge.definition}
 
 ## 🎯 How to Execute
 ${cachedKnowledge.executionSteps}`;
-      
+
       setExpandedInfo({ content: formattedContent, loading: false });
       return;
     }
-    
+
     // Not in cache - fetch from Ollama
     setExpandedInfo({ content: '', loading: true });
-    
+
     try {
       // DISABLED: Remove all fallback Ollama calls to force proper pipeline usage
       throw new Error('FALLBACK DISABLED: CoachingCard Ollama calls removed - must use proper transcript pipeline');
     } catch (error) {
       trail.fail(8310, error as Error);
-      setExpandedInfo({ 
-        content: 'Failed to load detailed guidance. Please ensure Ollama is running and try again.', 
-        loading: false 
+      setExpandedInfo({
+        content: 'Failed to load detailed guidance. Please ensure Ollama is running and try again.',
+        loading: false
       });
     }
   };
@@ -239,20 +258,20 @@ ${cachedKnowledge.executionSteps}`;
   // Handle Ask button
   const handleAskQuestion = async () => {
     if (!askMode.question.trim()) return;
-    
+
     trail.light(7320, { operation: 'ask_question', promptId: String(prompt.id), question: askMode.question });
-    
+
     setAskMode(prev => ({ ...prev, loading: true, response: '' }));
-    
+
     try {
       // DISABLED: Remove all fallback Ollama calls to force proper pipeline usage
       throw new Error('FALLBACK DISABLED: CoachingCard Ask feature removed - must use proper transcript pipeline');
     } catch (error) {
       trail.fail(8320, error as Error);
-      setAskMode(prev => ({ 
-        ...prev, 
-        response: 'Sorry, I couldn\'t process your question. Please ensure Ollama is running and try again.', 
-        loading: false 
+      setAskMode(prev => ({
+        ...prev,
+        response: 'Sorry, I couldn\'t process your question. Please ensure Ollama is running and try again.',
+        loading: false
       }));
     }
   };
@@ -284,16 +303,16 @@ ${cachedKnowledge.executionSteps}`;
               {getShortTitle(prompt.text)}
             </h4>
           </div>
-          
+
           {/* More Info and Ask buttons inline with title */}
           <div className="flex items-center space-x-2">
-            <button 
+            <button
               onClick={handleMoreInfo}
               className="text-xs px-3 py-1 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded transition-colors"
             >
               More Info
             </button>
-            <button 
+            <button
               onClick={() => setAskMode(prev => ({ ...prev, active: !prev.active }))}
               className="text-xs px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded transition-colors"
             >
@@ -301,12 +320,12 @@ ${cachedKnowledge.executionSteps}`;
             </button>
           </div>
         </div>
-        
+
         {/* Second row: Priority badge and timestamp */}
         <div className="flex items-center justify-between">
           <span className={`text-xs px-2 py-1 rounded-full ${getPriorityBadge()}`}>
-            {prompt.priority === 'critical' ? '🚨 CRITICAL' : 
-             prompt.priority === 'high' ? '⚠️ HIGH' : 
+            {prompt.priority === 'critical' ? '🚨 CRITICAL' :
+             prompt.priority === 'high' ? '⚠️ HIGH' :
              prompt.priority === 'medium' ? '⚡ MEDIUM' :
              '💡 STANDARD'}
           </span>
@@ -322,7 +341,7 @@ ${cachedKnowledge.executionSteps}`;
         <p className="text-slate-200 leading-relaxed">
           {formatContent(prompt.text)}
         </p>
-        
+
         {/* Source if available */}
         {prompt.source && (
           <div className="mt-2 flex items-center text-xs text-slate-400">
@@ -355,7 +374,7 @@ ${cachedKnowledge.executionSteps}`;
 
       {/* Action Buttons - Copy, Used, Dismiss */}
       <div className="flex flex-wrap gap-2">
-        <button 
+        <button
           onClick={handleCopy}
           className="bg-success-600 hover:bg-success-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors flex items-center space-x-1"
         >
@@ -363,7 +382,7 @@ ${cachedKnowledge.executionSteps}`;
           <span>{copied ? 'Copied!' : 'Copy'}</span>
         </button>
 
-        <button 
+        <button
           onClick={() => onUsed?.(String(prompt.id))}
           className="bg-primary-600 hover:bg-primary-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors flex items-center space-x-1"
         >
@@ -371,7 +390,7 @@ ${cachedKnowledge.executionSteps}`;
           <span>Used</span>
         </button>
 
-        <button 
+        <button
           onClick={() => onDismissed?.(String(prompt.id))}
           className="bg-neutral-600 hover:bg-neutral-700 text-neutral-200 px-3 py-2 rounded text-sm font-medium transition-colors flex items-center space-x-1"
         >
@@ -411,7 +430,7 @@ ${cachedKnowledge.executionSteps}`;
               ✕ Close
             </button>
           </div>
-          
+
           {expandedInfo.loading ? (
             <div className="flex items-center space-x-2 text-slate-400">
               <Loader className="w-4 h-4 animate-spin" />
