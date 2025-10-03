@@ -37,16 +37,77 @@ export class DualVolumeMonitoringService {
   private lastMicLevel = 0;
   private lastTabLevel = 0;
   private speakerChangeDebounce = 0;
-  private readonly SPEAKER_DEBOUNCE_FRAMES = 8; // Require 8 consistent frames (~133ms) to change speaker
+
+  // Configurable settings (loaded from localStorage)
+  private speakerDebounceFrames = 8; // Default: 8 frames (~133ms)
+  private micSensitivityMultiplier = 1.0; // Default: 100%
+  private tabAudioGainMultiplier = 1.0; // Default: 100%
+  private micThreshold = 18; // Default threshold
+  private tabThreshold = 12; // Default threshold
+  private speakerBias = 6; // Default bias
+  private dominanceGap = 12; // Default gap
 
   constructor() {
     this.trail = new BreadcrumbTrail('DualVolumeMonitoringService');
-    
+
+    // Load settings from localStorage
+    this.loadSettings();
+
     // LED 7250: Dual volume service initialization
     this.trail.light(7250, {
       operation: 'dual_volume_service_init',
+      settings: {
+        micSensitivity: this.micSensitivityMultiplier,
+        tabAudioGain: this.tabAudioGainMultiplier,
+        debounceFrames: this.speakerDebounceFrames,
+        micThreshold: this.micThreshold,
+        tabThreshold: this.tabThreshold
+      },
       timestamp: Date.now()
     });
+  }
+
+  /**
+   * Load settings from localStorage
+   */
+  private loadSettings(): void {
+    try {
+      const settingsStr = localStorage.getItem('voicecoach-settings');
+      if (settingsStr) {
+        const settings = JSON.parse(settingsStr);
+
+        // Apply mic sensitivity (0-100 scale to 0.0-2.0 multiplier)
+        if (typeof settings.micSensitivity === 'number') {
+          this.micSensitivityMultiplier = settings.micSensitivity / 50; // 50% = 1.0x, 100% = 2.0x
+        }
+
+        // Apply other party audio gain (0-200 scale to 0.0-2.0 multiplier)
+        if (typeof settings.otherPartyGain === 'number') {
+          this.tabAudioGainMultiplier = settings.otherPartyGain / 100; // 100% = 1.0x, 200% = 2.0x
+        }
+
+        // Load speaker detection settings if present
+        if (settings.speakerDetection) {
+          if (typeof settings.speakerDetection.debounceFrames === 'number') {
+            this.speakerDebounceFrames = settings.speakerDetection.debounceFrames;
+          }
+          if (typeof settings.speakerDetection.micThreshold === 'number') {
+            this.micThreshold = settings.speakerDetection.micThreshold;
+          }
+          if (typeof settings.speakerDetection.tabThreshold === 'number') {
+            this.tabThreshold = settings.speakerDetection.tabThreshold;
+          }
+          if (typeof settings.speakerDetection.speakerBias === 'number') {
+            this.speakerBias = settings.speakerDetection.speakerBias;
+          }
+          if (typeof settings.speakerDetection.dominanceGap === 'number') {
+            this.dominanceGap = settings.speakerDetection.dominanceGap;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading DualVolumeMonitoringService settings:', error);
+    }
   }
 
   /**
@@ -279,12 +340,15 @@ export class DualVolumeMonitoringService {
         sum += dataArray[i];
       }
       const average = sum / dataArray.length;
-      const volumePercent = Math.round((average / 255) * 100);
-      
+      let volumePercent = Math.round((average / 255) * 100);
+
+      // Apply mic sensitivity multiplier
+      volumePercent = Math.min(100, Math.round(volumePercent * this.micSensitivityMultiplier));
+
       // Determine status
-      const status: VolumeState['status'] = 
-        volumePercent > 20 ? 'good' : 
-        volumePercent > 5 ? 'low' : 
+      const status: VolumeState['status'] =
+        volumePercent > 20 ? 'good' :
+        volumePercent > 5 ? 'low' :
         'silent';
 
       const volumeState: VolumeState = {
@@ -299,12 +363,13 @@ export class DualVolumeMonitoringService {
           operation: 'mic_volume_update',
           volumePercent,
           status,
+          sensitivity: this.micSensitivityMultiplier,
           timestamp: Date.now()
         });
       }
 
       this.notifyMicVolumeChange(volumeState);
-      
+
       // Store for real-time speaker detection
       this.lastMicLevel = volumePercent;
       this.detectSpeakerRealTime();
@@ -337,12 +402,15 @@ export class DualVolumeMonitoringService {
         sum += dataArray[i];
       }
       const average = sum / dataArray.length;
-      const volumePercent = Math.round((average / 255) * 100);
-      
+      let volumePercent = Math.round((average / 255) * 100);
+
+      // Apply tab audio gain multiplier
+      volumePercent = Math.min(100, Math.round(volumePercent * this.tabAudioGainMultiplier));
+
       // Determine status
-      const status: VolumeState['status'] = 
-        volumePercent > 20 ? 'good' : 
-        volumePercent > 5 ? 'low' : 
+      const status: VolumeState['status'] =
+        volumePercent > 20 ? 'good' :
+        volumePercent > 5 ? 'low' :
         'silent';
 
       const volumeState: VolumeState = {
@@ -357,12 +425,13 @@ export class DualVolumeMonitoringService {
           operation: 'tab_volume_update',
           volumePercent,
           status,
+          audioGain: this.tabAudioGainMultiplier,
           timestamp: Date.now()
         });
       }
 
       this.notifyTabVolumeChange(volumeState);
-      
+
       // Store for real-time speaker detection
       this.lastTabLevel = volumePercent;
       this.detectSpeakerRealTime();
@@ -426,27 +495,22 @@ export class DualVolumeMonitoringService {
       });
     }
 
-    // Optimized thresholds with speaker stickiness
-    const micThreshold = 18;
-    const tabThreshold = 12; 
-    const dominanceGap = 12;
-    const speakerBias = 6; // Bias toward keeping current speaker
-    
+    // Use configurable thresholds with speaker stickiness
     let detectedSpeaker: 'user' | 'prospect';
     let confidence: number;
-    
+
     // Apply speaker bias - make it harder to switch away from current speaker
-    const currentSpeakerBonus = this.currentSpeaker === 'prospect' ? speakerBias : 0;
+    const currentSpeakerBonus = this.currentSpeaker === 'prospect' ? this.speakerBias : 0;
     const effectiveTabLevel = tabLevel + currentSpeakerBonus;
-    
-    const currentUserBonus = this.currentSpeaker === 'user' ? speakerBias : 0;
+
+    const currentUserBonus = this.currentSpeaker === 'user' ? this.speakerBias : 0;
     const effectiveMicLevel = micLevel + currentUserBonus;
-    
+
     // Prioritize tab audio (prospect) with stickiness
-    if (effectiveTabLevel >= tabThreshold && effectiveTabLevel > micLevel) {
+    if (effectiveTabLevel >= this.tabThreshold && effectiveTabLevel > micLevel) {
       detectedSpeaker = 'prospect';
       confidence = Math.min(95, effectiveTabLevel + Math.max(0, effectiveTabLevel - micLevel));
-      
+
       // LED 7262: Prospect detected in real-time
       this.trail.light(7262, {
         operation: 'realtime_prospect_detected',
@@ -458,10 +522,10 @@ export class DualVolumeMonitoringService {
       });
     }
     // Clear microphone dominance (user speaking) with stickiness
-    else if (effectiveMicLevel >= micThreshold && effectiveMicLevel > (tabLevel + dominanceGap)) {
+    else if (effectiveMicLevel >= this.micThreshold && effectiveMicLevel > (tabLevel + this.dominanceGap)) {
       detectedSpeaker = 'user';
       confidence = Math.min(95, effectiveMicLevel + Math.max(0, effectiveMicLevel - tabLevel));
-      
+
       // LED 7263: User detected in real-time
       this.trail.light(7263, {
         operation: 'realtime_user_detected',
@@ -482,8 +546,8 @@ export class DualVolumeMonitoringService {
     // Debounce speaker changes to avoid rapid switching
     if (detectedSpeaker !== this.currentSpeaker) {
       this.speakerChangeDebounce++;
-      
-      if (this.speakerChangeDebounce >= this.SPEAKER_DEBOUNCE_FRAMES) {
+
+      if (this.speakerChangeDebounce >= this.speakerDebounceFrames) {
         // LED 7264: Speaker change confirmed
         this.trail.light(7264, {
           operation: 'realtime_speaker_change',

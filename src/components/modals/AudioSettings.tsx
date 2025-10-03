@@ -20,6 +20,13 @@ interface AudioSettings {
   micSensitivity: number;
   otherPartyGain: number;
   noiseSuppression: boolean;
+  speakerDetection?: {
+    debounceFrames: number;
+    micThreshold: number;
+    tabThreshold: number;
+    speakerBias: number;
+    dominanceGap: number;
+  };
 }
 
 interface AppState {
@@ -158,8 +165,23 @@ const AudioSettingsComponent: React.FC<AudioSettingsProps> = ({
       to_value: newValue,
       change_delta: newValue - settings.otherPartyGain
     });
-    
+
     onChange('otherPartyGain', newValue);
+  };
+
+  // Speaker detection settings handlers
+  const handleSpeakerDetectionChange = (key: string, value: number) => {
+    trail.light(7101, {
+      speaker_detection_adjustment: `user_changed_${key}`,
+      from_value: settings.speakerDetection?.[key as keyof typeof settings.speakerDetection],
+      to_value: value
+    });
+
+    const updated = {
+      ...settings.speakerDetection,
+      [key]: value
+    };
+    onChange('speakerDetection', updated);
   };
   return (
     <div className="space-y-8">
@@ -262,6 +284,104 @@ const AudioSettingsComponent: React.FC<AudioSettingsProps> = ({
               <label className="text-sm font-medium">Enable noise suppression</label>
             </div>
             <p className="text-xs text-slate-400 mt-2 ml-7">Reduces background noise during recording</p>
+          </div>
+
+          {/* Speaker Detection Settings */}
+          <div className="bg-slate-800/30 rounded-lg p-4 space-y-4">
+            <h4 className="text-sm font-semibold text-white mb-3">Speaker Detection Settings</h4>
+            <p className="text-xs text-slate-400 mb-4">
+              Fine-tune how the system detects who is speaking during calls
+            </p>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Debounce Frames: <span className="text-primary-400 font-semibold">{settings.speakerDetection?.debounceFrames || 8}</span>
+                <span className="text-slate-500 text-xs ml-2">(default=8)</span>
+              </label>
+              <input
+                type="range"
+                min="2"
+                max="30"
+                value={settings.speakerDetection?.debounceFrames || 8}
+                onChange={(e) => handleSpeakerDetectionChange('debounceFrames', parseInt(e.target.value))}
+                className="w-full h-3 bg-slate-700 rounded-lg appearance-none cursor-pointer hover:bg-slate-600 transition-colors"
+              />
+              <p className="text-xs text-slate-400 mt-1">
+                Higher = slower to switch speakers (prevents rapid changes, ~{Math.round(((settings.speakerDetection?.debounceFrames || 8) / 60) * 1000)}ms)
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Microphone Threshold: <span className="text-primary-400 font-semibold">{settings.speakerDetection?.micThreshold || 18}</span>
+                <span className="text-slate-500 text-xs ml-2">(default=18)</span>
+              </label>
+              <input
+                type="range"
+                min="5"
+                max="50"
+                value={settings.speakerDetection?.micThreshold || 18}
+                onChange={(e) => handleSpeakerDetectionChange('micThreshold', parseInt(e.target.value))}
+                className="w-full h-3 bg-slate-700 rounded-lg appearance-none cursor-pointer hover:bg-slate-600 transition-colors"
+              />
+              <p className="text-xs text-slate-400 mt-1">
+                Minimum volume to detect you speaking (lower = more sensitive)
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Other Party Threshold: <span className="text-primary-400 font-semibold">{settings.speakerDetection?.tabThreshold || 12}</span>
+                <span className="text-slate-500 text-xs ml-2">(default=12)</span>
+              </label>
+              <input
+                type="range"
+                min="5"
+                max="50"
+                value={settings.speakerDetection?.tabThreshold || 12}
+                onChange={(e) => handleSpeakerDetectionChange('tabThreshold', parseInt(e.target.value))}
+                className="w-full h-3 bg-slate-700 rounded-lg appearance-none cursor-pointer hover:bg-slate-600 transition-colors"
+              />
+              <p className="text-xs text-slate-400 mt-1">
+                Minimum volume to detect prospect speaking (lower = more sensitive)
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Speaker Stickiness: <span className="text-primary-400 font-semibold">{settings.speakerDetection?.speakerBias || 6}</span>
+                <span className="text-slate-500 text-xs ml-2">(default=6)</span>
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="20"
+                value={settings.speakerDetection?.speakerBias || 6}
+                onChange={(e) => handleSpeakerDetectionChange('speakerBias', parseInt(e.target.value))}
+                className="w-full h-3 bg-slate-700 rounded-lg appearance-none cursor-pointer hover:bg-slate-600 transition-colors"
+              />
+              <p className="text-xs text-slate-400 mt-1">
+                How much to favor the current speaker (prevents rapid switching)
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Microphone Dominance Gap: <span className="text-primary-400 font-semibold">{settings.speakerDetection?.dominanceGap || 12}</span>
+                <span className="text-slate-500 text-xs ml-2">(default=12)</span>
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="30"
+                value={settings.speakerDetection?.dominanceGap || 12}
+                onChange={(e) => handleSpeakerDetectionChange('dominanceGap', parseInt(e.target.value))}
+                className="w-full h-3 bg-slate-700 rounded-lg appearance-none cursor-pointer hover:bg-slate-600 transition-colors"
+              />
+              <p className="text-xs text-slate-400 mt-1">
+                How much louder your mic must be to override system audio
+              </p>
+            </div>
           </div>
           
           {/* Vosk Transcription Settings Button */}

@@ -49,6 +49,9 @@ export class SessionManagerService {
   // Sentiment analysis
   private sentimentAnalyzer: SentimentAnalyzer;
   private currentSentiment: SentimentAnalysis | null = null;
+  // Simple speaker tracking - just follow audio indicator
+  private currentPartialSpeaker: 'user' | 'prospect' | null = null;
+  private partialTranscriptBuffer = '';
 
   constructor() {
     console.log('🚀 SessionManagerService: Constructor starting...');
@@ -327,7 +330,7 @@ export class SessionManagerService {
         console.log(`📖 Loading document: ${docPath}`);
         
         // Read the document file
-        const response = await electronAPI.readFile(`rag/${docPath}`);
+        const response = await electronAPI.readFile(docPath);
         if (response && response.content) {
           const documentContent = JSON.parse(response.content);
           
@@ -355,7 +358,7 @@ export class SessionManagerService {
               if (chromaDBEnabled) {
                 console.log('🔍 Loading document into ChromaDB for semantic search...');
                 try {
-                  const chromaResult = await electronAPI.chromadbLoadDocument(`rag/${docPath}`);
+                  const chromaResult = await electronAPI.chromadbLoadDocument(docPath);
                   if (chromaResult.success) {
                     console.log('✅ ChromaDB document loaded successfully:', chromaResult.message);
                     this.trail.light(7304, {
@@ -1169,18 +1172,15 @@ export class SessionManagerService {
   private setupWebSocketHandlers(): void {
     this.wsClient.onTranscript((transcript: TranscriptEvent) => {
       if (transcript.type === 'final_transcript') {
-        // Use current speaker from volume service or fallback based on capture mode
-        // FIXED: Proper speaker identification logic
+        // Use speaker tracked during partial transcripts (which follows audio indicator)
         let currentSpeaker: 'user' | 'prospect';
 
         if (this.sessionState.captureMode === 'microphone') {
           // Microphone only = user speaking
           currentSpeaker = 'user';
         } else {
-          // Full conversation mode - use volume service with conservative default
-          const volumeBasedSpeaker = this.volumeService.getCurrentSpeaker();
-          // CONSERVATIVE: Default to 'user' to prevent false Ollama triggers during testing
-          currentSpeaker = volumeBasedSpeaker || 'user';
+          // Use speaker from partial tracking (which followed audio indicator)
+          currentSpeaker = this.currentPartialSpeaker || this.volumeService.getCurrentSpeaker();
         }
 
         this.transcriptCounter++;
@@ -1203,7 +1203,8 @@ export class SessionManagerService {
 
         this.updateSessionState({
           transcriptions: [...this.sessionState.transcriptions, newTranscription],
-          liveTranscript: ''
+          liveTranscript: '',
+          liveTranscriptSpeaker: undefined // Clear for next transcript
         });
 
         // Analyze sentiment for BOTH speakers (prospect + user handling)
@@ -1282,7 +1283,92 @@ export class SessionManagerService {
             timestamp: Date.now()
           });
         }
+
+        // Reset partial transcript tracking for next utterance
+        this.partialTranscriptBuffer = '';
+        this.currentPartialSpeaker = null;
       } else {
+        // PARTIAL TRANSCRIPT - simply follow audio indicator for speaker changes
+        const audioIndicatorSpeaker = this.volumeService.getCurrentSpeaker();
+
+        // First partial for this utterance - initialize speaker
+        if (this.currentPartialSpeaker === null) {
+          this.currentPartialSpeaker = audioIndicatorSpeaker;
+          this.partialTranscriptBuffer = transcript.text;
+
+          this.trail.light(6315, {
+            operation: 'partial_transcript_speaker_initialized',
+            speaker: this.currentPartialSpeaker,
+            text: transcript.text,
+            timestamp: Date.now()
+          });
+        }
+        // Audio indicator shows different speaker - create new event immediately
+        else if (audioIndicatorSpeaker !== this.currentPartialSpeaker) {
+          this.trail.light(6316, {
+            operation: 'speaker_change_detected_audio_indicator',
+            originalSpeaker: this.currentPartialSpeaker,
+            newSpeaker: audioIndicatorSpeaker,
+            bufferText: this.partialTranscriptBuffer,
+            timestamp: Date.now()
+          });
+
+          // Finalize the buffered text with original speaker
+          const finalizedSpeaker = this.currentPartialSpeaker;
+          const finalizedText = this.partialTranscriptBuffer;
+
+          // Create new transcript event for the buffered text
+          this.transcriptCounter++;
+          const transcriptId = ++this.transcriptIdCounter;
+          const stageId = `[${this.currentStage}.${this.currentPromptNumber}.${this.transcriptCounter}]`;
+
+          const newTranscriptItem: TranscriptionItem = {
+            id: transcriptId,
+            speaker: finalizedSpeaker,
+            text: finalizedText,
+            timestamp: Date.now(),
+            stageId
+          };
+
+          this.sessionState.transcriptions.push(newTranscriptItem);
+
+          this.trail.light(6318, {
+            operation: 'split_transcript_created',
+            speaker: finalizedSpeaker,
+            text: finalizedText,
+            stageId,
+            timestamp: Date.now()
+          });
+
+          // Add to conversation history
+          this.conversationHistory.push({
+            speaker: finalizedSpeaker,
+            text: finalizedText,
+            timestamp: new Date().toISOString()
+          });
+
+          // Update session state UI
+          this.updateSessionState({
+            transcriptions: [...this.sessionState.transcriptions]
+          });
+
+          // Notify LiveCoachingService about the split transcript
+          if (this.onTranscriptProcessedCallback) {
+            this.onTranscriptProcessedCallback(
+              { text: finalizedText, final: true, type: 'final_transcript' } as TranscriptEvent,
+              finalizedSpeaker
+            );
+          }
+
+          // Start fresh with new speaker
+          this.currentPartialSpeaker = audioIndicatorSpeaker;
+          this.partialTranscriptBuffer = transcript.text;
+        }
+        // Same speaker continuing - just update buffer
+        else {
+          this.partialTranscriptBuffer = transcript.text;
+        }
+
         this.updateSessionState({
           liveTranscript: transcript.text
         });

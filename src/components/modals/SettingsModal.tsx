@@ -48,6 +48,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
     micSensitivity: 75,
     otherPartyGain: 100,
     noiseSuppression: true,
+    speakerDetection: {
+      debounceFrames: 8,
+      micThreshold: 18,
+      tabThreshold: 12,
+      speakerBias: 6,
+      dominanceGap: 12
+    },
     aiModel: 'ollama',
     dataRetention: '30days',
     analytics: true,
@@ -90,6 +97,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
           ...prev,
           ...parsed,
           // Ensure nested objects are properly merged
+          speakerDetection: {
+            ...prev.speakerDetection,
+            ...parsed.speakerDetection
+          },
           knowledgeBase: {
             ...prev.knowledgeBase,
             ...parsed.knowledgeBase
@@ -470,7 +481,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, appState
                   audioInputLabel: settings.audioInputLabel,
                   micSensitivity: settings.micSensitivity,
                   otherPartyGain: settings.otherPartyGain,
-                  noiseSuppression: settings.noiseSuppression
+                  noiseSuppression: settings.noiseSuppression,
+                  speakerDetection: settings.speakerDetection
                 }}
                 audioDevices={audioDevices}
                 loadingDevices={loadingDevices}

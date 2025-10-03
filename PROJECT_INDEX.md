@@ -1,6 +1,6 @@
 # VoiceCoach V2 - Project Index
 
-**Last Updated:** 2025-10-02 17:07:23
+**Last Updated:** 2025-10-02 19:56:42
 **Auto-generated** by `save-session.py`
 
 ---
@@ -78,12 +78,12 @@
 - **CustomizationChat.tsx** (231 lines) - VoiceCoach V2 - Customization Chat Component
 
 ### modals/
-- **AudioSettings.tsx** (358 lines) - VoiceCoach V2 - Audio Settings Component
+- **AudioSettings.tsx** (478 lines) - VoiceCoach V2 - Audio Settings Component
 - **DocumentSelectorModal.tsx** (248 lines) - VoiceCoach V2 - Document Selector Modal
 - **KnowledgeBaseAPIConfig.tsx** (249 lines) - VoiceCoach V2 - Knowledge Base API Configuration Component
 - **KnowledgeBaseModal.tsx** (598 lines) - VoiceCoach V2 - Knowledge Base Modal Component
 - **PhaseDetailsModal.tsx** (406 lines) - VoiceCoach V2 - Phase Details Modal Component
-- **SettingsModal.tsx** (737 lines) - VoiceCoach V2 - Settings Modal Component
+- **SettingsModal.tsx** (749 lines) - VoiceCoach V2 - Settings Modal Component
 - **VoskSettingsModal.tsx** (838 lines) - VoiceCoach V2 - Vosk Settings Modal
 
 ### settings/
@@ -106,7 +106,7 @@
 
 
 ### audio/
-- **DualVolumeMonitoringService.ts** (541 lines) - VoiceCoach V2 - Dual Volume Monitoring Service
+- **DualVolumeMonitoringService.ts** (605 lines) - VoiceCoach V2 - Dual Volume Monitoring Service
 - **VolumeMonitoringService.ts** (234 lines) - VoiceCoach V2 - Volume Monitoring Service
 
 ### chromadb/
@@ -129,7 +129,7 @@
 - **OllamaPromptService.ts** (480 lines) - VoiceCoach V2 - Centralized Ollama Prompt Service
 - **PatternMatchingLibrary.ts** (411 lines) - VoiceCoach V2 - Pattern Matching Library
 - **SalesStageDetector.ts** (182 lines) - VoiceCoach V2 - Sales Stage Detector
-- **SessionManagerService.ts** (1513 lines) - VoiceCoach V2 - Session Manager Service
+- **SessionManagerService.ts** (1599 lines) - VoiceCoach V2 - Session Manager Service
 - **ToolTemplateEngine.ts** (448 lines) - VoiceCoach V2 - Tool Template Engine
 - **ToolUsageTracker.ts** (468 lines) - VoiceCoach V2 - Tool Usage Tracker
 - **coaching-search-adapter.ts** (458 lines) - Coaching Search Adapter
@@ -180,7 +180,7 @@
 - **vosk-websocket-server-simple.py** (153 lines)
 
 ### vosk-websocket-server.py/
-- **vosk-websocket-server.py** (536 lines)
+- **vosk-websocket-server.py** (591 lines)
 
 ### websocket/
 - **simple-websocket-client.ts** (240 lines) - SIMPLE Native WebSocket Client - No Socket.IO bullshit
@@ -240,8 +240,8 @@
 
 ## 📊 Project Statistics
 
-- **Total Files Indexed:** 535
-- **Total Lines of Code:** 207,266
+- **Total Files Indexed:** 537
+- **Total Lines of Code:** 213,572
 - **Components:** 39
 - **Services:** 56
 - **Hooks:** 4

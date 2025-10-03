@@ -218,7 +218,7 @@ export const VoskSettingsModal: React.FC<VoskSettingsModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-slate-900 rounded-lg w-[800px] max-h-[600px] overflow-hidden border border-slate-700">
+      <div className="bg-slate-900 rounded-lg w-[800px] max-h-[750px] overflow-hidden border border-slate-700">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-700">
           <div className="flex items-center space-x-3">
@@ -344,7 +344,7 @@ export const VoskSettingsModal: React.FC<VoskSettingsModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-6 pb-12 overflow-y-auto max-h-[320px]">
+        <div className="p-6 pb-6 overflow-y-auto max-h-[400px]">
           {/* Silence Detection Tab */}
           {activeTab === 'silence' && (
             <div className="space-y-6">

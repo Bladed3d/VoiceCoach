@@ -11,6 +11,7 @@ import asyncio
 import json
 import os
 import sys
+import argparse
 from datetime import datetime
 from flask import Flask
 from flask_socketio import SocketIO, emit
@@ -26,25 +27,28 @@ import time
 print(f"[6000] VoiceCoach V2 WebSocket Transcription Server starting at {datetime.now()}")
 
 class VoskWebSocketServer:
-    def __init__(self, model_path=None, port=5000):
+    def __init__(self, model_path=None, port=5000, vosk_config=None):
         # LED Breadcrumb 6001: Initialize WebSocket server
         print(f"[6001] Initializing WebSocket server on port {port}")
-        
+
         # Set default model path
         if model_path is None:
             model_path = r"C:\Users\Administrator\Downloads\LLM\vosk-model-en-us-0.22-lgraph\vosk-model-en-us-0.22-lgraph"
-        
+
         self.model_path = model_path
         self.port = port
         self.audio_queue = queue.Queue()
         self.is_recording = False
         self.audio_device_validated = False
         self.default_device_info = None
-        
+
+        # Store Vosk configuration (from command-line args)
+        self.vosk_config = vosk_config or {}
+
         # Transcription buffering to prevent overwrites during brief pauses
         self.last_partial_text = ""
         self.last_partial_time = 0
-        self.partial_timeout = 2.0  # 2 seconds timeout for partial -> final conversion
+        self.partial_timeout = self.vosk_config.get('partial_timeout', 2.0)
         
         # Initialize Flask app with SocketIO
         self.app = Flask(__name__)
@@ -119,8 +123,8 @@ class VoskWebSocketServer:
             
             # Brief test recording (100ms)
             test_duration = 0.1  # 100ms
-            sample_rate = 16000
-            
+            sample_rate = self.vosk_config.get('sample_rate', 16000)
+
             with sd.InputStream(
                 samplerate=sample_rate,
                 channels=1,
@@ -164,13 +168,19 @@ class VoskWebSocketServer:
             
             print(f"[6002] Loading Vosk model from: {self.model_path}")
             self.model = Model(self.model_path)
-            
-            # Initialize recognizer for 16kHz
-            self.recognizer = KaldiRecognizer(self.model, 16000)
-            self.recognizer.SetWords(True)  # Clean output
-            self.recognizer.SetPartialWords(True)  # Enable word-level partial detection for better sentence boundaries
-            
-            print(f"[6002] Vosk model loaded successfully")
+
+            # Initialize recognizer with configured sample rate
+            sample_rate = self.vosk_config.get('sample_rate', 16000)
+            self.recognizer = KaldiRecognizer(self.model, sample_rate)
+
+            # Apply Vosk configuration from UI settings
+            set_words = self.vosk_config.get('set_words', True)
+            set_partial_words = self.vosk_config.get('set_partial_words', True)
+
+            self.recognizer.SetWords(set_words)
+            self.recognizer.SetPartialWords(set_partial_words)
+
+            print(f"[6002] Vosk model loaded successfully (sample_rate={sample_rate}, SetWords={set_words}, SetPartialWords={set_partial_words})")
             
         except Exception as e:
             print(f"[8002] Vosk initialization error: {e}")
@@ -340,9 +350,10 @@ class VoskWebSocketServer:
                     self.audio_queue.put(audio_data.tobytes())
             
             # Start audio stream with enhanced error handling
+            sample_rate = self.vosk_config.get('sample_rate', 16000)
             try:
                 with sd.RawInputStream(
-                    samplerate=16000,
+                    samplerate=sample_rate,
                     channels=1,
                     dtype=np.float32,
                     callback=audio_callback,
@@ -529,7 +540,52 @@ class VoskWebSocketServer:
 
 def main():
     """Main entry point"""
-    server = VoskWebSocketServer()
+    # Parse command-line arguments from Electron
+    parser = argparse.ArgumentParser(description='VoiceCoach V2 Vosk Transcription Server')
+    parser.add_argument('--partial-timeout', type=float, default=2.0, help='Partial to final timeout (seconds)')
+    parser.add_argument('--sentence-gap', type=float, default=0.5, help='Sentence gap threshold (seconds)')
+    parser.add_argument('--min-silence', type=float, default=0.5, help='Minimum trailing silence (seconds)')
+    parser.add_argument('--sample-rate', type=int, default=16000, help='Audio sample rate (Hz)')
+    parser.add_argument('--chunk-size', type=int, default=8000, help='Audio chunk size')
+    parser.add_argument('--mode', type=str, default='sentence', help='Transcription mode')
+    parser.add_argument('--min-phrase-words', type=int, default=3, help='Minimum phrase words')
+    parser.add_argument('--aggressive', action='store_true', help='Aggressive endpointing')
+    parser.add_argument('--enable-partials', action='store_true', help='Enable partial transcripts')
+    parser.add_argument('--enable-word-timings', action='store_true', help='Enable word timings')
+    parser.add_argument('--set-words', type=str, default='True', help='Vosk SetWords setting')
+    parser.add_argument('--set-partial-words', type=str, default='True', help='Vosk SetPartialWords setting')
+    parser.add_argument('--other-party-gain', type=int, default=100, help='Audio gain for other party (percentage)')
+
+    args = parser.parse_args()
+
+    # Convert string booleans to actual booleans
+    set_words = args.set_words.lower() in ('true', '1', 'yes')
+    set_partial_words = args.set_partial_words.lower() in ('true', '1', 'yes')
+
+    # Build config dictionary from parsed arguments
+    vosk_config = {
+        'partial_timeout': args.partial_timeout,
+        'sentence_gap': args.sentence_gap,
+        'min_silence': args.min_silence,
+        'sample_rate': args.sample_rate,
+        'chunk_size': args.chunk_size,
+        'mode': args.mode,
+        'min_phrase_words': args.min_phrase_words,
+        'aggressive': args.aggressive,
+        'enable_partials': args.enable_partials,
+        'enable_word_timings': args.enable_word_timings,
+        'set_words': set_words,
+        'set_partial_words': set_partial_words
+    }
+
+    print(f"[6000.1] Vosk configuration loaded from command-line arguments:")
+    print(f"[6000.2]   Sample Rate: {vosk_config['sample_rate']}Hz")
+    print(f"[6000.3]   SetWords: {vosk_config['set_words']}")
+    print(f"[6000.4]   SetPartialWords: {vosk_config['set_partial_words']}")
+    print(f"[6000.5]   Partial Timeout: {vosk_config['partial_timeout']}s")
+    print(f"[6000.6]   Chunk Size: {vosk_config['chunk_size']}")
+
+    server = VoskWebSocketServer(vosk_config=vosk_config)
     server.run()
 
 if __name__ == "__main__":
