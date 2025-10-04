@@ -21,6 +21,7 @@ export interface StageThreshold {
 export interface StageConfig {
   stageNumber: number;
   stageName: string;
+  targetStage?: number;  // Which stage keywords trigger advancement TO
   keywords: KeywordWeight;
   threshold: StageThreshold;
   timeWindowSec: number;    // Time window in seconds
@@ -48,12 +49,13 @@ export interface StageConfidence {
 }
 
 export interface ProgressionEvent {
-  type: 'advancement' | 'regression' | 'skip';
+  type: 'advancement' | 'regression' | 'skip' | 'completion';
   fromStage: number;
   toStage: number;
   confidence: number;
   evidence: KeywordHit[];
   recommendation?: string;
+  saleCompleted?: boolean;
 }
 
 export interface AdherenceResult {
@@ -67,125 +69,7 @@ export interface AdherenceResult {
 
 // ===== STAGE CONFIGURATION =====
 
-const STAGE_DETECTION_CONFIG: StageConfig[] = [
-  {
-    stageNumber: 1,
-    stageName: 'Rapport',
-    keywords: {
-      strong: ['tell me about', 'your goals', 'we can'],
-      moderate: ['experience', 'background', 'align', 'together'],
-      weak: ['introduce', 'start', 'begin', 'hello']
-    },
-    threshold: { score: 2, matches: 1 },
-    timeWindowSec: 45,
-    sentenceWindow: 15,
-    requiredElements: ['WE language', 'build rapport', 'ask about goals']
-  },
-  {
-    stageNumber: 2,
-    stageName: 'Problem Intro',
-    keywords: {
-      strong: ['frustrated', 'problem', 'struggling'],
-      moderate: ['challenge', 'pain', 'difficult', 'issue'],
-      weak: ['concern', 'worry', 'better']
-    },
-    threshold: { score: 2, matches: 1 },
-    timeWindowSec: 40,
-    sentenceWindow: 12,
-    requiredElements: ['identify pain', 'emotional impact', 'current state']
-  },
-  {
-    stageNumber: 3,
-    stageName: 'Solution Intro',
-    keywords: {
-      strong: ['Golf Coaching Package', '$6,000', 'program'],
-      moderate: ['package', 'investment', 'coaching', 'solution'],
-      weak: ['help', 'benefit', 'improve']
-    },
-    threshold: { score: 2, matches: 1 },
-    timeWindowSec: 30,
-    sentenceWindow: 10,
-    requiredElements: ['introduce solution', 'price mentioned', 'benefits outlined']
-  },
-  {
-    stageNumber: 4,
-    stageName: 'Discovery',
-    keywords: {
-      strong: ['what brought you', 'why now', 'tell me more'],
-      moderate: ['understand', 'explore', 'dig deeper'],
-      weak: ['explain', 'share', 'discuss']
-    },
-    threshold: { score: 2, matches: 1 },
-    timeWindowSec: 35,
-    sentenceWindow: 12,
-    requiredElements: ['deep questions', 'uncover needs', 'active listening']
-  },
-  {
-    stageNumber: 5,
-    stageName: 'Value Build',
-    keywords: {
-      strong: ['personalized', 'specifically for you', 'customized'],
-      moderate: ['benefit', 'value', 'results', 'achieve'],
-      weak: ['good', 'great', 'excellent']
-    },
-    threshold: { score: 2, matches: 1 },
-    timeWindowSec: 30,
-    sentenceWindow: 10,
-    requiredElements: ['demonstrate value', 'connect to goals', 'show ROI']
-  },
-  {
-    stageNumber: 6,
-    stageName: 'Objection Handling',
-    keywords: {
-      strong: ['I understand', 'that makes sense', 'let me address'],
-      moderate: ['consider', 'perspective', 'actually'],
-      weak: ['but', 'however', 'although']
-    },
-    threshold: { score: 2, matches: 1 },
-    timeWindowSec: 25,
-    sentenceWindow: 8,
-    requiredElements: ['acknowledge concern', 'reframe objection', 'provide evidence']
-  },
-  {
-    stageNumber: 7,
-    stageName: 'Close',
-    keywords: {
-      strong: ['let\'s get started', 'when can we begin', 'ready to move forward'],
-      moderate: ['commit', 'decision', 'choose', 'next step'],
-      weak: ['think about', 'consider']
-    },
-    threshold: { score: 2, matches: 1 },
-    timeWindowSec: 20,
-    sentenceWindow: 6,
-    requiredElements: ['assumptive close', 'commitment ask', 'next steps']
-  },
-  {
-    stageNumber: 8,
-    stageName: 'Post-Close',
-    keywords: {
-      strong: ['excited', 'looking forward', 'can\'t wait'],
-      moderate: ['next', 'onboarding', 'schedule'],
-      weak: ['great', 'perfect', 'wonderful']
-    },
-    threshold: { score: 2, matches: 1 },
-    timeWindowSec: 30,
-    sentenceWindow: 10,
-    requiredElements: ['confirm commitment', 'set expectations', 'next action']
-  },
-  {
-    stageNumber: 9,
-    stageName: 'Referral',
-    keywords: {
-      strong: ['anyone else', 'who do you know', 'referral'],
-      moderate: ['recommend', 'share', 'colleagues'],
-      weak: ['friends', 'family', 'others']
-    },
-    threshold: { score: 2, matches: 1 },
-    timeWindowSec: 25,
-    sentenceWindow: 8,
-    requiredElements: ['ask for referral', 'specific request', 'make it easy']
-  }
-];
+const DEFAULT_STAGE_CONFIG: StageConfig[] = []; // Empty - must load from script
 
 // ===== KEYWORD STAGE DETECTOR =====
 
@@ -195,83 +79,183 @@ export class KeywordStageDetector {
   private currentStage: number = 1;
   private currentSentenceIndex: number = 0;
   private stageTransitionHistory: ProgressionEvent[] = [];
-  private config: StageConfig[] = STAGE_DETECTION_CONFIG;
+  private config: StageConfig[] = []; // Start empty, must load from script
 
   constructor() {
     this.trail = new BreadcrumbTrail('KeywordStageDetector');
+    this.config = []; // Start empty, must call loadFromScript()
 
-    // LED 9500: Service initialized
     this.trail.light(9500, {
       operation: 'keyword_stage_detector_init',
-      totalStages: this.config.length,
+      totalStages: 0,
       timestamp: Date.now()
     });
 
-    console.log('🎯 KeywordStageDetector initialized with', this.config.length, 'stages');
+    console.log('🎯 KeywordStageDetector initialized - awaiting script load');
   }
 
   /**
    * Load keywords from a sales script JSON
-   * Looks for 'keywords' structure in the JSON stages
+   * detectionPhrases in each stage are keywords to advance TO THE NEXT stage
    */
-  async loadFromScript(scriptData: any): Promise<void> {
+  loadFromScript(scriptData: any): void {
+    // LED 9504: Function entry point
+    this.trail.light(9504, {
+      operation: 'loadFromScript_entry',
+      hasScriptData: !!scriptData,
+      hasStages: !!scriptData?.stages,
+      stageCount: scriptData?.stages?.length
+    });
+
+    console.log('🔧 KeywordStageDetector.loadFromScript() CALLED', {
+      hasScriptData: !!scriptData,
+      hasStages: !!scriptData?.stages,
+      stageCount: scriptData?.stages?.length,
+      scriptId: scriptData?.id,
+      scriptName: scriptData?.name
+    });
+
+    // LED 9506: About to enter try block
+    this.trail.light(9506, {
+      operation: 'entering_try_block'
+    });
+
     try {
       if (!scriptData || !scriptData.stages) {
         throw new Error('Invalid script data - missing stages');
       }
 
-      const newConfig: StageConfig[] = scriptData.stages.map((stage: any) => {
-        // If stage has 'keywords' structure (Golf-Coaching2.json format)
-        if (stage.keywords) {
-          return {
-            stageNumber: stage.number,
-            stageName: stage.name,
-            keywords: stage.keywords,
-            threshold: stage.threshold || { score: 2, matches: 1 },
-            timeWindowSec: stage.timeWindowSec || 30,
-            sentenceWindow: stage.sentenceWindow || 10,
-            requiredElements: stage.requiredElements || []
-          };
-        }
+      // LED 9507: Passed validation, starting map
+      this.trail.light(9507, {
+        operation: 'starting_stages_map',
+        stageCount: scriptData.stages.length
+      });
 
-        // Fallback: Use keyPhrases/detectionPhrases (golf-coaching.json format)
-        const allPhrases = [
-          ...(stage.keyPhrases || []),
-          ...(stage.detectionPhrases || [])
-        ];
+      // Build config: Stage N gets keywords from Stage N's OWN detectionPhrases
+      // When on Stage 1, saying Stage 1's phrases (completing Stage 1) advances you TO Stage 2
+      const newConfig: StageConfig[] = [];
 
-        return {
+      for (let i = 0; i < scriptData.stages.length; i++) {
+        const stage = scriptData.stages[i];
+
+        // Get keywords from THIS stage's detectionPhrases (phrases that indicate this stage is complete)
+        let phrases: string[] = stage.detectionPhrases || [];
+        // Last stage still has keywords (to detect completion), but nowhere to advance
+
+        // Treat ALL detectionPhrases as strong keywords (weight: 2)
+        // These are hand-picked by the user as critical stage transition indicators
+        const strong = phrases;
+        const moderate: string[] = [];
+        const weak: string[] = [];
+
+        newConfig.push({
           stageNumber: stage.number,
           stageName: stage.name,
+          targetStage: stage.number + 1, // Keywords trigger advancement TO next stage
           keywords: {
-            strong: allPhrases.slice(0, 3),
-            moderate: allPhrases.slice(3, 6),
-            weak: allPhrases.slice(6)
+            strong: strong.length > 0 ? strong : [],
+            moderate: moderate.length > 0 ? moderate : [],
+            weak: weak.length > 0 ? weak : []
           },
-          threshold: { score: 2, matches: 1 },
-          timeWindowSec: 30,
-          sentenceWindow: 10,
+          threshold: { score: 1, matches: 1 },
+          timeWindowSec: 60,
+          sentenceWindow: 20,
           requiredElements: []
-        };
+        });
+      }
+
+      // LED 9505: Map completed, about to assign config
+      this.trail.light(9505, {
+        operation: 'config_map_completed',
+        configLength: newConfig.length
       });
 
       this.config = newConfig;
 
-      // LED 9501: Config loaded from script
-      this.trail.light(9501, {
-        operation: 'keywords_loaded_from_script',
-        scriptId: scriptData.id,
-        scriptName: scriptData.name,
-        stageCount: newConfig.length,
-        timestamp: Date.now()
+      // LED 9508: Config assigned
+      this.trail.light(9508, {
+        operation: 'config_assigned',
+        configLength: this.config.length
       });
 
-      console.log(`✅ KeywordStageDetector loaded from script: ${scriptData.name} (${newConfig.length} stages)`);
+      this.trail.light(9511, {
+        operation: 'script_loaded',
+        stageCount: newConfig.length
+      });
+
+      console.log('✅ Loaded keywords from script:', scriptData.name);
+      console.log('📊 Stages configured:', newConfig.length);
+      newConfig.forEach(cfg => {
+        const totalKeywords = cfg.keywords.strong.length + cfg.keywords.moderate.length + cfg.keywords.weak.length;
+        console.log(`  Stage ${cfg.stageNumber}: ${cfg.stageName} - ${totalKeywords} keywords`);
+        if (cfg.keywords.strong.length > 0) {
+          console.log(`    Strong: ${cfg.keywords.strong.join(', ')}`);
+        }
+      });
+
     } catch (error) {
-      // LED 8500: Failed to load script
-      this.trail.fail(8500, error as Error);
+      this.trail.light(9502, {
+        operation: 'script_load_error',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
       console.error('❌ Failed to load keywords from script:', error);
+      throw error;
     }
+  }
+
+  /**
+   * Check if text fuzzy matches a keyword phrase
+   * Returns true if at least 60% of words match
+   */
+  private fuzzyMatchPhrase(text: string, phrase: string): boolean {
+    // First check exact substring match (backwards compatibility)
+    if (text.includes(phrase)) {
+      return true;
+    }
+
+    // Split phrases into words, removing common filler words
+    const fillerWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'so', 'to', 'of', 'in', 'on', 'at', 'for']);
+
+    const getSignificantWords = (str: string) => {
+      return str.toLowerCase()
+        .split(/\s+/)
+        .filter(word => word.length > 2 && !fillerWords.has(word));
+    };
+
+    const textWords = getSignificantWords(text);
+    const phraseWords = getSignificantWords(phrase);
+
+    // If phrase has no significant words, fall back to exact match
+    if (phraseWords.length === 0) {
+      return false;
+    }
+
+    // Count how many phrase words appear in text
+    let matchCount = 0;
+    for (const phraseWord of phraseWords) {
+      // Check if any text word contains the phrase word (partial match)
+      if (textWords.some(textWord => textWord.includes(phraseWord) || phraseWord.includes(textWord))) {
+        matchCount++;
+      }
+    }
+
+    // Require at least 60% word overlap
+    const matchRatio = matchCount / phraseWords.length;
+    const fuzzyMatch = matchRatio >= 0.6;
+
+    // Log successful fuzzy matches
+    if (fuzzyMatch) {
+      this.trail.light(7240, {
+        operation: 'fuzzy_match_success',
+        transcript: text.substring(0, 50) + '...',
+        keyword: phrase,
+        wordOverlap: matchRatio,
+        matchedWords: matchCount,
+        totalWords: phraseWords.length
+      });
+    }
+
+    return fuzzyMatch;
   }
 
   /**
@@ -283,9 +267,27 @@ export class KeywordStageDetector {
       return null;
     }
 
+    // LED 9520: Processing transcript
+    this.trail.light(9520, {
+      operation: 'processTranscript_called',
+      textLength: text.length,
+      currentStage: this.currentStage,
+      configStages: this.config.length,
+      isOnStage9: this.currentStage === 9,
+      totalStages: this.config.length
+    });
+
+    console.log('🔍 Processing transcript:', text.substring(0, 50) + '...');
+    console.log('📍 Current stage:', this.currentStage, '/ Total:', this.config.length);
+
+    if (this.currentStage === 9) {
+      console.log('⭐ ON STAGE 9 - READY FOR COMPLETION!');
+    }
+
     this.currentSentenceIndex++;
     const textLower = text.toLowerCase();
     let keywordHits: KeywordHit[] = [];
+    let fuzzyMatchOccurred = false;
 
     // CRITICAL: Only check current stage and future stages (prevent false regressions)
     // Exception: Allow regression only if explicitly needed (commented out for now)
@@ -294,92 +296,171 @@ export class KeywordStageDetector {
       if (stageConfig.stageNumber < this.currentStage) {
         return;
       }
+
+      // LED 9521: Checking stage for keywords
+      this.trail.light(9521, {
+        operation: 'checking_stage_keywords',
+        stage: stageConfig.stageNumber,
+        strongCount: stageConfig.keywords.strong.length,
+        moderateCount: stageConfig.keywords.moderate.length,
+        weakCount: stageConfig.keywords.weak.length
+      });
+
       // Check strong keywords (weight: 2)
       stageConfig.keywords.strong.forEach(keyword => {
-        if (textLower.includes(keyword.toLowerCase())) {
+        const isMatch = this.fuzzyMatchPhrase(textLower, keyword.toLowerCase());
+        const isFuzzy = isMatch && !textLower.includes(keyword.toLowerCase());
+
+        if (isMatch) {
           const hit: KeywordHit = {
             keyword,
             timestamp: Date.now(),
             sentenceIndex: this.currentSentenceIndex,
-            stageNumber: stageConfig.stageNumber,
+            stageNumber: stageConfig.targetStage || stageConfig.stageNumber + 1,
             weight: 2,
             transcriptText: text
           };
           keywordHits.push(hit);
           this.keywordHistory.push(hit);
 
+          if (isFuzzy) {
+            fuzzyMatchOccurred = true;
+            // LED 7240: Fuzzy keyword match detected
+            this.trail.light(7240, {
+              operation: 'fuzzy_keyword_match',
+              keyword,
+              transcript: text,
+              stage: hit.stageNumber,
+              weight: 2,
+              matchType: 'fuzzy'
+            });
+          }
+
           // LED 9510: Keyword hit detected
           this.trail.light(9510, {
             operation: 'keyword_hit',
             keyword,
-            stage: stageConfig.stageNumber,
+            stage: hit.stageNumber,
             currentStage: this.currentStage,
             weight: 2,
-            isProgression: stageConfig.stageNumber > this.currentStage,
-            isRegression: stageConfig.stageNumber < this.currentStage,
-            isFuture: stageConfig.stageNumber > this.currentStage
+            isProgression: hit.stageNumber > this.currentStage,
+            isRegression: hit.stageNumber < this.currentStage,
+            isFuture: hit.stageNumber > this.currentStage,
+            matchType: isFuzzy ? 'fuzzy' : 'exact'
           });
         }
       });
 
       // Check moderate keywords (weight: 1)
       stageConfig.keywords.moderate.forEach(keyword => {
-        if (textLower.includes(keyword.toLowerCase())) {
+        const isMatch = this.fuzzyMatchPhrase(textLower, keyword.toLowerCase());
+        const isFuzzy = isMatch && !textLower.includes(keyword.toLowerCase());
+
+        if (isMatch) {
           const hit: KeywordHit = {
             keyword,
             timestamp: Date.now(),
             sentenceIndex: this.currentSentenceIndex,
-            stageNumber: stageConfig.stageNumber,
+            stageNumber: stageConfig.targetStage || stageConfig.stageNumber + 1,
             weight: 1,
             transcriptText: text
           };
           keywordHits.push(hit);
           this.keywordHistory.push(hit);
 
+          if (isFuzzy) {
+            fuzzyMatchOccurred = true;
+            // LED 7241: Fuzzy moderate keyword match
+            this.trail.light(7241, {
+              operation: 'fuzzy_keyword_match_moderate',
+              keyword,
+              transcript: text,
+              stage: hit.stageNumber,
+              weight: 1
+            });
+          }
+
           // LED 9510: Keyword hit detected
           this.trail.light(9510, {
             operation: 'keyword_hit',
             keyword,
-            stage: stageConfig.stageNumber,
+            stage: hit.stageNumber,
             currentStage: this.currentStage,
             weight: 1,
-            isProgression: stageConfig.stageNumber > this.currentStage,
-            isRegression: stageConfig.stageNumber < this.currentStage
+            isProgression: hit.stageNumber > this.currentStage,
+            isRegression: hit.stageNumber < this.currentStage,
+            matchType: isFuzzy ? 'fuzzy' : 'exact'
           });
         }
       });
 
       // Check weak keywords (weight: 0.5)
       stageConfig.keywords.weak.forEach(keyword => {
-        if (textLower.includes(keyword.toLowerCase())) {
+        const isMatch = this.fuzzyMatchPhrase(textLower, keyword.toLowerCase());
+        const isFuzzy = isMatch && !textLower.includes(keyword.toLowerCase());
+
+        if (isMatch) {
           const hit: KeywordHit = {
             keyword,
             timestamp: Date.now(),
             sentenceIndex: this.currentSentenceIndex,
-            stageNumber: stageConfig.stageNumber,
+            stageNumber: stageConfig.targetStage || stageConfig.stageNumber + 1,
             weight: 0.5,
             transcriptText: text
           };
           keywordHits.push(hit);
           this.keywordHistory.push(hit);
 
+          if (isFuzzy) {
+            fuzzyMatchOccurred = true;
+            // LED 7242: Fuzzy weak keyword match (sampled)
+            if (Math.random() < 0.3) {
+              this.trail.light(7242, {
+                operation: 'fuzzy_keyword_match_weak',
+                keyword,
+                transcript: text,
+                stage: hit.stageNumber,
+                weight: 0.5
+              });
+            }
+          }
+
           // LED 9510: Keyword hit detected (only log moderate/strong for noise reduction)
           if (Math.random() < 0.3) {  // 30% sampling for weak keywords
             this.trail.light(9510, {
               operation: 'keyword_hit',
               keyword,
-              stage: stageConfig.stageNumber,
+              stage: hit.stageNumber,
               currentStage: this.currentStage,
-              weight: 0.5
+              weight: 0.5,
+              matchType: isFuzzy ? 'fuzzy' : 'exact'
             });
           }
         }
       });
     });
 
+    // Log summary if fuzzy matching occurred
+    if (fuzzyMatchOccurred) {
+      // LED 7243: Fuzzy matching summary
+      this.trail.light(7243, {
+        operation: 'fuzzy_matching_summary',
+        totalHits: keywordHits.length,
+        stages: [...new Set(keywordHits.map(h => h.stageNumber))],
+        transcriptSnippet: text.substring(0, 100)
+      });
+    }
+
     // LAYER 2: Evaluate stage confidence
     if (keywordHits.length > 0) {
-      return this.evaluateStageConfidence();
+      console.log(`✅ Found ${keywordHits.length} keyword matches`);
+      const result = this.evaluateStageConfidence();
+      if (result) {
+        console.log(`🎯 Stage match found! Stage ${result.stage} with confidence ${result.confidence.toFixed(1)}%`);
+      }
+      return result;
+    } else {
+      console.log('❌ No keyword matches in transcript');
     }
 
     return null;
@@ -439,6 +520,47 @@ export class KeywordStageDetector {
 
     // Check if this would trigger a stage change
     if (highestConfidence.stage !== this.currentStage && highestConfidence.confidence >= 60) {
+      // Check if we're on the last stage (trying to advance beyond last stage means completion)
+      const isLastStage = this.currentStage === this.config.length;
+      const isCompletionAttempt = highestConfidence.stage > this.config.length;
+
+      console.log('🔍 STAGE CHANGE DETECTED:', {
+        currentStage: this.currentStage,
+        targetStage: highestConfidence.stage,
+        isLastStage,
+        isCompletionAttempt,
+        totalStages: this.config.length
+      });
+
+      if (isLastStage || isCompletionAttempt) {
+        // SALE COMPLETED! 🎉
+        // LED 9525: Sale completion detected
+        this.trail.light(9525, {
+          operation: 'sale_completed',
+          finalStage: this.currentStage,
+          confidence: Math.round(highestConfidence.confidence),
+          score: highestConfidence.score,
+          matchedKeywords: highestConfidence.matchedKeywords,
+          celebrationTriggered: true
+        });
+
+        // Record completion event
+        const event: ProgressionEvent = {
+          type: 'completion',
+          fromStage: this.currentStage,
+          toStage: this.currentStage, // Stay on last stage
+          confidence: highestConfidence.confidence,
+          evidence: this.keywordHistory.filter(h => h.stageNumber === this.currentStage).slice(-5),
+          saleCompleted: true,
+          recommendation: '🎉 SALE COMPLETED! Congratulations!'
+        };
+        this.stageTransitionHistory.push(event);
+
+        console.log('🎉🎉🎉 SALE COMPLETED! 🎉🎉🎉');
+
+        return highestConfidence;
+      }
+
       // LED 9520: Stage advancement threshold reached
       this.trail.light(9520, {
         operation: 'stage_advancement_confirmed',
@@ -589,6 +711,14 @@ export class KeywordStageDetector {
    */
   getProgressionHistory(): ProgressionEvent[] {
     return this.stageTransitionHistory;
+  }
+
+  /**
+   * Check if last event was a sale completion
+   */
+  getLastCompletionEvent(): ProgressionEvent | null {
+    const lastEvent = this.stageTransitionHistory[this.stageTransitionHistory.length - 1];
+    return (lastEvent && lastEvent.type === 'completion') ? lastEvent : null;
   }
 
   /**

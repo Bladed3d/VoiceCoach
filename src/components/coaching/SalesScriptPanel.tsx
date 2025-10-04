@@ -2,11 +2,11 @@
  * VoiceCoach V2 - Sales Script Panel Component
  * Displays script-aware coaching with progress tracking and stage guidance
  */
-import React, { useState, useEffect } from 'react';
-import { Book, CheckCircle, X, Target, AlertTriangle, TrendingUp, Lightbulb, Activity } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Book, CheckCircle, X, Target, AlertTriangle, TrendingUp, Lightbulb, Activity, ChevronDown, ChevronUp } from 'lucide-react';
 import { SalesScriptService, SalesScript, ScriptProgress } from '../../services/coaching/sales-script-service';
 import { StageDetectionResult, ConversationEntry } from '../../services/coaching/script-progress-tracker';
-import { KeywordStageDetector, StageConfidence, AdherenceResult } from '../../services/coaching/KeywordStageDetector';
+import { keywordStageDetector } from '../../services/coaching/KeywordStageDetector';
 import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
 import { SentimentData } from '../../types/coaching';
 import { ManualSentimentButtons } from './ManualSentimentButtons';
@@ -16,12 +16,16 @@ interface SalesScriptPanelProps {
   isRecording: boolean;
   conversationHistory?: Array<{ speaker: 'user' | 'prospect'; text: string; timestamp: string }>;
   currentSentiment?: SentimentData;
+  currentStage?: number; // Automatic stage from SessionManager
   onMarkUsed: (itemId: string) => void;
   onClearUsed: () => void;
   onCollapse?: () => void;
   onStageSelected?: (stageNumber: number) => void;
   onManualSentiment?: (score: -50 | -25 | 0 | 25 | 50, emoji: string) => void;
   manualSentiments?: Array<{ timestamp: number; score: number; transcriptIndex: number; emoji: string }>;
+  onScriptsLoaded?: (scripts: SalesScript[]) => void;
+  selectedScriptId?: string;
+  onScriptChange?: (scriptId: string) => void;
 }
 
 export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
@@ -29,12 +33,16 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
   isRecording,
   conversationHistory: rawConversationHistory = [],
   currentSentiment,
+  currentStage,
   onMarkUsed: _onMarkUsed,
   onClearUsed: _onClearUsed,
   onCollapse,
   onStageSelected,
   onManualSentiment,
-  manualSentiments = []
+  manualSentiments = [],
+  onScriptsLoaded,
+  selectedScriptId,
+  onScriptChange
 }) => {
   // Convert conversation history format for script tracking
   const conversationHistory: ConversationEntry[] = rawConversationHistory.map(entry => ({
@@ -44,7 +52,7 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
   }));
   const [trail] = useState(() => new BreadcrumbTrail('SalesScriptPanel'));
   const [scriptService] = useState(() => new SalesScriptService());
-  const [keywordDetector] = useState(() => new KeywordStageDetector());
+  // Use singleton keywordStageDetector (imported above) instead of creating a new instance
   const [availableScripts, setAvailableScripts] = useState<SalesScript[]>([]);
   const [currentScript, setCurrentScript] = useState<SalesScript | null>(null);
   const [_progress, setProgress] = useState<ScriptProgress | null>(null);
@@ -53,14 +61,123 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
   const [selectedStage, setSelectedStage] = useState<number>(1);
   const [sentimentData, setSentimentData] = useState<Array<{timestamp: number, value: number}>>([]);
   const [lastProcessedIndex, setLastProcessedIndex] = useState<number>(-1);
+  const [expandedStages, setExpandedStages] = useState<Set<number>>(new Set([1])); // Auto-expand stage 1 initially
+  const [showFullScript, setShowFullScript] = useState<boolean>(false); // Toggle between sentiment and full script
+
+  // Refs for scrolling stages into view
+  const stageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const stageContainerRef = useRef<HTMLDivElement>(null);
 
   // Component mount LED
   useEffect(() => {
     trail.light(7200, {
       operation: 'sales_script_panel_mount',
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      codeVersion: '2025-10-04-v2' // Force cache bust
     });
   }, [trail]);
+
+  // Auto-update selected stage when SessionManager advances via keywords
+  // ONLY respond to currentStage changes (not selectedStage) to avoid interfering with manual clicks
+  useEffect(() => {
+    if (currentStage && currentStage !== selectedStage) {
+      console.log(`🎯 SalesScriptPanel: Auto-advancing to stage ${currentStage} (from ${selectedStage})`);
+      setSelectedStage(currentStage);
+
+      // Auto-expand the new stage FIRST
+      setExpandedStages(prev => new Set([...prev, currentStage]));
+
+      // Scroll AFTER expansion completes (wait for DOM to update)
+      setTimeout(() => {
+        const stageElement = stageRefs.current.get(currentStage);
+        const container = stageContainerRef.current;
+
+        if (stageElement && container) {
+          // Calculate where the stage currently is relative to container's viewport
+          const containerRect = container.getBoundingClientRect();
+          const stageRect = stageElement.getBoundingClientRect();
+          const relativePosition = stageRect.top - containerRect.top;
+
+          // Scroll by that amount to bring stage top to container viewport top
+          container.scrollTop = container.scrollTop + relativePosition;
+
+          trail.light(7253, {
+            operation: 'auto_scroll_executed',
+            stage: currentStage,
+            relativePosition,
+            newScrollTop: container.scrollTop
+          });
+        } else {
+          trail.light(7254, {
+            operation: 'auto_scroll_failed',
+            stage: currentStage,
+            reason: !stageElement ? 'no_element' : 'no_container'
+          });
+        }
+      }, 50); // Wait 50ms for expansion to render
+
+      trail.light(7251, {
+        operation: 'automatic_stage_advancement',
+        fromStage: selectedStage,
+        toStage: currentStage,
+        timestamp: Date.now()
+      });
+    }
+  }, [currentStage, trail]); // Removed selectedStage from deps to allow manual clicks
+
+  // Handle stage number click for instant selection
+  const handleStageNumberClick = (e: React.MouseEvent, stageNumber: number) => {
+    e.stopPropagation(); // Prevent triggering the expand/collapse
+
+    setSelectedStage(stageNumber);
+    onStageSelected?.(stageNumber);
+
+    // LED 7250: Stage number clicked for instant selection
+    trail.light(7250, {
+      operation: 'stage_number_clicked',
+      stageNumber,
+      previousStage: selectedStage
+    });
+
+    // Check if stage is already expanded
+    const wasExpanded = expandedStages.has(stageNumber);
+
+    // Expand the clicked stage first
+    setExpandedStages(prev => new Set([...prev, stageNumber]));
+
+    // If already expanded, scroll immediately. If not, wait for expansion to complete
+    const scrollDelay = wasExpanded ? 0 : 50;
+
+    setTimeout(() => {
+      const stageElement = stageRefs.current.get(stageNumber);
+      const container = stageContainerRef.current;
+
+      if (stageElement && container) {
+        // Calculate where the stage currently is relative to container's viewport
+        const containerRect = container.getBoundingClientRect();
+        const stageRect = stageElement.getBoundingClientRect();
+        const relativePosition = stageRect.top - containerRect.top;
+
+        // Scroll by that amount to bring stage top to container viewport top
+        container.scrollTop = container.scrollTop + relativePosition;
+
+        trail.light(7256, {
+          operation: 'manual_scroll_executed',
+          stage: stageNumber,
+          wasExpanded,
+          scrollDelay,
+          relativePosition,
+          newScrollTop: container.scrollTop
+        });
+      } else {
+        trail.light(7257, {
+          operation: 'manual_scroll_failed',
+          stage: stageNumber,
+          reason: !stageElement ? 'no_element' : 'no_container'
+        });
+      }
+    }, scrollDelay);
+  };
 
   // Initialize script service
   useEffect(() => {
@@ -72,26 +189,33 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
 
         const success = await scriptService.initialize();
         if (success) {
-          setAvailableScripts(scriptService.getAvailableScripts());
+          const scripts = scriptService.getAvailableScripts();
+          setAvailableScripts(scripts);
           setIsInitialized(true);
 
-          // Auto-select first script if available
-          const scripts = scriptService.getAvailableScripts();
-          if (scripts.length > 0) {
-            scriptService.setActiveScript(scripts[0].id);
+          // Notify parent of available scripts
+          onScriptsLoaded?.(scripts);
+
+          // Auto-select first script if available and not controlled
+          if (scripts.length > 0 && !selectedScriptId) {
+            const firstScriptId = scripts[0].id;
+            scriptService.setActiveScript(firstScriptId);
             const script = scriptService.getCurrentScript();
             setCurrentScript(script);
             setProgress(scriptService.getProgress());
 
-            // Load keywords from first script
+            // Load keywords
             if (script) {
-              await keywordDetector.loadFromScript(script);
+              await keywordStageDetector.loadFromScript(script);
             }
+
+            // Notify parent
+            onScriptChange?.(firstScriptId);
 
             trail.light(7202, {
               operation: 'script_service_initialized',
               scriptsAvailable: scripts.length,
-              activeScript: scripts[0].id
+              activeScript: firstScriptId
             });
           } else {
             trail.light(7203, {
@@ -122,13 +246,13 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
       // Process only new transcripts
       for (let i = lastProcessedIndex + 1; i < conversationHistory.length; i++) {
         const entry = conversationHistory[i];
-        const confidence = keywordDetector.processTranscript(entry.text, true);
+        const confidence = keywordStageDetector.processTranscript(entry.text, true);
 
         if (confidence) {
           // Convert to StageDetectionResult format
-          const currentStage = keywordDetector.getCurrentStage();
-          const adherence = keywordDetector.calculateAdherence(currentStage);
-          const progressHistory = keywordDetector.getProgressionHistory();
+          const currentStage = keywordStageDetector.getCurrentStage();
+          const adherence = keywordStageDetector.calculateAdherence(currentStage);
+          const progressHistory = keywordStageDetector.getProgressionHistory();
 
           const analysis: StageDetectionResult = {
             detectedStage: confidence.stage,
@@ -151,7 +275,7 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
       setLastProcessedIndex(conversationHistory.length - 1);
       setProgress(scriptService.getProgress());
     }
-  }, [conversationHistory, currentScript, keywordDetector, scriptService, trail, lastProcessedIndex]);
+  }, [conversationHistory, currentScript, scriptService, trail, lastProcessedIndex]);
 
   // Update sentiment graph when sentiment changes
   useEffect(() => {
@@ -184,29 +308,119 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
     }
   }, [currentSentiment, trail]);
 
-  const handleScriptChange = async (scriptId: string) => {
+  const handleScriptChange = useCallback(async (scriptId: string) => {
+    trail.light(7251, {
+      operation: 'handle_script_change_start',
+      scriptId
+    });
+
     const success = scriptService.setActiveScript(scriptId);
     if (success) {
       const script = scriptService.getCurrentScript();
       setCurrentScript(script);
       setProgress(scriptService.getProgress());
 
-      // Load keywords from the selected script
-      if (script) {
-        await keywordDetector.loadFromScript(script);
-      }
+      trail.light(7252, {
+        operation: 'script_retrieved',
+        hasScript: !!script,
+        scriptId: script?.id,
+        scriptName: script?.name
+      });
 
-      keywordDetector.reset();
+      // Reset detector state before loading new script
+      keywordStageDetector.reset();
       setStageAnalysis(null);
       setLastProcessedIndex(-1);
+
+      // Load keywords from the selected script
+      if (script) {
+        trail.light(7253, {
+          operation: 'before_load_from_script',
+          scriptId: script.id,
+          stageCount: script.stages?.length
+        });
+
+        await keywordStageDetector.loadFromScript(script);
+
+        trail.light(7254, {
+          operation: 'after_load_from_script_success',
+          scriptId: script.id
+        });
+      } else {
+        trail.light(7255, {
+          operation: 'script_is_null_cannot_load_keywords'
+        });
+      }
+
+      // Notify parent
+      onScriptChange?.(scriptId);
+    } else {
+      trail.fail(8255, new Error(`Failed to set active script: ${scriptId}`));
     }
+  }, [scriptService, trail, onScriptChange]);
+
+  // Respond to controlled selectedScriptId changes from parent
+  useEffect(() => {
+    trail.light(7248, {
+      operation: 'script_change_useEffect_triggered',
+      selectedScriptId,
+      currentScriptId: currentScript?.id,
+      isInitialized,
+      willChange: !!(selectedScriptId && currentScript?.id !== selectedScriptId && isInitialized)
+    });
+
+    // Only change script if scripts are loaded (isInitialized)
+    if (selectedScriptId && currentScript?.id !== selectedScriptId && isInitialized) {
+      // Async wrapper to properly await the script change
+      const changeScript = async () => {
+        await handleScriptChange(selectedScriptId);
+      };
+      changeScript();
+    }
+  }, [selectedScriptId, currentScript?.id, handleScriptChange, trail, isInitialized]);
+
+  // Auto-expand current stage when it changes
+  useEffect(() => {
+    if (selectedStage) {
+      setExpandedStages(prev => {
+        const newExpanded = new Set(prev);
+        newExpanded.add(selectedStage);
+        trail.light(7220, {
+          operation: 'stage_auto_expanded',
+          stageNumber: selectedStage,
+          expandedCount: newExpanded.size
+        });
+        return newExpanded;
+      });
+    }
+  }, [selectedStage, trail]);
+
+  // Toggle stage expansion with LED breadcrumbs
+  const toggleStageExpansion = (stageNumber: number) => {
+    setExpandedStages(prev => {
+      const newExpanded = new Set(prev);
+      const isExpanding = !newExpanded.has(stageNumber);
+
+      if (isExpanding) {
+        newExpanded.add(stageNumber);
+        trail.light(7221, {
+          operation: 'stage_manually_expanded',
+          stageNumber,
+          expandedCount: newExpanded.size
+        });
+      } else {
+        newExpanded.delete(stageNumber);
+        trail.light(7222, {
+          operation: 'stage_collapsed',
+          stageNumber,
+          expandedCount: newExpanded.size
+        });
+      }
+
+      return newExpanded;
+    });
   };
 
-  const getStageProgressColor = (completion: number) => {
-    if (completion >= 80) return 'text-green-400';
-    if (completion >= 50) return 'text-yellow-400';
-    return 'text-red-400';
-  };
 
   const getAdherenceColor = (score: number) => {
     if (score >= 80) return 'text-green-400';
@@ -250,38 +464,160 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
           </div>
         ) : (
           <>
-            {/* Script Selection */}
-            <div className="space-y-2">
-              <label className="text-xs text-slate-400 font-medium">Active Script</label>
-              <select
-                value={currentScript?.id || ''}
-                onChange={(e) => handleScriptChange(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm"
-              >
-                {availableScripts.map(script => (
-                  <option key={script.id} value={script.id}>
-                    {script.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             {currentScript && (
               <>
-                {/* Current Sentiment */}
+                {/* Sales Stage Guide - Expandable Vertical View - MOVED TO TOP */}
+                <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      <Target className="w-4 h-4 text-primary-400" />
+                      <h3 className="text-sm font-semibold text-slate-300">Sales Stage Guide</h3>
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      {currentScript.stages.length} stages
+                    </div>
+                  </div>
+
+                  {/* Scrollable stage list */}
+                  <div ref={stageContainerRef} className="space-y-2 max-h-96 overflow-y-auto pr-2 pb-80">
+                    {currentScript.stages.map((stage) => {
+                      const isExpanded = expandedStages.has(stage.number);
+                      const isCurrent = selectedStage === stage.number;
+
+                      return (
+                        <div
+                          key={stage.number}
+                          ref={(el) => {
+                            if (el) {
+                              stageRefs.current.set(stage.number, el);
+                            }
+                          }}
+                          className={`rounded border transition-all duration-200 ${
+                            isCurrent
+                              ? 'bg-primary-600/20 border-primary-500 shadow-lg'
+                              : 'bg-slate-800/50 border-slate-600/50'
+                          }`}
+                        >
+                          {/* Stage header - clickable to expand/collapse */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleStageExpansion(stage.number);
+                            }}
+                            className="w-full p-2 flex items-center justify-between hover:bg-slate-700/30 rounded-t transition-colors"
+                          >
+                            <div className="flex items-center space-x-2">
+                              {/* Clickable stage number for instant selection */}
+                              <span
+                                onClick={(e) => handleStageNumberClick(e, stage.number)}
+                                className={`font-bold text-sm cursor-pointer hover:underline ${
+                                  isCurrent ? 'text-primary-400 hover:text-primary-300' : 'text-slate-300 hover:text-primary-300'
+                                }`}
+                                title="Click to select this stage"
+                              >
+                                {stage.number}.
+                              </span>
+                              <span className={`font-bold text-sm ${
+                                isCurrent ? 'text-primary-400' : 'text-slate-300'
+                              }`}>
+                                {stage.name}
+                              </span>
+                            </div>
+                            {isExpanded ? (
+                              <ChevronUp className="w-4 h-4 text-slate-400" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-slate-400" />
+                            )}
+                          </button>
+
+                          {/* Expanded content */}
+                          {isExpanded && (
+                            <div className="px-3 pb-3 pt-1 space-y-2 border-t border-slate-700/50">
+                              {/* Objective - concise summary */}
+                              {stage.objective && (
+                                <div>
+                                  <div className="text-xs font-medium text-slate-400 mb-1">🎯 This Stage:</div>
+                                  <div className="text-xs text-slate-300">{stage.objective}</div>
+                                </div>
+                              )}
+
+                              {/* Detection phrases - keywords to advance to NEXT stage */}
+                              {stage.detectionPhrases && stage.detectionPhrases.length > 0 && (
+                                <div>
+                                  <div className="text-xs font-medium text-slate-400 mb-1">➡️ Say This to Advance:</div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {stage.detectionPhrases.map((phrase, idx) => (
+                                      <span
+                                        key={idx}
+                                        className="text-xs bg-blue-900/30 text-blue-300 px-1.5 py-0.5 rounded border border-blue-700/50"
+                                      >
+                                        "{phrase}"
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Click to set as active stage */}
+                              {!isCurrent && (
+                                <button
+                                  onClick={() => {
+                                    setSelectedStage(stage.number);
+                                    onStageSelected?.(stage.number);
+                                    trail.light(7223, {
+                                      operation: 'stage_manually_selected',
+                                      stageNumber: stage.number
+                                    });
+                                  }}
+                                  className="w-full text-xs text-primary-400 hover:text-primary-300 mt-2 py-1 border-t border-slate-700/50 pt-2"
+                                >
+                                  Set as active stage →
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-3 text-xs text-slate-500 text-center border-t border-slate-700 pt-2">
+                    Click chevron to expand • Current stage auto-expands
+                  </div>
+                </div>
+
+                {/* Current Sentiment / Full Script Toggle Panel */}
                 <div className="bg-slate-900/30 rounded-lg p-4 border border-slate-600/50">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-2">
                       <Activity className="w-4 h-4 text-green-400" />
-                      <h3 className="text-sm font-semibold text-slate-300">Current Sentiment</h3>
+                      <h3 className="text-sm font-semibold text-slate-300">
+                        {showFullScript ? 'Full Script' : 'Current Sentiment'}
+                      </h3>
                     </div>
-                    <div className="text-xs text-slate-400">
-                      Stage {selectedStage}: {currentScript.stages.find(s => s.number === selectedStage)?.name}
+                    <div className="flex items-center space-x-2">
+                      <div className="text-xs text-slate-400">
+                        Stage {selectedStage}: {currentScript.stages.find(s => s.number === selectedStage)?.name}
+                      </div>
+                      <button
+                        onClick={() => {
+                          setShowFullScript(!showFullScript);
+                          trail.light(7230, {
+                            operation: 'sentiment_fullscript_toggle',
+                            showingFullScript: !showFullScript
+                          });
+                        }}
+                        className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded text-slate-300 transition-colors"
+                      >
+                        {showFullScript ? 'Sentiment' : 'Full Script'}
+                      </button>
                     </div>
                   </div>
 
-                  {/* Sentiment Graph Area */}
-                  <div className="h-32 bg-slate-800/50 rounded border border-slate-600 p-3 relative">
+                  {!showFullScript ? (
+                    <>
+                      {/* Sentiment Graph Area */}
+                      <div className="h-32 bg-slate-800/50 rounded border border-slate-600 p-3 relative">
                     {/* Y-axis labels */}
                     <div className="absolute left-1 top-0 bottom-0 flex flex-col justify-between text-[10px] text-slate-500 py-3">
                       <div>+10</div>
@@ -380,12 +716,27 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
                     </div>
                   </div>
 
-                  {/* Manual Sentiment Buttons */}
-                  {onManualSentiment && (
-                    <ManualSentimentButtons
-                      onSentimentClick={onManualSentiment}
-                      disabled={!isRecording}
-                    />
+                      {/* Manual Sentiment Buttons */}
+                      {onManualSentiment && (
+                        <ManualSentimentButtons
+                          onSentimentClick={onManualSentiment}
+                          disabled={!isRecording}
+                        />
+                      )}
+                    </>
+                  ) : (
+                    /* Full Script Display - Scrollable */
+                    <div className="bg-slate-800/50 rounded border border-slate-600 p-4 max-h-64 overflow-y-auto">
+                      {currentScript.stages.find(s => s.number === selectedStage)?.fullScript ? (
+                        <div className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">
+                          {currentScript.stages.find(s => s.number === selectedStage)?.fullScript}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-slate-400 italic text-center py-8">
+                          No full script available for this stage
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -458,49 +809,12 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
                     </div>
                   </div>
                 )}
-
-                {/* Script Overview - Clickable Stage Buttons */}
-                <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-2">
-                      <Target className="w-4 h-4 text-primary-400" />
-                      <h3 className="text-sm font-semibold text-slate-300">Script Overview</h3>
-                    </div>
-                    <div className="text-xs text-slate-400">
-                      {currentScript.stages.length} stages
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2 text-xs">
-                    {currentScript.stages.map((stage) => (
-                      <button
-                        key={stage.number}
-                        onClick={() => {
-                          setSelectedStage(stage.number);
-                          onStageSelected?.(stage.number);
-                          console.log(`[STAGE ${stage.number} SELECTED] ${stage.name}`);
-                        }}
-                        className={`p-2 rounded text-center transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-400 ${
-                          selectedStage === stage.number
-                            ? 'bg-primary-600 text-white shadow-lg ring-2 ring-primary-400'
-                            : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600/50'
-                        }`}
-                        title={`Select Stage ${stage.number}: ${stage.name}`}
-                      >
-                        <div className="font-medium">{stage.number}</div>
-                        <div className="text-xs truncate">{stage.name}</div>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="mt-3 text-xs text-slate-500 text-center">
-                    Click stage buttons to guide coaching prompts
-                  </div>
-                </div>
               </>
             )}
           </>
         )}
       </div>
+
     </div>
   );
 };

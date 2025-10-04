@@ -3,22 +3,24 @@
  * Main UI orchestrator following strict modular architecture
  * < 200 lines (orchestration only, no business logic)
  */
-import React, { useState } from 'react';
-import { 
-  Play, 
-  Square, 
-  Layout, 
-  Clock, 
-  Target, 
-  Brain, 
-  Users, 
-  Zap, 
+import React, { useState, useEffect } from 'react';
+import {
+  Play,
+  Square,
+  Layout,
+  Clock,
+  Target,
+  Brain,
+  Users,
+  Zap,
   Award,
   ChevronDown,
   Settings,
   Database,
   BarChart3,
-  TrendingUp
+  TrendingUp,
+  Mic,
+  Headphones
 } from 'lucide-react';
 
 // Modular imports
@@ -27,6 +29,7 @@ import { useResizablePanels } from '../hooks/useResizablePanels';
 import { useSalesScript } from '../hooks/useSalesScript';
 // import { useMEFSTracking } from '../hooks/useMEFSTracking';
 import { DualVolumeIndicator } from './common/DualVolumeIndicator';
+import { SalesCelebration } from './common/SalesCelebration';
 import { CoachingPanel } from './coaching/CoachingPanel';
 import { SalesScriptPanel } from './coaching/SalesScriptPanel';
 import { TranscriptionPanel } from './coaching/TranscriptionPanel';
@@ -37,6 +40,7 @@ import DocumentSelectorModal from './modals/DocumentSelectorModal';
 // import MEFSIndicators from './coaching/MEFSIndicators';
 import { AudioCaptureSelector, AudioCaptureMode } from './coaching/AudioCaptureSelector';
 import { BreadcrumbTrail } from '../lib/breadcrumb-system';
+import { keywordStageDetector } from '../services/coaching/KeywordStageDetector';
 
 interface SplitViewCoachingProps {
   onNewDocument?: () => void;
@@ -74,6 +78,7 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showDocumentSelector, setShowDocumentSelector] = useState(false);
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
+  const [showCelebration, setShowCelebration] = useState(false);
   const [useChromaDB, setUseChromaDB] = useState(() => {
     // Load saved preference
     return localStorage.getItem('voicecoach-use-chromadb') === 'true';
@@ -82,6 +87,11 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
   const [audioCaptureMode, setAudioCaptureMode] = useState<AudioCaptureMode>('full-conversation');
   const [showViewDropdown, setShowViewDropdown] = useState(false);
   const [currentScriptStage, setCurrentScriptStage] = useState<number>(1);
+  const [availableScripts, setAvailableScripts] = useState<any[]>([]);
+  const [selectedScriptId, setSelectedScriptId] = useState<string>(() => {
+    // Load saved script selection from localStorage
+    return localStorage.getItem('voicecoach_selected_script') || '';
+  });
   
   // Model selection state - synchronized with Settings
   const [availableModels, setAvailableModels] = useState<any[]>([]);
@@ -100,7 +110,14 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
   });
   const [showModelDropdown, setShowModelDropdown] = useState(false);
   const [modelLoading, setModelLoading] = useState(false);
-  
+
+  // Save selected script to localStorage whenever it changes
+  useEffect(() => {
+    if (selectedScriptId) {
+      localStorage.setItem('voicecoach_selected_script', selectedScriptId);
+    }
+  }, [selectedScriptId]);
+
   // MEFS tracking integration - process conversation updates (disabled - causing crashes)
   // React.useEffect(() => {
   //   try {
@@ -291,7 +308,32 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
     
     loadCachedModels();
   }, []);
-  
+
+  // Check for sale completion and trigger celebration
+  React.useEffect(() => {
+    const checkForSaleCompletion = () => {
+      const completionEvent = keywordStageDetector.getLastCompletionEvent();
+
+      if (completionEvent && completionEvent.saleCompleted && !showCelebration) {
+        trail.light(7402, {
+          operation: 'sale_completion_detected',
+          finalStage: completionEvent.fromStage,
+          confidence: completionEvent.confidence,
+          timestamp: Date.now()
+        });
+
+        // Trigger celebration!
+        setShowCelebration(true);
+      }
+    };
+
+    // Check every 500ms during recording
+    if (sessionState?.isRecording) {
+      const interval = setInterval(checkForSaleCompletion, 500);
+      return () => clearInterval(interval);
+    }
+  }, [sessionState?.isRecording, showCelebration, trail]);
+
   // Handle model selection changes - sync with Settings
   const handleModelChange = async (modelName: string) => {
     trail.light(7122, {
@@ -700,24 +742,24 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
           </div>
 
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-1 text-sm">
-              <div className={`w-2 h-2 rounded-full ${
-                sessionState?.ollamaStatus === 'Connected' || sessionState?.ollamaStatus === 'Ready'
-                  ? 'bg-green-400'
-                  : sessionState?.ollamaStatus === 'Disconnected'
-                    ? 'bg-red-400'
-                    : 'bg-yellow-400'
-              }`}></div>
-              <span className={`${
-                sessionState?.ollamaStatus === 'Connected' || sessionState?.ollamaStatus === 'Ready'
-                  ? 'text-green-400'
-                  : sessionState?.ollamaStatus === 'Disconnected'
-                    ? 'text-red-400'
-                    : 'text-yellow-400'
-              }`}>
-                Ollama: {sessionState?.ollamaStatus || 'Unknown'}
-              </span>
-            </div>
+            {/* Active Script Dropdown */}
+            {availableScripts.length > 0 && (
+              <div className="flex items-center space-x-2">
+                <label className="text-xs text-slate-400">Active Script:</label>
+                <select
+                  value={selectedScriptId}
+                  onChange={(e) => setSelectedScriptId(e.target.value)}
+                  className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm text-white"
+                >
+                  {availableScripts.map((script: any) => (
+                    <option key={script.id} value={script.id}>
+                      {script.name}{script.filename ? ` (${script.filename})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <button
               onClick={() => {
                 trail.light(7206, {
@@ -775,17 +817,6 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
             </div>
           </div>
         </div>
-        
-        {/* Volume Meter Component */}
-        {isRecording && (
-          <div className="mt-4">
-            <DualVolumeIndicator
-              micVolumeState={micVolumeState || volumeState || { level: 0, isMonitoring: false, status: 'silent' }}
-              tabVolumeState={tabVolumeState || { level: 0, isMonitoring: false, status: 'silent' }}
-              captureMode={audioCaptureMode}
-            />
-          </div>
-        )}
 
         {/* MEFS Alignment Indicators - Temporarily Disabled for Cleanup */}
         {/* <div className="mt-4">
@@ -801,31 +832,81 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
       {/* Metrics Dashboard */}
       <div className="bg-slate-900 px-6 pb-4">
         <div className="metrics-grid">
-          <div className="glass-panel p-3">
-            <div className="flex items-center space-x-2">
-              <Clock className="w-4 h-4 text-primary-400" />
-              <div>
-                <div className="text-xs text-slate-400">Session</div>
-                <div className="text-sm font-semibold">{formatDuration(sessionData.duration)}</div>
+          {/* Audio Levels - Inline with bars and status */}
+          <div className="glass-panel p-2 col-span-2">
+            <div className="flex flex-col space-y-2">
+              {/* Microphone */}
+              <div className="flex items-center space-x-2">
+                <Mic className="w-3 h-3 text-primary-400" />
+                <span className="text-xs text-slate-400 min-w-[60px]">Your Mic:</span>
+                <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                  <div
+                    className={`h-full transition-all duration-100 ${
+                      (micVolumeState?.level || 0) > 20 ? 'bg-green-400' :
+                      (micVolumeState?.level || 0) > 5 ? 'bg-yellow-400' :
+                      'bg-red-400'
+                    }`}
+                    style={{ width: `${Math.min(micVolumeState?.level || 0, 100)}%` }}
+                  />
+                </div>
+                <span className="text-xs font-mono text-slate-300 min-w-[2.5rem]">
+                  {micVolumeState?.level || 0}%
+                </span>
+                <span className={`text-xs ${
+                  (micVolumeState?.level || 0) > 5 ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  {micVolumeState?.status || 'Silent'}
+                </span>
               </div>
+
+              {/* Other Party - only in full conversation mode */}
+              {audioCaptureMode === 'full-conversation' && (
+                <div className="flex items-center space-x-2">
+                  <Headphones className="w-3 h-3 text-cyan-400" />
+                  <span className="text-xs text-slate-400 min-w-[60px]">Other Party:</span>
+                  <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                    <div
+                      className={`h-full transition-all duration-100 ${
+                        tabVolumeState?.isMonitoring ? (
+                          (tabVolumeState?.level || 0) > 20 ? 'bg-cyan-400' :
+                          (tabVolumeState?.level || 0) > 5 ? 'bg-blue-400' :
+                          'bg-slate-600'
+                        ) : 'bg-slate-700'
+                      }`}
+                      style={{ width: tabVolumeState?.isMonitoring ? `${Math.min(tabVolumeState?.level || 0, 100)}%` : '0%' }}
+                    />
+                  </div>
+                  <span className="text-xs font-mono text-slate-300 min-w-[2.5rem]">
+                    {tabVolumeState?.isMonitoring ? `${tabVolumeState?.level || 0}%` : 'N/A'}
+                  </span>
+                  <span className={`text-xs ${
+                    tabVolumeState?.isMonitoring ? 'text-cyan-400' : 'text-red-400'
+                  }`}>
+                    {tabVolumeState?.status || 'No Signal'}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
-          <div className="glass-panel p-3">
-            <div className="flex items-center space-x-2">
-              <Target className="w-4 h-4 text-green-400" />
-              <div>
-                <div className="text-xs text-slate-400">Stage</div>
-                <div className="text-sm font-semibold">{sessionData.stage}</div>
+          {/* Compact Session - 50% width */}
+          <div className="glass-panel p-2">
+            <div className="flex flex-col items-center">
+              <div className="flex items-center space-x-1 mb-1">
+                <Clock className="w-3 h-3 text-primary-400" />
+                <span className="text-xs text-slate-400">Session</span>
               </div>
+              <div className="text-sm font-semibold">{formatDuration(sessionData.duration)}</div>
             </div>
           </div>
-          <div className="glass-panel p-3">
-            <div className="flex items-center space-x-2">
-              <Brain className="w-4 h-4 text-yellow-400" />
-              <div>
-                <div className="text-xs text-slate-400">Prompts</div>
-                <div className="text-sm font-semibold">{sessionData.prompts}</div>
+
+          {/* Compact Prompts - 50% width */}
+          <div className="glass-panel p-2">
+            <div className="flex flex-col items-center">
+              <div className="flex items-center space-x-1 mb-1">
+                <Brain className="w-3 h-3 text-yellow-400" />
+                <span className="text-xs text-slate-400">Prompts</span>
               </div>
+              <div className="text-sm font-semibold">{sessionData.prompts}</div>
             </div>
           </div>
           <div className="glass-panel p-3">
@@ -843,15 +924,6 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
               <div>
                 <div className="text-xs text-slate-400">Response</div>
                 <div className="text-sm font-semibold">{sessionData.responseTime}</div>
-              </div>
-            </div>
-          </div>
-          <div className="glass-panel p-3">
-            <div className="flex items-center space-x-2">
-              <Award className="w-4 h-4 text-purple-400" />
-              <div>
-                <div className="text-xs text-slate-400">Effectiveness</div>
-                <div className="text-sm font-semibold">{sessionData.effectiveness}%</div>
               </div>
             </div>
           </div>
@@ -906,6 +978,7 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
                 isRecording={isRecording}
                 conversationHistory={conversationHistory}
                 currentSentiment={sessionState?.currentSentiment}
+                currentStage={sessionState?.currentStage}
                 onMarkUsed={markItemUsed}
                 onClearUsed={clearUsedItems}
                 onCollapse={toggleScriptPanel}
@@ -917,6 +990,24 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
                   }
                 }}
                 manualSentiments={sessionState?.manualSentiments || []}
+                onScriptsLoaded={(scripts) => {
+                  setAvailableScripts(scripts);
+                  if (scripts.length > 0) {
+                    // If we have a saved script, verify it still exists
+                    if (selectedScriptId) {
+                      const scriptExists = scripts.some(s => s.id === selectedScriptId);
+                      if (!scriptExists) {
+                        // Saved script no longer exists, default to first script
+                        setSelectedScriptId(scripts[0].id);
+                      }
+                    } else {
+                      // No saved script, default to first script
+                      setSelectedScriptId(scripts[0].id);
+                    }
+                  }
+                }}
+                selectedScriptId={selectedScriptId}
+                onScriptChange={setSelectedScriptId}
               />
             </div>
           )
@@ -1012,6 +1103,19 @@ const SplitViewCoaching: React.FC<SplitViewCoachingProps> = () => {
           localStorage.setItem('voicecoach-selected-documents', JSON.stringify(docs));
         }}
         currentSelection={selectedDocuments}
+      />
+
+      {/* Sales Celebration - Triggers on stage 9 completion */}
+      <SalesCelebration
+        show={showCelebration}
+        duration={5000}
+        onComplete={() => {
+          trail.light(7403, {
+            operation: 'celebration_dismissed',
+            timestamp: Date.now()
+          });
+          setShowCelebration(false);
+        }}
       />
     </div>
   );
