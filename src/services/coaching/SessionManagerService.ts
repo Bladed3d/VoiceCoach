@@ -23,6 +23,7 @@ import { LiveCoachingManager } from './live-coaching-manager';
 import { conversationAnalyzer } from './analyzers/ConversationAnalyzer';
 import { SemanticSearchResult } from '../../types/chromadb';
 import { SentimentAnalyzer, SentimentAnalysis } from './sentiment-analyzer';
+import { callRecordingService } from './CallRecordingService';
 
 export class SessionManagerService {
   private trail: BreadcrumbTrail;
@@ -825,7 +826,24 @@ export class SessionManagerService {
         
         // Start session timer
         this.startSessionTimer();
-        
+
+        // Start call recording
+        const voskConfig = await (window as any).electronAPI?.loadSettings?.('vosk_config');
+
+        // Load LED recording mode from settings
+        const savedSettings = localStorage.getItem('voicecoach-settings');
+        const recordAllLEDs = savedSettings ? JSON.parse(savedSettings).recordAllLEDs === true : false;
+        callRecordingService.setRecordAllLEDs(recordAllLEDs);
+
+        callRecordingService.startRecording({
+          captureMode,
+          documentsSelected: selectedDocuments,
+          instructionFile: ollamaPromptService.getInstructionFile(),
+          ragFile: ollamaPromptService.getRagFile(),
+          ollamaModel: getSelectedModel(),
+          voskSettings: voskConfig || {}
+        });
+
         // Update session state
         this.updateSessionState({
           isRecording: true,
@@ -915,7 +933,10 @@ export class SessionManagerService {
       
       // Stop volume monitoring
       this.volumeService.stopMonitoring();
-      
+
+      // Save call recording
+      await callRecordingService.stopRecording();
+
       // Stop WebSocket transcription
       this.wsClient.stopTranscription();
       
@@ -1200,6 +1221,12 @@ export class SessionManagerService {
           captureMode: this.sessionState.captureMode,
           timestamp: Date.now()
         });
+
+        // Capture transcript in call recording
+        callRecordingService.captureTranscript(
+          newTranscription,
+          [6300, 6320] // LED range for transcript operations
+        );
 
         this.updateSessionState({
           transcriptions: [...this.sessionState.transcriptions, newTranscription],
@@ -1594,6 +1621,9 @@ export class SessionManagerService {
     this.currentStage = stageNumber;
     this.promptCounter = 0; // Reset prompt counter when stage changes
     this.currentPromptNumber = 0; // Reset current prompt number for transcripts
+
+    // Capture stage change
+    callRecordingService.captureStageChange(stageNumber);
   }
 
 }

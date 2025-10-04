@@ -5,7 +5,8 @@
 import React, { useState, useEffect } from 'react';
 import { Book, CheckCircle, X, Target, AlertTriangle, TrendingUp, Lightbulb, Activity } from 'lucide-react';
 import { SalesScriptService, SalesScript, ScriptProgress } from '../../services/coaching/sales-script-service';
-import { ScriptProgressTracker, StageDetectionResult, ConversationEntry } from '../../services/coaching/script-progress-tracker';
+import { StageDetectionResult, ConversationEntry } from '../../services/coaching/script-progress-tracker';
+import { KeywordStageDetector, StageConfidence, AdherenceResult } from '../../services/coaching/KeywordStageDetector';
 import { BreadcrumbTrail } from '../../lib/breadcrumb-system';
 import { SentimentData } from '../../types/coaching';
 import { ManualSentimentButtons } from './ManualSentimentButtons';
@@ -43,7 +44,7 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
   }));
   const [trail] = useState(() => new BreadcrumbTrail('SalesScriptPanel'));
   const [scriptService] = useState(() => new SalesScriptService());
-  const [progressTracker] = useState(() => new ScriptProgressTracker(scriptService));
+  const [keywordDetector] = useState(() => new KeywordStageDetector());
   const [availableScripts, setAvailableScripts] = useState<SalesScript[]>([]);
   const [currentScript, setCurrentScript] = useState<SalesScript | null>(null);
   const [_progress, setProgress] = useState<ScriptProgress | null>(null);
@@ -51,6 +52,7 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
   const [isInitialized, setIsInitialized] = useState(false);
   const [selectedStage, setSelectedStage] = useState<number>(1);
   const [sentimentData, setSentimentData] = useState<Array<{timestamp: number, value: number}>>([]);
+  const [lastProcessedIndex, setLastProcessedIndex] = useState<number>(-1);
 
   // Component mount LED
   useEffect(() => {
@@ -77,8 +79,14 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
           const scripts = scriptService.getAvailableScripts();
           if (scripts.length > 0) {
             scriptService.setActiveScript(scripts[0].id);
-            setCurrentScript(scriptService.getCurrentScript());
+            const script = scriptService.getCurrentScript();
+            setCurrentScript(script);
             setProgress(scriptService.getProgress());
+
+            // Load keywords from first script
+            if (script) {
+              await keywordDetector.loadFromScript(script);
+            }
 
             trail.light(7202, {
               operation: 'script_service_initialized',
@@ -101,20 +109,49 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
     initializeService();
   }, [scriptService, trail]);
 
-  // Analyze conversation progress when history changes
+  // Process new transcripts through keyword detector
   useEffect(() => {
     trail.light(7210, {
       operation: 'conversation_history_update',
       historyLength: conversationHistory.length,
-      hasCurrentScript: !!currentScript
+      hasCurrentScript: !!currentScript,
+      lastProcessed: lastProcessedIndex
     });
 
-    if (currentScript && conversationHistory.length > 0) {
-      const analysis = progressTracker.analyzeProgress(conversationHistory);
-      setStageAnalysis(analysis);
+    if (currentScript && conversationHistory.length > lastProcessedIndex + 1) {
+      // Process only new transcripts
+      for (let i = lastProcessedIndex + 1; i < conversationHistory.length; i++) {
+        const entry = conversationHistory[i];
+        const confidence = keywordDetector.processTranscript(entry.text, true);
+
+        if (confidence) {
+          // Convert to StageDetectionResult format
+          const currentStage = keywordDetector.getCurrentStage();
+          const adherence = keywordDetector.calculateAdherence(currentStage);
+          const progressHistory = keywordDetector.getProgressionHistory();
+
+          const analysis: StageDetectionResult = {
+            detectedStage: confidence.stage,
+            confidence: confidence.confidence,
+            stageCompletion: 0, // Not tracked in keyword detector
+            evidence: confidence.matchedKeywords.map(kw => `"${kw}"`),
+            missedElements: adherence.missedElements,
+            suggestedActions: [
+              ...adherence.recommendations,
+              ...progressHistory.slice(-1).map(p => p.recommendation).filter(Boolean) as string[]
+            ],
+            adherenceScore: adherence.adherenceScore
+          };
+
+          setStageAnalysis(analysis);
+          setSelectedStage(confidence.stage);
+        }
+      }
+
+      setLastProcessedIndex(conversationHistory.length - 1);
       setProgress(scriptService.getProgress());
     }
-  }, [conversationHistory, currentScript, progressTracker, scriptService, trail]);
+  }, [conversationHistory, currentScript, keywordDetector, scriptService, trail, lastProcessedIndex]);
 
   // Update sentiment graph when sentiment changes
   useEffect(() => {
@@ -147,13 +184,21 @@ export const SalesScriptPanel: React.FC<SalesScriptPanelProps> = ({
     }
   }, [currentSentiment, trail]);
 
-  const handleScriptChange = (scriptId: string) => {
+  const handleScriptChange = async (scriptId: string) => {
     const success = scriptService.setActiveScript(scriptId);
     if (success) {
-      setCurrentScript(scriptService.getCurrentScript());
+      const script = scriptService.getCurrentScript();
+      setCurrentScript(script);
       setProgress(scriptService.getProgress());
-      progressTracker.reset();
+
+      // Load keywords from the selected script
+      if (script) {
+        await keywordDetector.loadFromScript(script);
+      }
+
+      keywordDetector.reset();
       setStageAnalysis(null);
+      setLastProcessedIndex(-1);
     }
   };
 

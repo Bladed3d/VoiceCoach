@@ -1395,6 +1395,44 @@ ipcMain.handle('list-rag-documents', async () => {
   }
 });
 
+// List all Sales scripts
+ipcMain.handle('list-sales-scripts', async () => {
+  try {
+    const projectRoot = app.getAppPath();
+    const salesDir = path.join(projectRoot, 'Sales');
+    console.log('🎵 LED 2090: SALES_SCRIPTS_LISTING - Checking directory:', salesDir);
+
+    const scripts = [];
+
+    if (fs.existsSync(salesDir)) {
+      const files = fs.readdirSync(salesDir);
+      console.log('🎵 LED 2091: SALES_SCRIPTS_LISTING - Found items:', files);
+
+      for (const file of files) {
+        const filePath = path.join(salesDir, file);
+        const stats = fs.statSync(filePath);
+
+        // Only include .json files
+        if (stats.isFile() && path.extname(file).toLowerCase() === '.json') {
+          const script = {
+            name: file,
+            path: `/Sales/${file}` // Relative path for fetch
+          };
+
+          scripts.push(script);
+          console.log('🎵 LED 2092: SALES_SCRIPTS_LISTING - Added script:', script.name);
+        }
+      }
+    }
+
+    console.log('🎵 LED 2093: SALES_SCRIPTS_LISTING - Total scripts found:', scripts.length);
+    return scripts;
+  } catch (error) {
+    console.error('🎵 LED 8090: SALES_SCRIPTS_LISTING_ERROR:', error);
+    return [];
+  }
+});
+
 // Load RAG document by filename
 ipcMain.handle('load-rag-document', async (event, filename) => {
   try {
@@ -1793,6 +1831,44 @@ ipcMain.handle('delete-processed-document', async (event, phaseFileId) => {
     }
   } catch (error) {
     throw new Error(`Failed to delete processed document: ${error.message}`);
+  }
+});
+
+// Save call recording
+ipcMain.handle('save-call-recording', async (event, { folderPath, fileName, data }) => {
+  try {
+    // LED 6530: Save call recording (main process)
+    console.log(`💾 Saving call recording: ${folderPath}/${fileName}`);
+
+    // Create full path
+    const fullFolderPath = path.join(__dirname, folderPath);
+    const fullFilePath = path.join(fullFolderPath, fileName);
+
+    // Create directories if they don't exist
+    fs.mkdirSync(fullFolderPath, { recursive: true });
+
+    // Write file
+    fs.writeFileSync(fullFilePath, data, 'utf8');
+
+    // Get file size
+    const stats = fs.statSync(fullFilePath);
+
+    // LED 6531: Save successful (main process)
+    console.log(`✅ Call recording saved: ${fullFilePath} (${stats.size} bytes)`);
+
+    return {
+      success: true,
+      filePath: fullFilePath,
+      fileSize: stats.size
+    };
+
+  } catch (error) {
+    // LED 8530: Save failed (main process)
+    console.error('❌ Failed to save call recording:', error);
+    return {
+      success: false,
+      error: error.message
+    };
   }
 });
 

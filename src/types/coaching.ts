@@ -91,3 +91,53 @@ export interface SessionState {
   manualSentiments?: ManualSentiment[]; // User's manual sentiment inputs
   currentManualSentiment?: number; // Most recent manual sentiment score
 }
+
+// Call Recording Types
+export interface CallEvent {
+  type: 'transcript' | 'ollama_generation' | 'stage_change' | 'user_action';
+  stageId: string;
+  timestamp: string;
+  data: any;
+  ledTrace?: LEDEntry[];
+}
+
+export interface LEDEntry {
+  led: number;
+  time: string;
+  component: string;
+  operation: string;
+  data?: any;
+}
+
+export interface CallRecording {
+  session: {
+    id: string;
+    startTime: string;
+    endTime?: string;
+    duration: number;
+    configuration: SessionConfiguration;
+  };
+  events: CallEvent[];
+  ledSummary?: {
+    totalLEDs: number;
+    completeLEDTrace: LEDEntry[];
+    ledsByComponent: { [component: string]: number };
+    errors: LEDEntry[];
+    performance: PerformanceMetrics;
+  };
+}
+
+export interface SessionConfiguration {
+  captureMode: 'microphone' | 'full-conversation';
+  documentsSelected: string[];
+  instructionFile: string;
+  ragFile: string;
+  ollamaModel: string;
+  voskSettings: any;
+}
+
+export interface PerformanceMetrics {
+  avgPromptPipeline: number;
+  slowestPrompt: { stageId: string; time: number } | null;
+  fastestPrompt: { stageId: string; time: number } | null;
+}

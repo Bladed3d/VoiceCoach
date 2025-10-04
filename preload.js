@@ -21,7 +21,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // RAG document loading
   loadRagDocument: (filename) => ipcRenderer.invoke('load-rag-document', filename),
   listRagDocuments: () => ipcRenderer.invoke('list-rag-documents'),
-  
+
+  // Sales scripts loading
+  listSalesScripts: () => ipcRenderer.invoke('list-sales-scripts'),
+
   // Ollama instruction files
   listInstructionFiles: () => ipcRenderer.invoke('list-instruction-files'),
   
@@ -51,6 +54,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   updateVoskConfig: (config) => ipcRenderer.invoke('update-vosk-config', config),
   getConversationHistory: () => ipcRenderer.invoke('get-conversation-history'),
   clearConversationHistory: () => ipcRenderer.invoke('clear-conversation-history'),
+
+  // Call Recording
+  saveCallRecording: (data) => ipcRenderer.invoke('save-call-recording', data),
   
   // Enhanced Audio System Support
   requestMicrophoneAccess: () => ipcRenderer.invoke('request-microphone-access'),

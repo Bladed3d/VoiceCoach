@@ -95,27 +95,36 @@ export class SalesScriptService {
    */
   private async loadBuiltInScripts(): Promise<void> {
     try {
-      // Load golf coaching script
-      const golfResponse = await fetch('/Sales/golf-coaching.json');
-      if (golfResponse.ok) {
-        const golfScript: SalesScript = await golfResponse.json();
-        this.availableScripts.set(golfScript.id, golfScript);
-      }
+      // Get list of available scripts from Electron IPC
+      if (window.electronAPI?.listSalesScripts) {
+        const scriptFiles = await window.electronAPI.listSalesScripts();
+        console.log(`🎵 LED 9402: Found ${scriptFiles.length} sales scripts`);
 
-      // Load generic template
-      const genericResponse = await fetch('/Sales/generic-template.json');
-      if (genericResponse.ok) {
-        const genericScript: SalesScript = await genericResponse.json();
-        this.availableScripts.set(genericScript.id, genericScript);
-      }
+        for (const scriptFile of scriptFiles) {
+          try {
+            const response = await fetch(scriptFile.path);
+            if (response.ok) {
+              const script: SalesScript = await response.json();
+              this.availableScripts.set(script.id, script);
+              console.log(`✅ Loaded script: ${script.name} (${scriptFile.name})`);
+            }
+          } catch (err) {
+            console.warn(`⚠️ Could not load ${scriptFile.name}:`, err);
+          }
+        }
 
-      this.trail.light(9403, {
-        operation: 'builtin_scripts_loaded',
-        scripts: Array.from(this.availableScripts.keys())
-      });
+        this.trail.light(9403, {
+          operation: 'builtin_scripts_loaded',
+          scripts: Array.from(this.availableScripts.keys())
+        });
+      } else {
+        // Fallback to embedded script data if Electron API not available
+        console.warn('Electron API not available, using embedded scripts');
+        this.loadEmbeddedScripts();
+      }
 
     } catch (error) {
-      console.warn('Could not load built-in scripts via fetch, using embedded data');
+      console.warn('Could not load built-in scripts, using embedded data:', error);
       // Fallback to embedded script data
       this.loadEmbeddedScripts();
     }

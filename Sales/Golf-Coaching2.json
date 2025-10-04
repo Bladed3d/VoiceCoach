@@ -1,0 +1,276 @@
+{
+  "id": "golf-coaching-keywords-v2",
+  "name": "Golf Coaching - Keyword Detection",
+  "description": "Keyword-based stage detection for Golf Coaching Package sales script",
+  "version": "2.0",
+  "stages": [
+    {
+      "number": 1,
+      "name": "Rapport",
+      "title": "Lay a foundation for roles and who I am",
+      "keywords": {
+        "strong": [
+          "certified golf coaching specialist",
+          "Tiger Woods",
+          "if our program aligns",
+          "take 15 minutes and enjoy some golf talk"
+        ],
+        "moderate": [
+          "thanks for talking",
+          "look forward to learning",
+          "golf talk",
+          "beginners to pros"
+        ],
+        "weak": [
+          "improve your game",
+          "how's your day"
+        ]
+      },
+      "threshold": {
+        "score": 2,
+        "matches": 1
+      },
+      "timeWindowSec": 45,
+      "sentenceWindow": 15
+    },
+    {
+      "number": 2,
+      "name": "Problem Intro",
+      "title": "Why are we talking?",
+      "keywords": {
+        "strong": [
+          "frustrated with inconsistent swings",
+          "mental blocks during rounds",
+          "emotional frustration from poor performance",
+          "financial waste on ineffective lessons",
+          "scheduling conflicts with local coaches"
+        ],
+        "moderate": [
+          "many golfers like you",
+          "hold them back from enjoying",
+          "feel more like a chore",
+          "if you could change anything"
+        ],
+        "weak": [
+          "struggle with",
+          "what else do you"
+        ]
+      },
+      "threshold": {
+        "score": 2,
+        "matches": 1
+      },
+      "timeWindowSec": 40,
+      "sentenceWindow": 12
+    },
+    {
+      "number": 3,
+      "name": "Solution Intro",
+      "title": "How can we make this better?",
+      "keywords": {
+        "strong": [
+          "Mike Schwartz coached Tiger Woods",
+          "Nick Brady coached Mark Stevenson",
+          "unlimited video analysis",
+          "4-day immersive live session",
+          "world-renowned pro"
+        ],
+        "moderate": [
+          "professional golf coaching package",
+          "entire year of coaching",
+          "most credible proven golf coaches",
+          "personalized to fix your unique issues"
+        ],
+        "weak": [
+          "designed to give you",
+          "help you play better faster"
+        ]
+      },
+      "threshold": {
+        "score": 2,
+        "matches": 1
+      },
+      "timeWindowSec": 35,
+      "sentenceWindow": 12
+    },
+    {
+      "number": 4,
+      "name": "Problem Application",
+      "title": "How does this problem apply to prospect?",
+      "keywords": {
+        "strong": [
+          "let's talk about how this plays out for you",
+          "does inconsistent coaching leave you second-guessing",
+          "how frustrating is it when you don't see progress"
+        ],
+        "moderate": [
+          "mentally does",
+          "emotionally how",
+          "financially have you",
+          "on your schedule does"
+        ],
+        "weak": [
+          "I'd love to hear more about that",
+          "traveling to coaching sessions"
+        ]
+      },
+      "threshold": {
+        "score": 2,
+        "matches": 1
+      },
+      "timeWindowSec": 40,
+      "sentenceWindow": 12
+    },
+    {
+      "number": 5,
+      "name": "Current Solution",
+      "title": "What is their solution now?",
+      "keywords": {
+        "strong": [
+          "what are you doing now for coaching",
+          "aren't talented enough to justify a coach",
+          "if you love the game"
+        ],
+        "moderate": [
+          "does it build your confidence",
+          "is it cost-effective",
+          "enjoying it even more",
+          "playing at a higher level is simply more fun"
+        ],
+        "weak": [
+          "or leave you doubting",
+          "or add stress",
+          "easy or a hassle"
+        ]
+      },
+      "threshold": {
+        "score": 2,
+        "matches": 1
+      },
+      "timeWindowSec": 35,
+      "sentenceWindow": 12
+    },
+    {
+      "number": 6,
+      "name": "Our Difference",
+      "title": "How can we make a difference?",
+      "keywords": {
+        "strong": [
+          "$6,000",
+          "$7,000",
+          "unlimited year coaching package",
+          "four day weekend in Miami",
+          "savings of $1,000"
+        ],
+        "moderate": [
+          "here's how we can make a real difference",
+          "Tiger Woods-level strategies",
+          "unshakable improvements",
+          "put a phone or camera on a tripod"
+        ],
+        "weak": [
+          "just $500/month",
+          "faster than trial-and-error",
+          "turning frustration into excitement"
+        ]
+      },
+      "threshold": {
+        "score": 2,
+        "matches": 1
+      },
+      "timeWindowSec": 45,
+      "sentenceWindow": 15
+    },
+    {
+      "number": 7,
+      "name": "Ideal Solution",
+      "title": "What would their ideal solution look like?",
+      "keywords": {
+        "strong": [
+          "if you could design the perfect coaching solution",
+          "what would it include",
+          "what would make you happiest on the course"
+        ],
+        "moderate": [
+          "ideal solution",
+          "sharpen your game mindset",
+          "what value would justify the investment",
+          "how flexible would it need to be"
+        ],
+        "weak": [
+          "mentally how would",
+          "emotionally what would"
+        ]
+      },
+      "threshold": {
+        "score": 2,
+        "matches": 1
+      },
+      "timeWindowSec": 30,
+      "sentenceWindow": 10
+    },
+    {
+      "number": 8,
+      "name": "Alignment Check",
+      "title": "Where are we NOT aligned?",
+      "keywords": {
+        "strong": [
+          "where are we not aligned",
+          "put a dent in your bank account",
+          "any concerns or are you excited to play real golf"
+        ],
+        "moderate": [
+          "based on what you've shared",
+          "sounds like we're aligned on",
+          "mental clarity",
+          "emotional satisfaction",
+          "scheduling ease"
+        ],
+        "weak": [
+          "would spending a little money",
+          "amazing year long golf experience"
+        ]
+      },
+      "threshold": {
+        "score": 2,
+        "matches": 1
+      },
+      "timeWindowSec": 35,
+      "sentenceWindow": 12
+    },
+    {
+      "number": 9,
+      "name": "Close",
+      "title": "Sale - Confirm commitment",
+      "keywords": {
+        "strong": [
+          "shall we get you started with the package today",
+          "walk you through enrollment right now",
+          "with us aligned mentally"
+        ],
+        "moderate": [
+          "natural fit",
+          "$6,000 delivering superior value",
+          "reigniting your passion",
+          "building your confidence"
+        ],
+        "weak": [
+          "flexible access",
+          "emotionally on"
+        ]
+      },
+      "threshold": {
+        "score": 2,
+        "matches": 1
+      },
+      "timeWindowSec": 30,
+      "sentenceWindow": 10
+    }
+  ],
+  "notes": {
+    "extraction_source": "Sales/Sales Outline for Golf Coaching.md",
+    "keyword_strategy": "Strong keywords are unique phrases from the script that clearly indicate the stage. Moderate keywords are supporting phrases. Weak keywords are common words that may appear in multiple stages.",
+    "threshold_explanation": "score: 2 means need 2 points total (1 strong OR 2 moderate OR 4 weak), matches: 1 means need at least 1 keyword hit",
+    "mefs_tracking": "MEFS (Mental, Emotional, Financial, Schedule) indicators are embedded in keywords for stages 4-8"
+  }
+}

@@ -46,6 +46,13 @@ export interface ElectronAPI {
   saveInsights: (insights: any) => Promise<{ success: boolean }>;
   loadInsights: () => Promise<any | null>;
 
+  // RAG document operations
+  listRagDocuments?: () => Promise<Array<{ name: string; path: string; type: string; size?: number }>>;
+  loadRagDocument?: (filename: string) => Promise<any>;
+
+  // Sales script operations
+  listSalesScripts?: () => Promise<Array<{ name: string; path: string }>>;
+
   // System info
   getSystemInfo: () => Promise<{
     platform: string;
