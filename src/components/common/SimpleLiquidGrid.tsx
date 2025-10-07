@@ -260,24 +260,40 @@ export const SimpleLiquidGrid: React.FC<SimpleLiquidGridProps> = ({
           // Clean up current grid
           gridData.cleanup();
           currentlyVisible = 0;
-          
+
           // Recreate grid with new dimensions
           gridData = createGrid();
-          
+
           // Restart animation cycle
           const restartTimeout = setTimeout(animateRandomSquares, 500);
           intervalsRef.current.push(restartTimeout as any);
-          
+
+          trail.light(7216, {
+            event: 'grid_recreated_on_resize',
+            newWidth: containerRef.current?.clientWidth,
+            newHeight: containerRef.current?.clientHeight
+          });
           console.log('SimpleLiquidGrid: Grid recreated on resize');
         }
       }, 150); // 150ms debounce
     };
 
-    window.addEventListener('resize', handleResize);
+    // Use ResizeObserver to detect panel width changes (not just window resize)
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.target === containerRef.current) {
+          handleResize();
+        }
+      }
+    });
+
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
 
     // Cleanup function
     return () => {
-      window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
       clearTimeout(resizeTimeout);
       gridData.cleanup();
       

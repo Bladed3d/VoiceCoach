@@ -700,6 +700,27 @@ export class KeywordStageDetector {
   }
 
   /**
+   * Set current stage (for manual stage changes from UI)
+   * Clears keyword history to prevent false matches from previous stage
+   */
+  setCurrentStage(stageNumber: number): void {
+    this.trail.light(9501, {
+      operation: 'manual_stage_change',
+      fromStage: this.currentStage,
+      toStage: stageNumber,
+      timestamp: Date.now()
+    });
+
+    this.currentStage = stageNumber;
+
+    // Clear keyword history to start fresh at new stage
+    this.keywordHistory = [];
+    this.currentSentenceIndex = 0;
+
+    console.log(`🎯 KeywordStageDetector: Stage manually set to ${stageNumber}, history cleared`);
+  }
+
+  /**
    * Get stage configuration
    */
   getStageConfig(stageNumber: number): StageConfig | undefined {

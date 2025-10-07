@@ -24,6 +24,7 @@ import { conversationAnalyzer } from './analyzers/ConversationAnalyzer';
 import { SemanticSearchResult } from '../../types/chromadb';
 import { SentimentAnalyzer, SentimentAnalysis } from './sentiment-analyzer';
 import { callRecordingService } from './CallRecordingService';
+import { keywordStageDetector } from './KeywordStageDetector';
 
 export class SessionManagerService {
   private trail: BreadcrumbTrail;
@@ -643,10 +644,11 @@ export class SessionManagerService {
     
     const sessionStartTime = Date.now();
     this.callStartTime = new Date(); // Track for call duration
-    
+
     // Reset analyzers for new session
     conversationAnalyzer.reset();
-    
+    // DO NOT reset keywordStageDetector - it contains the loaded script keywords!
+
     // Store capture mode in state
     this.updateSessionState({ captureMode });
     
@@ -970,6 +972,10 @@ export class SessionManagerService {
         }
       });
 
+      // CRITICAL: Reset KeywordStageDetector for next call
+      keywordStageDetector.reset();
+      console.log('✅ SessionManager: KeywordStageDetector reset for next call');
+
       // LED 6304: Session stop success
       this.trail.light(6304, {
         operation: 'session_stop_success',
@@ -1233,6 +1239,60 @@ export class SessionManagerService {
           liveTranscript: '',
           liveTranscriptSpeaker: undefined // Clear for next transcript
         });
+
+        // Process transcript through KeywordStageDetector for automatic stage advancement
+        console.log('🔍 SessionManager: Processing transcript for keywords', {
+          text: transcript.text,
+          currentStage: this.currentStage,
+          hasKeywordDetector: !!keywordStageDetector
+        });
+
+        try {
+          const stageConfidence = keywordStageDetector.processTranscript(transcript.text, true);
+          console.log('🔍 SessionManager: processTranscript returned', {
+            stageConfidence,
+            detectedStage: stageConfidence ? keywordStageDetector.getCurrentStage() : null
+          });
+
+          if (stageConfidence) {
+            const detectedStage = keywordStageDetector.getCurrentStage();
+            console.log('🔍 SessionManager: Comparing stages', {
+              currentStage: this.currentStage,
+              detectedStage,
+              willAdvance: detectedStage !== this.currentStage
+            });
+
+            if (detectedStage !== this.currentStage) {
+              // LED 6320: Stage change detected by keyword detector
+              this.trail.light(6320, {
+                operation: 'keyword_stage_advancement',
+                fromStage: this.currentStage,
+                toStage: detectedStage,
+                confidence: Math.round(stageConfidence.confidence),
+                matchedKeywords: stageConfidence.matchedKeywords,
+                transcriptSnippet: transcript.text.substring(0, 50)
+              });
+
+              // Update current stage
+              this.currentStage = detectedStage;
+              console.log(`🎯 Stage advanced: ${this.currentStage - 1} → ${this.currentStage} (confidence: ${stageConfidence.confidence.toFixed(1)}%)`);
+              console.log(`   Matched keywords: ${stageConfidence.matchedKeywords.join(', ')}`);
+
+              // Notify UI of automatic stage advancement
+              this.updateSessionState({
+                currentStage: detectedStage
+              });
+
+              // Record stage change in call recording
+              callRecordingService.captureStageChange(detectedStage);
+            }
+          } else {
+            console.log('🔍 SessionManager: No stage confidence returned (no keywords matched)');
+          }
+        } catch (error) {
+          console.error('❌ KeywordStageDetector error:', error);
+          this.trail.fail(8321, error instanceof Error ? error : new Error('Keyword detection failed'));
+        }
 
         // Analyze sentiment for BOTH speakers (prospect + user handling)
         this.currentSentiment = this.sentimentAnalyzer.analyzeResponse(transcript.text, currentSpeaker);
@@ -1621,6 +1681,10 @@ export class SessionManagerService {
     this.currentStage = stageNumber;
     this.promptCounter = 0; // Reset prompt counter when stage changes
     this.currentPromptNumber = 0; // Reset current prompt number for transcripts
+
+    // CRITICAL: Sync KeywordStageDetector to match manual stage selection
+    keywordStageDetector.setCurrentStage(stageNumber);
+    console.log(`✅ SessionManager: Synced KeywordStageDetector to stage ${stageNumber}`);
 
     // Capture stage change
     callRecordingService.captureStageChange(stageNumber);
